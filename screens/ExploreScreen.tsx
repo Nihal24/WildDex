@@ -1,14 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function ExploreScreen() {
+const ExploreScreen: React.FC = () => {
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <Text style={styles.title}>Explore Nearby Wildlife</Text>
-    </SafeAreaView>
+    </View>
   );
-}
+};
+
+export default ExploreScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -19,7 +20,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginTop: 20, 
+    marginTop: 20,
     textAlign: 'center',
   },
 });
