@@ -35,14 +35,15 @@ const CameraScreen: React.FC = () => {
   };
 
   if (!permission) return <View />;
-  if (!permission.granted) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.message}>We need your permission to show the camera</Text>
-        <Button onPress={requestPermission} title="Grant Permission" />
-      </View>
-    );
-  }
+if (!permission.granted) {
+  return (
+    <SafeAreaView style={styles.permissionContainer}>
+      <Text style={styles.message}>We need your permission to show the camera</Text>
+      <Button onPress={requestPermission} title="Grant Permission" />
+    </SafeAreaView>
+  );
+}
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -52,6 +53,7 @@ const CameraScreen: React.FC = () => {
           <Button title="Retake" onPress={() => setCapturedPhoto(null)} />
         </View>
       ) : (
+        <View style={styles.cameraContainer}>
         <CameraView
           style={styles.camera}
           facing={facing}
@@ -64,7 +66,8 @@ const CameraScreen: React.FC = () => {
 
           {/* Shutter button bottom-center */}
           <TouchableOpacity onPress={takePhoto} style={styles.captureButton} />
-        </CameraView>
+          </CameraView>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -112,4 +115,14 @@ const styles = StyleSheet.create({
     height: '70%',
     borderRadius: 10,
   },
+  cameraContainer: {
+  flex: 1,
+  position: 'relative',
+},
+permissionContainer: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: '#000',  
+},
 });

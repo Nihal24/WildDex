@@ -2,6 +2,12 @@
   "expo": {
     "name": "wilddex",
     "slug": "wilddex",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "android": {
+      "package": "com.anonymous.wilddex"
+    },
+    "ios": {
+      "bundleIdentifier": "com.anonymous.wilddex"
+    }
   }
 }
