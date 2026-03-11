@@ -11,7 +11,7 @@ classes = {
 }
 
 # Number of training images per class
-num_train_images = 50
+num_train_images = 200
 
 # Filtering to reduce irrelevant results
 filters = dict(
