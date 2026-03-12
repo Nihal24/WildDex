@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const SIGHTINGS_KEY = 'wilddex_sightings';
+const PHOTOS_DIR = `${FileSystem.documentDirectory}wilddex_photos/`;
 
 export interface Sighting {
   label: string;
@@ -9,9 +11,19 @@ export interface Sighting {
   timestamp: number;
 }
 
+// Copy photo to permanent app storage so it survives rebuilds
+async function persistPhoto(uri: string): Promise<string> {
+  await FileSystem.makeDirectoryAsync(PHOTOS_DIR, { intermediates: true });
+  const filename = `${Date.now()}.jpg`;
+  const dest = `${PHOTOS_DIR}${filename}`;
+  await FileSystem.copyAsync({ from: uri, to: dest });
+  return dest;
+}
+
 export async function saveSighting(sighting: Sighting): Promise<void> {
+  const permanentUri = await persistPhoto(sighting.photoUri);
   const existing = await getSightings();
-  existing.unshift(sighting);
+  existing.unshift({ ...sighting, photoUri: permanentUri });
   await AsyncStorage.setItem(SIGHTINGS_KEY, JSON.stringify(existing));
 }
 
