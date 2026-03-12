@@ -11,22 +11,78 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
+  ImageBackground,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 import { getDiscoveredLabels, getLatestPhotoForLabel } from '../utils/storage';
 import { getAnimalProfile, AnimalInfo } from '../utils/claude';
+import { fetchRarity, RarityInfo } from '../utils/rarity';
 
 const ALL_SPECIES = [
+  // Birds
   { id: '001', label: 'chicken' },
-  { id: '002', label: 'goose' },
-  { id: '003', label: 'pidgeon' },
+  { id: '002', label: 'canada goose' },
+  { id: '003', label: 'pidgeon', displayName: 'Pigeon' },
+  { id: '004', label: 'mallard duck' },
+  { id: '005', label: 'crow' },
+  { id: '006', label: 'bald eagle' },
+  { id: '007', label: 'great horned owl' },
+  { id: '008', label: 'flamingo' },
+  { id: '009', label: 'peacock' },
+  { id: '010', label: 'penguin' },
+  { id: '011', label: 'parrot' },
+  { id: '012', label: 'robin' },
+  { id: '013', label: 'hummingbird' },
+  { id: '014', label: 'pelican' },
+  { id: '015', label: 'toucan' },
+  // Mammals - domestic/common
+  { id: '016', label: 'dog' },
+  { id: '017', label: 'cat' },
+  { id: '018', label: 'rabbit' },
+  { id: '019', label: 'horse' },
+  { id: '020', label: 'cow' },
+  { id: '021', label: 'goat' },
+  { id: '022', label: 'pig' },
+  { id: '023', label: 'sheep' },
+  // Mammals - wildlife
+  { id: '024', label: 'squirrel' },
+  { id: '025', label: 'white-tailed deer' },
+  { id: '026', label: 'red fox' },
+  { id: '027', label: 'raccoon' },
+  { id: '028', label: 'wolf' },
+  { id: '029', label: 'grizzly bear' },
+  { id: '030', label: 'polar bear' },
+  // Mammals - zoo/exotic
+  { id: '031', label: 'lion' },
+  { id: '032', label: 'tiger' },
+  { id: '033', label: 'cheetah' },
+  { id: '034', label: 'leopard' },
+  { id: '035', label: 'elephant' },
+  { id: '036', label: 'giraffe' },
+  { id: '037', label: 'zebra' },
+  { id: '038', label: 'hippo' },
+  { id: '039', label: 'rhino' },
+  { id: '040', label: 'gorilla' },
+  { id: '041', label: 'chimpanzee' },
+  { id: '042', label: 'orangutan' },
+  { id: '043', label: 'giant panda' },
+  { id: '044', label: 'koala' },
+  { id: '045', label: 'kangaroo' },
+  // Reptiles / Amphibians
+  { id: '046', label: 'crocodile' },
+  { id: '047', label: 'komodo dragon' },
+  { id: '048', label: 'green sea turtle' },
+  { id: '049', label: 'chameleon' },
+  // Aquatic
+  { id: '050', label: 'dolphin' },
 ];
 
 interface SpeciesCardData {
   id: string;
   label: string;
+  displayName?: string;
   discovered: boolean;
   photoUri: string | null;
 }
@@ -48,7 +104,7 @@ const SpeciesCard: React.FC<{ item: SpeciesCardData; onPress: () => void }> = ({
     <View style={styles.cardFooter}>
       <Text style={styles.cardNumber}>#{item.id}</Text>
       <Text style={styles.cardName}>
-        {item.discovered ? item.label.charAt(0).toUpperCase() + item.label.slice(1) : '???'}
+        {item.discovered ? (item.displayName ?? (item.label.charAt(0).toUpperCase() + item.label.slice(1))) : '???'}
       </Text>
     </View>
   </TouchableOpacity>
@@ -71,6 +127,7 @@ const WildDexScreen: React.FC = () => {
   const [discoveredCount, setDiscoveredCount] = useState(0);
   const [selected, setSelected] = useState<SpeciesCardData | null>(null);
   const [animalInfo, setAnimalInfo] = useState<AnimalInfo | null>(null);
+  const [rarity, setRarity] = useState<RarityInfo | null>(null);
   const [infoLoading, setInfoLoading] = useState(false);
   const [infoError, setInfoError] = useState<string | null>(null);
 
@@ -80,7 +137,7 @@ const WildDexScreen: React.FC = () => {
       ALL_SPECIES.map(async (s) => {
         const isDiscovered = discovered.has(s.label);
         const photoUri = isDiscovered ? await getLatestPhotoForLabel(s.label) : null;
-        return { ...s, discovered: isDiscovered, photoUri };
+        return { id: s.id, label: s.label, displayName: (s as any).displayName, discovered: isDiscovered, photoUri };
       })
     );
     setSpecies(data);
@@ -92,11 +149,16 @@ const WildDexScreen: React.FC = () => {
   const openDetail = async (item: SpeciesCardData) => {
     setSelected(item);
     setAnimalInfo(null);
+    setRarity(null);
     setInfoError(null);
     setInfoLoading(true);
     try {
-      const info = await getAnimalProfile(item.label);
+      const [info, rarityInfo] = await Promise.all([
+        getAnimalProfile(item.label),
+        fetchRarity(item.label),
+      ]);
       setAnimalInfo(info);
+      setRarity(rarityInfo);
     } catch (e: any) {
       console.error('Animal profile error:', e?.message, e?.status, JSON.stringify(e));
       setInfoError(`Error: ${e?.message || 'Unknown error'}`);
@@ -108,6 +170,7 @@ const WildDexScreen: React.FC = () => {
   const closeDetail = () => {
     setSelected(null);
     setAnimalInfo(null);
+    setRarity(null);
     setInfoError(null);
   };
 
@@ -151,9 +214,20 @@ const WildDexScreen: React.FC = () => {
             )}
 
             <Text style={styles.detailName}>
-              {selected?.label.charAt(0).toUpperCase()}{selected?.label.slice(1)}
+              {selected?.displayName ?? (selected?.label.charAt(0).toUpperCase() + (selected?.label.slice(1) ?? ''))}
             </Text>
             {animalInfo && <Text style={styles.sciName}>{animalInfo.scientificName}</Text>}
+            {rarity && (
+              <View style={[styles.rarityBadge, { borderColor: rarity.color }]}>
+                <Text style={styles.rarityEmoji}>{rarity.emoji}</Text>
+                <Text style={[styles.rarityLabel, { color: rarity.color }]}>{rarity.label}</Text>
+                {rarity.observationCount >= 0 && (
+                  <Text style={styles.rarityCount}>
+                    {rarity.observationCount.toLocaleString()} sightings worldwide
+                  </Text>
+                )}
+              </View>
+            )}
 
             {infoLoading && (
               <View style={styles.loadingBox}>
@@ -165,17 +239,43 @@ const WildDexScreen: React.FC = () => {
             {infoError && <Text style={styles.errorText}>{infoError}</Text>}
 
             {animalInfo && (
-              <View style={styles.infoCard}>
-                <Text style={styles.summaryText}>{animalInfo.summary}</Text>
-                <View style={styles.divider} />
-                <InfoRow icon="leaf-outline" label="Habitat" value={animalInfo.habitat} />
-                <InfoRow icon="restaurant-outline" label="Diet" value={animalInfo.diet} />
-                <InfoRow icon="shield-checkmark-outline" label="Conservation" value={animalInfo.conservationStatus} />
-                <View style={styles.funFactBox}>
-                  <Text style={styles.funFactLabel}>Fun Fact</Text>
-                  <Text style={styles.funFactText}>{animalInfo.funFact}</Text>
+              <>
+                <View style={styles.infoCard}>
+                  <Text style={styles.summaryText}>{animalInfo.summary}</Text>
+                  <View style={styles.divider} />
+                  <InfoRow icon="leaf-outline" label="Habitat" value={animalInfo.habitat} />
+                  <InfoRow icon="restaurant-outline" label="Diet" value={animalInfo.diet} />
+                  <InfoRow icon="shield-checkmark-outline" label="Conservation" value={animalInfo.conservationStatus} />
+                  <View style={styles.funFactBox}>
+                    <Text style={styles.funFactLabel}>Fun Fact</Text>
+                    <Text style={styles.funFactText}>{animalInfo.funFact}</Text>
+                  </View>
                 </View>
-              </View>
+
+                {/* Closest Pokémon */}
+                {animalInfo.closestPokemon?.length > 0 && (
+                  <View style={styles.pokeCard}>
+                    <Text style={styles.pokeTitle}>CLOSEST POKÉMON</Text>
+                    <View style={styles.pokeRow}>
+                      {animalInfo.closestPokemon.map((p) => (
+                        <View key={p.name} style={styles.pokeItem}>
+                          {p.spriteUrl ? (
+                            <Image source={{ uri: p.spriteUrl }} style={styles.pokeSprite} />
+                          ) : (
+                            <View style={styles.pokeSritePlaceholder}>
+                              <Text style={styles.pokePlaceholderText}>?</Text>
+                            </View>
+                          )}
+                          <Text style={styles.pokeName}>
+                            {p.name.charAt(0).toUpperCase() + p.name.slice(1)}
+                          </Text>
+                          <Text style={styles.pokeReason}>{p.reason}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+              </>
             )}
           </ScrollView>
         </SafeAreaView>
@@ -243,4 +343,78 @@ const styles = StyleSheet.create({
   funFactBox: { backgroundColor: COLORS.background, borderRadius: 10, padding: 12, marginTop: 4, borderLeftWidth: 3, borderLeftColor: COLORS.yellow },
   funFactLabel: { color: COLORS.yellow, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   funFactText: { color: COLORS.white, fontSize: 14, lineHeight: 20 },
+
+  // Rarity badge
+  rarityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginBottom: 12,
+    gap: 6,
+  },
+  rarityEmoji: { fontSize: 14 },
+  rarityLabel: { fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+  rarityCount: { fontSize: 11, color: COLORS.grey },
+
+  // Pokémon section
+  pokeCard: {
+    width: '100%',
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    padding: 16,
+    marginTop: 12,
+    marginBottom: 20,
+  },
+  pokeTitle: {
+    color: COLORS.primary,
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 2,
+    textAlign: 'center',
+    marginBottom: 14,
+  },
+  pokeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  pokeItem: {
+    alignItems: 'center',
+    flex: 1,
+    paddingHorizontal: 4,
+  },
+  pokeSprite: {
+    width: 80,
+    height: 80,
+  },
+  pokeSritePlaceholder: {
+    width: 80,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+  },
+  pokePlaceholderText: {
+    color: COLORS.darkGrey,
+    fontSize: 24,
+    fontWeight: '900',
+  },
+  pokeName: {
+    color: COLORS.yellow,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  pokeReason: {
+    color: COLORS.grey,
+    fontSize: 10,
+    textAlign: 'center',
+    marginTop: 2,
+  },
 });
