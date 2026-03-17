@@ -24,7 +24,7 @@ import jpeg from 'jpeg-js';
 import { COLORS } from '../constants/theme';
 import { saveSighting } from '../utils/storage';
 
-const LABELS = ['chicken', 'goose', 'pidgeon'];
+const LABELS = ['bald_eagle','canada_goose','cat','chameleon','cheetah','chicken','chimpanzee','cow','crocodile','crow','dog','dolphin','elephant','flamingo','giant_panda','giraffe','goat','gorilla','great_horned_owl','grizzly_bear','hippo','horse','hummingbird','kangaroo','koala','komodo_dragon','leopard','lion','mallard_duck','orangutan','parrot','peacock','pelican','penguin','pig','pigeon','polar_bear','rabbit','raccoon','red_fox','rhino','robin','sheep','squirrel','tiger','toucan','turtle','white_tailed_deer','wolf','zebra'];
 const MODEL_INPUT_SIZE = 224;
 const CONFIDENCE_THRESHOLD = 0.6;
 

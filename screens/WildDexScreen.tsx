@@ -20,69 +20,73 @@ import { getDiscoveredLabels, getLatestPhotoForLabel } from '../utils/storage';
 import { getAnimalProfile, AnimalInfo } from '../utils/claude';
 import { fetchRarity, RarityInfo } from '../utils/rarity';
 
+// Labels must exactly match CameraScreen LABELS (alphabetical, underscores)
 const ALL_SPECIES = [
   // Birds
-  { id: '001', label: 'chicken' },
-  { id: '002', label: 'canada goose' },
-  { id: '003', label: 'pidgeon', displayName: 'Pigeon' },
-  { id: '004', label: 'mallard duck' },
-  { id: '005', label: 'crow' },
-  { id: '006', label: 'bald eagle' },
-  { id: '007', label: 'great horned owl' },
-  { id: '008', label: 'flamingo' },
+  { id: '001', label: 'bald_eagle' },
+  { id: '002', label: 'canada_goose' },
+  { id: '003', label: 'crow' },
+  { id: '004', label: 'flamingo' },
+  { id: '005', label: 'great_horned_owl' },
+  { id: '006', label: 'hummingbird' },
+  { id: '007', label: 'mallard_duck' },
+  { id: '008', label: 'parrot' },
   { id: '009', label: 'peacock' },
-  { id: '010', label: 'penguin' },
-  { id: '011', label: 'parrot' },
-  { id: '012', label: 'robin' },
-  { id: '013', label: 'hummingbird' },
-  { id: '014', label: 'pelican' },
-  { id: '015', label: 'toucan' },
+  { id: '010', label: 'pelican' },
+  { id: '011', label: 'penguin' },
+  { id: '012', label: 'pigeon' },
+  { id: '013', label: 'robin' },
+  { id: '014', label: 'toucan' },
+  { id: '015', label: 'chicken' },
   // Mammals - domestic/common
-  { id: '016', label: 'dog' },
-  { id: '017', label: 'cat' },
-  { id: '018', label: 'rabbit' },
-  { id: '019', label: 'horse' },
-  { id: '020', label: 'cow' },
-  { id: '021', label: 'goat' },
-  { id: '022', label: 'pig' },
+  { id: '016', label: 'cat' },
+  { id: '017', label: 'cow' },
+  { id: '018', label: 'dog' },
+  { id: '019', label: 'goat' },
+  { id: '020', label: 'horse' },
+  { id: '021', label: 'pig' },
+  { id: '022', label: 'rabbit' },
   { id: '023', label: 'sheep' },
   // Mammals - wildlife
-  { id: '024', label: 'squirrel' },
-  { id: '025', label: 'white-tailed deer' },
-  { id: '026', label: 'red fox' },
-  { id: '027', label: 'raccoon' },
+  { id: '024', label: 'raccoon' },
+  { id: '025', label: 'red_fox' },
+  { id: '026', label: 'squirrel' },
+  { id: '027', label: 'white_tailed_deer' },
   { id: '028', label: 'wolf' },
-  { id: '029', label: 'grizzly bear' },
-  { id: '030', label: 'polar bear' },
+  // Mammals - bears
+  { id: '029', label: 'grizzly_bear' },
+  { id: '030', label: 'polar_bear' },
   // Mammals - zoo/exotic
-  { id: '031', label: 'lion' },
-  { id: '032', label: 'tiger' },
-  { id: '033', label: 'cheetah' },
-  { id: '034', label: 'leopard' },
-  { id: '035', label: 'elephant' },
-  { id: '036', label: 'giraffe' },
-  { id: '037', label: 'zebra' },
-  { id: '038', label: 'hippo' },
-  { id: '039', label: 'rhino' },
-  { id: '040', label: 'gorilla' },
-  { id: '041', label: 'chimpanzee' },
+  { id: '031', label: 'cheetah' },
+  { id: '032', label: 'chimpanzee' },
+  { id: '033', label: 'elephant' },
+  { id: '034', label: 'giant_panda' },
+  { id: '035', label: 'giraffe' },
+  { id: '036', label: 'gorilla' },
+  { id: '037', label: 'hippo' },
+  { id: '038', label: 'kangaroo' },
+  { id: '039', label: 'koala' },
+  { id: '040', label: 'leopard' },
+  { id: '041', label: 'lion' },
   { id: '042', label: 'orangutan' },
-  { id: '043', label: 'giant panda' },
-  { id: '044', label: 'koala' },
-  { id: '045', label: 'kangaroo' },
-  // Reptiles / Amphibians
-  { id: '046', label: 'crocodile' },
-  { id: '047', label: 'komodo dragon' },
-  { id: '048', label: 'green sea turtle' },
-  { id: '049', label: 'chameleon' },
+  { id: '043', label: 'rhino' },
+  { id: '044', label: 'tiger' },
+  { id: '045', label: 'zebra' },
+  // Reptiles
+  { id: '046', label: 'chameleon' },
+  { id: '047', label: 'crocodile' },
+  { id: '048', label: 'komodo_dragon' },
+  { id: '049', label: 'turtle' },
   // Aquatic
   { id: '050', label: 'dolphin' },
 ];
 
+const formatLabel = (label: string) =>
+  label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
 interface SpeciesCardData {
   id: string;
   label: string;
-  displayName?: string;
   discovered: boolean;
   photoUri: string | null;
 }
@@ -104,7 +108,7 @@ const SpeciesCard: React.FC<{ item: SpeciesCardData; onPress: () => void }> = ({
     <View style={styles.cardFooter}>
       <Text style={styles.cardNumber}>#{item.id}</Text>
       <Text style={styles.cardName}>
-        {item.discovered ? (item.displayName ?? (item.label.charAt(0).toUpperCase() + item.label.slice(1))) : '???'}
+        {item.discovered ? formatLabel(item.label) : '???'}
       </Text>
     </View>
   </TouchableOpacity>
@@ -137,7 +141,7 @@ const WildDexScreen: React.FC = () => {
       ALL_SPECIES.map(async (s) => {
         const isDiscovered = discovered.has(s.label);
         const photoUri = isDiscovered ? await getLatestPhotoForLabel(s.label) : null;
-        return { id: s.id, label: s.label, displayName: (s as any).displayName, discovered: isDiscovered, photoUri };
+        return { id: s.id, label: s.label, discovered: isDiscovered, photoUri };
       })
     );
     setSpecies(data);
@@ -214,7 +218,7 @@ const WildDexScreen: React.FC = () => {
             )}
 
             <Text style={styles.detailName}>
-              {selected?.displayName ?? (selected?.label.charAt(0).toUpperCase() + (selected?.label.slice(1) ?? ''))}
+              {selected ? formatLabel(selected.label) : ''}
             </Text>
             {animalInfo && <Text style={styles.sciName}>{animalInfo.scientificName}</Text>}
             {rarity && (
