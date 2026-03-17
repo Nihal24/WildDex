@@ -22,9 +22,11 @@ const SightingsScreen: React.FC = () => {
 
   const renderItem = ({ item }: { item: Sighting }) => (
     <View style={styles.row}>
-      <Image source={{ uri: item.photoUri }} style={styles.thumb} />
+      <Image source={{ uri: item.photoUri }} style={styles.thumb} onError={() => {}} />
       <View style={styles.rowInfo}>
-        <Text style={styles.rowLabel}>{item.label.charAt(0).toUpperCase() + item.label.slice(1)}</Text>
+        <Text style={styles.rowLabel}>
+          {item.label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+        </Text>
         <Text style={styles.rowConfidence}>{(item.confidence * 100).toFixed(1)}% confidence</Text>
         <Text style={styles.rowDate}>{new Date(item.timestamp).toLocaleDateString()}</Text>
       </View>

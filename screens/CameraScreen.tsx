@@ -154,7 +154,9 @@ const CameraScreen: React.FC = () => {
           {!isRunning && prediction && (
             <View style={styles.resultBox}>
               <View>
-                <Text style={styles.resultLabel}>{prediction.label}</Text>
+                <Text style={styles.resultLabel}>
+                  {prediction.label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                </Text>
                 <Text style={styles.resultConfidence}>
                   {(prediction.confidence * 100).toFixed(1)}% confidence
                 </Text>

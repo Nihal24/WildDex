@@ -92,14 +92,17 @@ interface SpeciesCardData {
 }
 
 // --- Species Card ---
-const SpeciesCard: React.FC<{ item: SpeciesCardData; onPress: () => void }> = ({ item, onPress }) => (
+const SpeciesCard: React.FC<{ item: SpeciesCardData; onPress: () => void }> = ({ item, onPress }) => {
+  const [imgError, setImgError] = useState(false);
+  const showPhoto = item.discovered && item.photoUri && !imgError;
+  return (
   <TouchableOpacity
     style={[styles.card, item.discovered ? styles.cardDiscovered : styles.cardUndiscovered]}
     onPress={item.discovered ? onPress : undefined}
     activeOpacity={item.discovered ? 0.7 : 1}
   >
-    {item.discovered && item.photoUri ? (
-      <Image source={{ uri: item.photoUri }} style={styles.cardImage} />
+    {showPhoto ? (
+      <Image source={{ uri: item.photoUri! }} style={styles.cardImage} onError={() => setImgError(true)} />
     ) : (
       <View style={styles.silhouette}>
         <Text style={styles.questionMark}>?</Text>
@@ -112,7 +115,8 @@ const SpeciesCard: React.FC<{ item: SpeciesCardData; onPress: () => void }> = ({
       </Text>
     </View>
   </TouchableOpacity>
-);
+  );
+};
 
 // --- Info Row for Detail Modal ---
 const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: string }) => (

@@ -12,9 +12,8 @@ export interface RarityInfo {
 // These overrides reflect real-world abundance instead.
 const COMMON_OVERRIDES = new Set([
   'chicken', 'dog', 'cat', 'cow', 'pig', 'sheep', 'goat', 'horse',
-  'pigeon', 'pidgeon', 'canada goose', 'mallard duck', 'house sparrow', 'rabbit',
-  'goldfish', 'hamster', 'crow', 'squirrel', 'raccoon', 'red fox',
-  'white-tailed deer',
+  'pigeon', 'canada_goose', 'mallard_duck', 'rabbit',
+  'crow', 'squirrel', 'raccoon', 'red_fox', 'white_tailed_deer',
 ]);
 
 function getTierFromCount(count: number): Omit<RarityInfo, 'observationCount'> {
