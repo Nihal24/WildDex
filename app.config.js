@@ -14,6 +14,7 @@ export default {
     },
     ios: {
       bundleIdentifier: 'com.anonymous.wilddex',
+      usesAppleSignIn: true,
       infoPlist: {
         NSLocationWhenInUseUsageDescription: 'WildDex uses your location to log where you spotted each animal.',
       },

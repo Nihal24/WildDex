@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,14 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
+  Linking,
+  Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import * as MediaLibrary from 'expo-media-library';
+import { captureRef } from 'react-native-view-shot';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 import { getDiscoveredLabels, getLatestPhotoForLabel, getSightings, Sighting } from '../utils/storage';
@@ -177,6 +182,9 @@ const WildDexScreen: React.FC = () => {
   const [rarity, setRarity] = useState<RarityInfo | null>(null);
   const [infoLoading, setInfoLoading] = useState(false);
   const [infoError, setInfoError] = useState<string | null>(null);
+  const viewShotRef = useRef<View>(null);
+  const [shareSheetVisible, setShareSheetVisible] = useState(false);
+  const [capturedUri, setCapturedUri] = useState<string | null>(null);
 
   const loadData = async () => {
     const [discovered, allSightings] = await Promise.all([getDiscoveredLabels(), getSightings()]);
@@ -216,6 +224,49 @@ const WildDexScreen: React.FC = () => {
     setAnimalInfo(null);
     setRarity(null);
     setInfoError(null);
+    setShareSheetVisible(false);
+    setCapturedUri(null);
+  };
+
+  const openShareSheet = async () => {
+    if (!viewShotRef.current) return;
+    try {
+      const uri = await captureRef(viewShotRef, { format: 'png', quality: 1 });
+      setCapturedUri(uri);
+      setShareSheetVisible(true);
+    } catch (e: any) {
+      Alert.alert('Share failed', e?.message ?? String(e));
+    }
+  };
+
+  const shareViaSystem = async () => {
+    if (!capturedUri) return;
+    setShareSheetVisible(false);
+    await Sharing.shareAsync(capturedUri, { mimeType: 'image/png' });
+  };
+
+  const shareToInstagram = async () => {
+    if (!capturedUri) return;
+    setShareSheetVisible(false);
+    const url = `instagram-stories://share?backgroundImage=${encodeURIComponent(capturedUri)}`;
+    const canOpen = await Linking.canOpenURL(url);
+    if (canOpen) {
+      await Linking.openURL(url);
+    } else {
+      Alert.alert('Instagram not installed', 'Install Instagram to share directly to Stories.');
+    }
+  };
+
+  const saveToPhotos = async () => {
+    if (!capturedUri) return;
+    setShareSheetVisible(false);
+    const { status } = await MediaLibrary.requestPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission required', 'Allow photo library access to save.');
+      return;
+    }
+    await MediaLibrary.saveToLibraryAsync(capturedUri);
+    Alert.alert('Saved!', 'Sighting card saved to your Photos.');
   };
 
   return (
@@ -266,9 +317,13 @@ const WildDexScreen: React.FC = () => {
               <Ionicons name="arrow-back" size={24} color={COLORS.white} />
             </TouchableOpacity>
             <Text style={styles.modalHeaderNum}>#{selected?.id}</Text>
+            <TouchableOpacity onPress={openShareSheet} style={styles.backButton}>
+              <Ionicons name="share-outline" size={24} color={COLORS.white} />
+            </TouchableOpacity>
           </View>
 
           <ScrollView contentContainerStyle={styles.modalScroll}>
+            <View ref={viewShotRef} style={styles.shareCard} collapsable={false}>
             {selected?.photoUri ? (
               <Image source={{ uri: selected.photoUri }} style={styles.detailPhoto} />
             ) : (
@@ -285,6 +340,8 @@ const WildDexScreen: React.FC = () => {
                 <Text style={[styles.rarityLabel, { color: rarity.color }]}>{rarity.label}</Text>
               </View>
             )}
+            <Text style={styles.shareWatermark}>WildDex • Pokédex for the real world</Text>
+            </View>
 
             {infoLoading && (
               <View style={styles.loadingBox}>
@@ -332,6 +389,43 @@ const WildDexScreen: React.FC = () => {
               </>
             )}
           </ScrollView>
+
+          {/* Share action sheet — inside detail modal to avoid nested modal conflicts */}
+          {shareSheetVisible && (
+            <TouchableOpacity style={styles.shareOverlay} activeOpacity={1} onPress={() => setShareSheetVisible(false)}>
+              <View style={styles.shareSheet}>
+                <Text style={styles.shareTitle}>Share Sighting</Text>
+
+                <TouchableOpacity style={styles.shareOption} onPress={shareToInstagram}>
+                  <View style={[styles.shareIconBg, { backgroundColor: '#E1306C' }]}>
+                    <Ionicons name="logo-instagram" size={22} color="#fff" />
+                  </View>
+                  <Text style={styles.shareOptionText}>Instagram Stories</Text>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.darkGrey} />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.shareOption} onPress={shareViaSystem}>
+                  <View style={[styles.shareIconBg, { backgroundColor: COLORS.primary }]}>
+                    <Ionicons name="share-outline" size={22} color="#fff" />
+                  </View>
+                  <Text style={styles.shareOptionText}>More (Twitter, Facebook…)</Text>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.darkGrey} />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.shareOption} onPress={saveToPhotos}>
+                  <View style={[styles.shareIconBg, { backgroundColor: '#4CD964' }]}>
+                    <Ionicons name="download-outline" size={22} color="#fff" />
+                  </View>
+                  <Text style={styles.shareOptionText}>Save to Photos</Text>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.darkGrey} />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.shareCancel} onPress={() => setShareSheetVisible(false)}>
+                  <Text style={styles.shareCancelText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          )}
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -408,6 +502,16 @@ const styles = StyleSheet.create({
   backButton: { padding: 4 },
   modalHeaderNum: { color: COLORS.grey, fontSize: 16, fontWeight: '600' },
   modalScroll: { padding: 20, alignItems: 'center' },
+  shareCard: { width: '100%', alignItems: 'center', backgroundColor: COLORS.background, paddingBottom: 12 },
+  shareWatermark: { fontSize: 11, color: COLORS.darkGrey, marginTop: 8, letterSpacing: 0.5 },
+  shareOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100 },
+  shareSheet: { backgroundColor: COLORS.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 8 },
+  shareTitle: { fontSize: 16, fontWeight: '800', color: COLORS.white, textAlign: 'center', marginBottom: 8 },
+  shareOption: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, paddingHorizontal: 4 },
+  shareIconBg: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  shareOptionText: { flex: 1, color: COLORS.white, fontSize: 15, fontWeight: '600' },
+  shareCancel: { marginTop: 8, paddingVertical: 14, alignItems: 'center', backgroundColor: COLORS.background, borderRadius: 12 },
+  shareCancelText: { color: COLORS.grey, fontSize: 15, fontWeight: '600' },
   detailPhoto: { width: '100%', height: 300, borderRadius: 16, borderWidth: 2, borderColor: COLORS.yellow },
   detailPhotoPlaceholder: { width: '100%', height: 300, borderRadius: 16, backgroundColor: COLORS.card, justifyContent: 'center', alignItems: 'center' },
   detailName: { fontSize: 32, fontWeight: '900', color: COLORS.yellow, marginTop: 16, letterSpacing: 1, textTransform: 'capitalize' },

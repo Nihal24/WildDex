@@ -33,6 +33,8 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - ExpoAppleAuthentication (7.2.4):
+    - ExpoModulesCore
   - ExpoAsset (11.1.7):
     - ExpoModulesCore
   - ExpoCamera (16.1.10):
@@ -53,6 +55,9 @@ PODS:
     - ExpoModulesCore
   - ExpoLocation (18.1.6):
     - ExpoModulesCore
+  - ExpoMediaLibrary (17.1.7):
+    - ExpoModulesCore
+    - React-Core
   - ExpoModulesCore (2.4.2):
     - DoubleConversion
     - glog
@@ -78,6 +83,8 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - ExpoSharing (13.1.5):
+    - ExpoModulesCore
   - fast_float (6.1.4)
   - FBLazyVector (0.79.4)
   - fmt (11.0.2)
@@ -1523,6 +1530,30 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - react-native-view-shot (4.0.3):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.11.18.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-hermes
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
   - React-NativeModulesApple (0.79.4):
     - glog
     - hermes-engine
@@ -1941,6 +1972,7 @@ DEPENDENCIES:
   - EXConstants (from `../node_modules/expo-constants/ios`)
   - EXImageLoader (from `../node_modules/expo-image-loader/ios`)
   - Expo (from `../node_modules/expo`)
+  - ExpoAppleAuthentication (from `../node_modules/expo-apple-authentication/ios`)
   - ExpoAsset (from `../node_modules/expo-asset/ios`)
   - ExpoCamera (from `../node_modules/expo-camera/ios`)
   - ExpoFileSystem (from `../node_modules/expo-file-system/ios`)
@@ -1949,7 +1981,9 @@ DEPENDENCIES:
   - ExpoImagePicker (from `../node_modules/expo-image-picker/ios`)
   - ExpoKeepAwake (from `../node_modules/expo-keep-awake/ios`)
   - ExpoLocation (from `../node_modules/expo-location/ios`)
+  - ExpoMediaLibrary (from `../node_modules/expo-media-library/ios`)
   - ExpoModulesCore (from `../node_modules/expo-modules-core`)
+  - ExpoSharing (from `../node_modules/expo-sharing/ios`)
   - fast_float (from `../node_modules/react-native/third-party-podspecs/fast_float.podspec`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - fmt (from `../node_modules/react-native/third-party-podspecs/fmt.podspec`)
@@ -1991,6 +2025,7 @@ DEPENDENCIES:
   - react-native-fast-tflite (from `../node_modules/react-native-fast-tflite`)
   - react-native-maps (from `../node_modules/react-native-maps`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
+  - react-native-view-shot (from `../node_modules/react-native-view-shot`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-oscompat (from `../node_modules/react-native/ReactCommon/oscompat`)
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
@@ -2046,6 +2081,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-image-loader/ios"
   Expo:
     :path: "../node_modules/expo"
+  ExpoAppleAuthentication:
+    :path: "../node_modules/expo-apple-authentication/ios"
   ExpoAsset:
     :path: "../node_modules/expo-asset/ios"
   ExpoCamera:
@@ -2062,8 +2099,12 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-keep-awake/ios"
   ExpoLocation:
     :path: "../node_modules/expo-location/ios"
+  ExpoMediaLibrary:
+    :path: "../node_modules/expo-media-library/ios"
   ExpoModulesCore:
     :path: "../node_modules/expo-modules-core"
+  ExpoSharing:
+    :path: "../node_modules/expo-sharing/ios"
   fast_float:
     :podspec: "../node_modules/react-native/third-party-podspecs/fast_float.podspec"
   FBLazyVector:
@@ -2143,6 +2184,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-maps"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
+  react-native-view-shot:
+    :path: "../node_modules/react-native-view-shot"
   React-NativeModulesApple:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios"
   React-oscompat:
@@ -2218,6 +2261,7 @@ SPEC CHECKSUMS:
   EXConstants: 98bcf0f22b820f9b28f9fee55ff2daededadd2f8
   EXImageLoader: 189e3476581efe3ad4d1d3fb4735b7179eb26f05
   Expo: cd501e0be567d779626d89da336c8103bbcb74de
+  ExpoAppleAuthentication: 4d2e0c88a4463229760f1fbb9a937a810efb6863
   ExpoAsset: ef06e880126c375f580d4923fdd1cdf4ee6ee7d6
   ExpoCamera: 7edf99216d92e40b991d4e7ed69eba9527c94cda
   ExpoFileSystem: 858a44267a3e6e9057e0888ad7c7cfbf55d52063
@@ -2226,7 +2270,9 @@ SPEC CHECKSUMS:
   ExpoImagePicker: 0963da31800c906e01c03e25d7c849f16ebf02a2
   ExpoKeepAwake: bf0811570c8da182bfb879169437d4de298376e7
   ExpoLocation: a43df2ff15f2fae9504b23a77060e7cd16b3e326
+  ExpoMediaLibrary: 0daf5e811e00daa47690f5da2989e71ff7de56e0
   ExpoModulesCore: e0409d8c674a651a183e941be663e1966b49e2a2
+  ExpoSharing: b0377be82430d07398c6a4cd60b5a15696accbd3
   fast_float: 06eeec4fe712a76acc9376682e4808b05ce978b6
   FBLazyVector: 15c28682af535aa55b9b31e64deff54b7ed7d453
   fmt: a40bb5bd0294ea969aaaba240a927bd33d878cdd
@@ -2267,6 +2313,7 @@ SPEC CHECKSUMS:
   react-native-fast-tflite: 0a5946e72b2a205c34c868ec9bc1cc3e0853a420
   react-native-maps: 9febd31278b35cd21e4fad2cf6fa708993be5dab
   react-native-safe-area-context: 562163222d999b79a51577eda2ea8ad2c32b4d06
+  react-native-view-shot: 57c7b8158751f19f32cb885109574712955ea016
   React-NativeModulesApple: da60186ad0aafff031a9bc86b048711d34acc813
   React-oscompat: 472a446c740e39ee39cd57cd7bfd32177c763a2b
   React-perflogger: bbca3688c62f4f39e972d6e21969c95fe441fb6c
