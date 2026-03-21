@@ -8,6 +8,9 @@ import {
   SafeAreaView,
   ActivityIndicator,
   StatusBar,
+  Modal,
+  TextInput,
+  Alert,
 } from 'react-native';
 import {
   CameraView,
@@ -23,6 +26,7 @@ import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
 import jpeg from 'jpeg-js';
 import { COLORS } from '../constants/theme';
 import { saveSighting } from '../utils/storage';
+import * as Location from 'expo-location';
 
 const LABELS = ['bald_eagle','canada_goose','cat','chameleon','cheetah','chicken','chimpanzee','cow','crocodile','crow','dog','dolphin','elephant','flamingo','giant_panda','giraffe','goat','gorilla','great_horned_owl','grizzly_bear','hippo','horse','hummingbird','kangaroo','koala','komodo_dragon','leopard','lion','mallard_duck','orangutan','parrot','peacock','pelican','penguin','pig','pigeon','polar_bear','rabbit','raccoon','red_fox','rhino','robin','sheep','squirrel','tiger','toucan','turtle','white_tailed_deer','wolf','zebra'];
 const MODEL_INPUT_SIZE = 224;
@@ -37,6 +41,9 @@ const CameraScreen: React.FC = () => {
   const [prediction, setPrediction] = useState<{ label: string; confidence: number } | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [pendingSighting, setPendingSighting] = useState<{ label: string; confidence: number; photoUri: string } | null>(null);
+  const [locationSearch, setLocationSearch] = useState('');
+  const [locationLoading, setLocationLoading] = useState(false);
 
   useEffect(() => {
     loadTensorflowModel(require('../assets/models/wilddex_model.tflite'))
@@ -48,11 +55,12 @@ const CameraScreen: React.FC = () => {
     setFacing((current) => (current === 'back' ? 'front' : 'back'));
   };
 
-  const runInference = async (photoUri: string) => {
+  const runInference = async (photoUri: string, fromGallery = false) => {
     if (!model) return;
     setIsRunning(true);
     setPrediction(null);
     setSaved(false);
+    setPendingSighting(null);
 
     try {
       const resized = await ImageManipulator.manipulateAsync(
@@ -86,16 +94,77 @@ const CameraScreen: React.FC = () => {
       const result = { label: LABELS[maxIdx], confidence: scores[maxIdx] };
       setPrediction(result);
 
-      // Auto-save to WildDex if confidence is high enough
       if (result.confidence >= CONFIDENCE_THRESHOLD) {
-        await saveSighting({ ...result, photoUri, timestamp: Date.now() });
-        setSaved(true);
+        if (fromGallery) {
+          // Prompt user for location
+          setPendingSighting({ ...result, photoUri });
+        } else {
+          // Camera shot — auto-capture location
+          let latitude: number | undefined;
+          let longitude: number | undefined;
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status === 'granted') {
+            const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            latitude = loc.coords.latitude;
+            longitude = loc.coords.longitude;
+          }
+          await saveSighting({ ...result, photoUri, timestamp: Date.now(), latitude, longitude });
+          setSaved(true);
+        }
       }
     } catch (e) {
       console.error('Inference error:', e);
     } finally {
       setIsRunning(false);
     }
+  };
+
+  const saveWithCurrentLocation = async () => {
+    if (!pendingSighting) return;
+    setLocationLoading(true);
+    let latitude: number | undefined;
+    let longitude: number | undefined;
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status === 'granted') {
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      latitude = loc.coords.latitude;
+      longitude = loc.coords.longitude;
+    }
+    await saveSighting({ ...pendingSighting, timestamp: Date.now(), latitude, longitude });
+    setPendingSighting(null);
+    setLocationSearch('');
+    setLocationLoading(false);
+    setSaved(true);
+  };
+
+  const saveWithSearchedLocation = async () => {
+    if (!pendingSighting || !locationSearch.trim()) return;
+    setLocationLoading(true);
+    try {
+      const results = await Location.geocodeAsync(locationSearch.trim());
+      if (results.length === 0) {
+        Alert.alert('Location not found', 'Try a different search term.');
+        setLocationLoading(false);
+        return;
+      }
+      const { latitude, longitude } = results[0];
+      await saveSighting({ ...pendingSighting, timestamp: Date.now(), latitude, longitude });
+      setPendingSighting(null);
+      setLocationSearch('');
+      setSaved(true);
+    } catch {
+      Alert.alert('Error', 'Could not geocode location.');
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  const saveWithNoLocation = async () => {
+    if (!pendingSighting) return;
+    await saveSighting({ ...pendingSighting, timestamp: Date.now() });
+    setPendingSighting(null);
+    setLocationSearch('');
+    setSaved(true);
   };
 
   const takePhoto = async () => {
@@ -114,7 +183,7 @@ const CameraScreen: React.FC = () => {
     if (!result.canceled) {
       const uri = result.assets[0].uri;
       setCapturedPhoto({ uri } as CameraCapturedPicture);
-      await runInference(uri);
+      await runInference(uri, true);
     }
   };
 
@@ -197,6 +266,46 @@ const CameraScreen: React.FC = () => {
           )}
         </View>
       )}
+      {/* Location prompt for gallery uploads */}
+      <Modal visible={!!pendingSighting} animationType="slide" transparent presentationStyle="overFullScreen">
+        <View style={styles.locationOverlay}>
+          <View style={styles.locationSheet}>
+            <Text style={styles.locationTitle}>Where was this taken?</Text>
+            <Text style={styles.locationSub}>Add a location to pin it on the Explore map</Text>
+
+            <TouchableOpacity style={styles.locationOptionButton} onPress={saveWithCurrentLocation} disabled={locationLoading}>
+              <Ionicons name="locate" size={20} color={COLORS.yellow} />
+              <Text style={styles.locationOptionText}>Use my current location</Text>
+            </TouchableOpacity>
+
+            <View style={styles.locationDivider}>
+              <View style={styles.locationLine} />
+              <Text style={styles.locationOr}>or search</Text>
+              <View style={styles.locationLine} />
+            </View>
+
+            <TextInput
+              style={styles.locationInput}
+              placeholder="City, park, or address..."
+              placeholderTextColor={COLORS.darkGrey}
+              value={locationSearch}
+              onChangeText={setLocationSearch}
+            />
+            <TouchableOpacity
+              style={[styles.locationOptionButton, { backgroundColor: COLORS.primary, opacity: locationSearch.trim() ? 1 : 0.4 }]}
+              onPress={saveWithSearchedLocation}
+              disabled={!locationSearch.trim() || locationLoading}
+            >
+              {locationLoading ? <ActivityIndicator color={COLORS.white} size="small" /> : <Ionicons name="search" size={20} color={COLORS.white} />}
+              <Text style={[styles.locationOptionText, { color: COLORS.white }]}>Search & save</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={saveWithNoLocation} style={styles.locationSkip}>
+              <Text style={styles.locationSkipText}>Skip — save without location</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -338,4 +447,41 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 13,
   },
+  locationOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  locationSheet: {
+    backgroundColor: COLORS.card,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    gap: 12,
+  },
+  locationTitle: { fontSize: 20, fontWeight: '800', color: COLORS.white, textAlign: 'center' },
+  locationSub: { fontSize: 13, color: COLORS.grey, textAlign: 'center', marginBottom: 4 },
+  locationOptionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    padding: 14,
+  },
+  locationOptionText: { fontSize: 15, fontWeight: '600', color: COLORS.yellow },
+  locationDivider: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  locationLine: { flex: 1, height: 1, backgroundColor: COLORS.cardBorder },
+  locationOr: { color: COLORS.grey, fontSize: 12 },
+  locationInput: {
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    padding: 14,
+    color: COLORS.white,
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+  locationSkip: { alignItems: 'center', paddingVertical: 8 },
+  locationSkipText: { color: COLORS.darkGrey, fontSize: 13 },
 });
