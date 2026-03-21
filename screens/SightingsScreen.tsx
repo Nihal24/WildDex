@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,19 +10,26 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system/legacy';
 import { COLORS } from '../constants/theme';
 import { getSightings, Sighting } from '../utils/storage';
 
-const SightingsScreen: React.FC = () => {
-  const [sightings, setSightings] = useState<Sighting[]>([]);
+const SightingRow: React.FC<{ item: Sighting }> = ({ item }) => {
+  const [photoExists, setPhotoExists] = useState<boolean | null>(null);
 
-  useFocusEffect(useCallback(() => {
-    getSightings().then(setSightings);
-  }, []));
+  useEffect(() => {
+    FileSystem.getInfoAsync(item.photoUri).then(({ exists }) => setPhotoExists(exists));
+  }, [item.photoUri]);
 
-  const renderItem = ({ item }: { item: Sighting }) => (
+  return (
     <View style={styles.row}>
-      <Image source={{ uri: item.photoUri }} style={styles.thumb} onError={() => {}} />
+      {photoExists ? (
+        <Image source={{ uri: item.photoUri }} style={styles.thumb} />
+      ) : (
+        <View style={styles.thumbPlaceholder}>
+          <Ionicons name="image-outline" size={24} color={COLORS.darkGrey} />
+        </View>
+      )}
       <View style={styles.rowInfo}>
         <Text style={styles.rowLabel}>
           {item.label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
@@ -33,6 +40,16 @@ const SightingsScreen: React.FC = () => {
       <Ionicons name="checkmark-circle" size={20} color={COLORS.yellow} />
     </View>
   );
+};
+
+const SightingsScreen: React.FC = () => {
+  const [sightings, setSightings] = useState<Sighting[]>([]);
+
+  useFocusEffect(useCallback(() => {
+    getSightings().then(setSightings);
+  }, []));
+
+  const renderItem = ({ item }: { item: Sighting }) => <SightingRow item={item} />;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -99,6 +116,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   thumb: { width: 56, height: 56, borderRadius: 8 },
+  thumbPlaceholder: { width: 56, height: 56, borderRadius: 8, backgroundColor: COLORS.card, justifyContent: 'center', alignItems: 'center' },
   rowInfo: { flex: 1 },
   rowLabel: { color: COLORS.white, fontSize: 16, fontWeight: '700', textTransform: 'capitalize' },
   rowConfidence: { color: COLORS.grey, fontSize: 12, marginTop: 2 },

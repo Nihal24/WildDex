@@ -6,6 +6,8 @@ export default {
     icon: './assets/icon.png',
     extra: {
       anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+      supabaseUrl: process.env.SUPABASE_URL,
+      supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY,
     },
     android: {
       package: 'com.anonymous.wilddex',

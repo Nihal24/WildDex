@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,11 +14,12 @@ import {
   ImageBackground,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 import { getDiscoveredLabels, getLatestPhotoForLabel } from '../utils/storage';
 import { getAnimalProfile, AnimalInfo } from '../utils/claude';
-import { fetchRarity, RarityInfo } from '../utils/rarity';
+import { getRarityFromConservationStatus, RarityInfo } from '../utils/rarity';
 
 // Labels must exactly match CameraScreen LABELS (alphabetical, underscores)
 const ALL_SPECIES = [
@@ -93,16 +94,24 @@ interface SpeciesCardData {
 
 // --- Species Card ---
 const SpeciesCard: React.FC<{ item: SpeciesCardData; onPress: () => void }> = ({ item, onPress }) => {
-  const [imgError, setImgError] = useState(false);
-  const showPhoto = item.discovered && item.photoUri && !imgError;
+  const [photoExists, setPhotoExists] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (item.discovered && item.photoUri) {
+      FileSystem.getInfoAsync(item.photoUri).then(({ exists }) => setPhotoExists(exists));
+    } else {
+      setPhotoExists(false);
+    }
+  }, [item.photoUri, item.discovered]);
+
   return (
   <TouchableOpacity
     style={[styles.card, item.discovered ? styles.cardDiscovered : styles.cardUndiscovered]}
     onPress={item.discovered ? onPress : undefined}
     activeOpacity={item.discovered ? 0.7 : 1}
   >
-    {showPhoto ? (
-      <Image source={{ uri: item.photoUri! }} style={styles.cardImage} onError={() => setImgError(true)} />
+    {photoExists ? (
+      <Image source={{ uri: item.photoUri! }} style={styles.cardImage} />
     ) : (
       <View style={styles.silhouette}>
         <Text style={styles.questionMark}>?</Text>
@@ -161,12 +170,9 @@ const WildDexScreen: React.FC = () => {
     setInfoError(null);
     setInfoLoading(true);
     try {
-      const [info, rarityInfo] = await Promise.all([
-        getAnimalProfile(item.label),
-        fetchRarity(item.label),
-      ]);
+      const info = await getAnimalProfile(item.label);
       setAnimalInfo(info);
-      setRarity(rarityInfo);
+      setRarity(getRarityFromConservationStatus(info.conservationStatus));
     } catch (e: any) {
       console.error('Animal profile error:', e?.message, e?.status, JSON.stringify(e));
       setInfoError(`Error: ${e?.message || 'Unknown error'}`);
@@ -229,11 +235,6 @@ const WildDexScreen: React.FC = () => {
               <View style={[styles.rarityBadge, { borderColor: rarity.color }]}>
                 <Text style={styles.rarityEmoji}>{rarity.emoji}</Text>
                 <Text style={[styles.rarityLabel, { color: rarity.color }]}>{rarity.label}</Text>
-                {rarity.observationCount >= 0 && (
-                  <Text style={styles.rarityCount}>
-                    {rarity.observationCount.toLocaleString()} sightings worldwide
-                  </Text>
-                )}
               </View>
             )}
 
@@ -333,8 +334,8 @@ const styles = StyleSheet.create({
   backButton: { padding: 4 },
   modalHeaderNum: { color: COLORS.grey, fontSize: 16, fontWeight: '600' },
   modalScroll: { padding: 20, alignItems: 'center' },
-  detailPhoto: { width: '100%', height: 220, borderRadius: 16, borderWidth: 2, borderColor: COLORS.yellow },
-  detailPhotoPlaceholder: { width: '100%', height: 220, borderRadius: 16, backgroundColor: COLORS.card, justifyContent: 'center', alignItems: 'center' },
+  detailPhoto: { width: '100%', height: 300, borderRadius: 16, borderWidth: 2, borderColor: COLORS.yellow },
+  detailPhotoPlaceholder: { width: '100%', height: 300, borderRadius: 16, backgroundColor: COLORS.card, justifyContent: 'center', alignItems: 'center' },
   detailName: { fontSize: 32, fontWeight: '900', color: COLORS.yellow, marginTop: 16, letterSpacing: 1, textTransform: 'capitalize' },
   sciName: { fontSize: 14, color: COLORS.grey, fontStyle: 'italic', marginTop: 4, marginBottom: 16 },
   loadingBox: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 20 },
@@ -365,7 +366,6 @@ const styles = StyleSheet.create({
   },
   rarityEmoji: { fontSize: 14 },
   rarityLabel: { fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
-  rarityCount: { fontSize: 11, color: COLORS.grey },
 
   // Pokémon section
   pokeCard: {
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.primary,
+    borderColor: COLORS.yellow,
     padding: 16,
     marginTop: 12,
     marginBottom: 20,

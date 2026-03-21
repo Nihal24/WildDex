@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import Constants from 'expo-constants';
+import { supabase } from './supabase';
 
 const apiKey = Constants.expoConfig?.extra?.anthropicApiKey;
 
@@ -76,6 +77,19 @@ function stripMarkdown(text: string): string {
 }
 
 export async function getAnimalProfile(animalName: string): Promise<AnimalInfo> {
+  // Check cache first
+  const { data: cached } = await supabase
+    .from('animal_cache')
+    .select('data')
+    .eq('label', animalName)
+    .single();
+
+  if (cached) {
+    console.log(`Cache hit: ${animalName}`);
+    return cached.data as AnimalInfo;
+  }
+
+  console.log(`Cache miss: ${animalName} — calling Claude`);
   const messages: Anthropic.MessageParam[] = [
     {
       role: 'user',
@@ -140,6 +154,9 @@ Return ONLY the JSON object, no markdown or extra text.`,
     }))
   );
   info.closestPokemon = withSprites;
+
+  // Save to cache
+  await supabase.from('animal_cache').insert({ label: animalName, data: info });
 
   return info;
 }
