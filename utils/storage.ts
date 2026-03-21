@@ -10,6 +10,8 @@ export interface Sighting {
   confidence: number;
   photoUri: string;
   timestamp: number;
+  latitude?: number;
+  longitude?: number;
 }
 
 async function getCurrentUserId(): Promise<string | null> {
@@ -43,6 +45,8 @@ export async function saveSighting(sighting: Sighting): Promise<void> {
       confidence: sighting.confidence,
       photo_url: permanentUri,
       timestamp: sighting.timestamp,
+      latitude: sighting.latitude,
+      longitude: sighting.longitude,
     }).then(({ error }) => {
       if (error) console.warn('Supabase sighting sync failed:', error.message);
     });
@@ -60,7 +64,7 @@ export async function getSightings(): Promise<Sighting[]> {
   if (userId) {
     const { data, error } = await supabase
       .from('sightings')
-      .select('label, confidence, photo_url, timestamp')
+      .select('label, confidence, photo_url, timestamp, latitude, longitude')
       .eq('user_id', userId)
       .order('timestamp', { ascending: false });
 
@@ -70,6 +74,8 @@ export async function getSightings(): Promise<Sighting[]> {
         confidence: row.confidence,
         photoUri: row.photo_url,
         timestamp: row.timestamp,
+        latitude: row.latitude,
+        longitude: row.longitude,
       }));
       // Keep local cache in sync
       await AsyncStorage.setItem(SIGHTINGS_KEY, JSON.stringify(sightings));

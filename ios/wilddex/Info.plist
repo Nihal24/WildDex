@@ -69,5 +69,7 @@
     <string>Light</string>
     <key>UIViewControllerBasedStatusBarAppearance</key>
     <false/>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>WildDex uses your location to log where you spotted each animal.</string>
   </dict>
 </plist>
