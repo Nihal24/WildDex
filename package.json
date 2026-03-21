@@ -6,7 +6,7 @@
   "scripts": {
     "start": "expo start --dev-client",
     "android": "expo run:android",
-    "ios": "expo run:ios",
+    "ios": "export $(grep -v '^#' .env | xargs) && expo run:ios",
     "web": "expo start --web"
   },
   "dependencies": {
@@ -29,6 +29,7 @@
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-tflite": "^0.0.2",
+    "react-native-url-polyfill": "^3.0.0",
     "tslib": "^2.8.1"
   },
   "devDependencies": {
