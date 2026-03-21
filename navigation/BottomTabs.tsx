@@ -6,14 +6,14 @@ import { View, StyleSheet } from 'react-native';
 import ExploreScreen from '../screens/ExploreScreen';
 import CameraScreen from '../screens/CameraScreen';
 import WildDexScreen from '../screens/WildDexScreen';
-import SightingsScreen from '../screens/SightingsScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 import { COLORS } from '../constants/theme';
 
 export type BottomTabParamList = {
   Explore: undefined;
   Camera: undefined;
   WildDex: undefined;
-  Sightings: undefined;
+  Profile: undefined;
 };
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
@@ -63,11 +63,11 @@ const BottomTabs: React.FC = () => {
         }}
       />
       <Tab.Screen
-        name="Sightings"
-        component={SightingsScreen}
+        name="Profile"
+        component={ProfileScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <Ionicons name={focused ? 'list' : 'list-outline'} size={24} color={focused ? COLORS.yellow : COLORS.grey} />
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={focused ? COLORS.yellow : COLORS.grey} />
           ),
         }}
       />

@@ -11,19 +11,16 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
-  ImageBackground,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
-import { getDiscoveredLabels, getLatestPhotoForLabel } from '../utils/storage';
+import { getDiscoveredLabels, getLatestPhotoForLabel, getSightings, Sighting } from '../utils/storage';
 import { getAnimalProfile, AnimalInfo } from '../utils/claude';
 import { getRarityFromConservationStatus, RarityInfo } from '../utils/rarity';
 
-// Labels must exactly match CameraScreen LABELS (alphabetical, underscores)
 const ALL_SPECIES = [
-  // Birds
   { id: '001', label: 'bald_eagle' },
   { id: '002', label: 'canada_goose' },
   { id: '003', label: 'crow' },
@@ -39,7 +36,6 @@ const ALL_SPECIES = [
   { id: '013', label: 'robin' },
   { id: '014', label: 'toucan' },
   { id: '015', label: 'chicken' },
-  // Mammals - domestic/common
   { id: '016', label: 'cat' },
   { id: '017', label: 'cow' },
   { id: '018', label: 'dog' },
@@ -48,16 +44,13 @@ const ALL_SPECIES = [
   { id: '021', label: 'pig' },
   { id: '022', label: 'rabbit' },
   { id: '023', label: 'sheep' },
-  // Mammals - wildlife
   { id: '024', label: 'raccoon' },
   { id: '025', label: 'red_fox' },
   { id: '026', label: 'squirrel' },
   { id: '027', label: 'white_tailed_deer' },
   { id: '028', label: 'wolf' },
-  // Mammals - bears
   { id: '029', label: 'grizzly_bear' },
   { id: '030', label: 'polar_bear' },
-  // Mammals - zoo/exotic
   { id: '031', label: 'cheetah' },
   { id: '032', label: 'chimpanzee' },
   { id: '033', label: 'elephant' },
@@ -73,12 +66,10 @@ const ALL_SPECIES = [
   { id: '043', label: 'rhino' },
   { id: '044', label: 'tiger' },
   { id: '045', label: 'zebra' },
-  // Reptiles
   { id: '046', label: 'chameleon' },
   { id: '047', label: 'crocodile' },
   { id: '048', label: 'komodo_dragon' },
   { id: '049', label: 'turtle' },
-  // Aquatic
   { id: '050', label: 'dolphin' },
 ];
 
@@ -91,6 +82,18 @@ interface SpeciesCardData {
   discovered: boolean;
   photoUri: string | null;
 }
+
+// --- Segmented Control ---
+const SegmentedControl: React.FC<{ active: 'collection' | 'sightings'; onChange: (v: 'collection' | 'sightings') => void }> = ({ active, onChange }) => (
+  <View style={styles.segmentWrapper}>
+    <TouchableOpacity style={[styles.segment, active === 'collection' && styles.segmentActive]} onPress={() => onChange('collection')}>
+      <Text style={[styles.segmentText, active === 'collection' && styles.segmentTextActive]}>Collection</Text>
+    </TouchableOpacity>
+    <TouchableOpacity style={[styles.segment, active === 'sightings' && styles.segmentActive]} onPress={() => onChange('sightings')}>
+      <Text style={[styles.segmentText, active === 'sightings' && styles.segmentTextActive]}>Sightings</Text>
+    </TouchableOpacity>
+  </View>
+);
 
 // --- Species Card ---
 const SpeciesCard: React.FC<{ item: SpeciesCardData; onPress: () => void }> = ({ item, onPress }) => {
@@ -105,25 +108,50 @@ const SpeciesCard: React.FC<{ item: SpeciesCardData; onPress: () => void }> = ({
   }, [item.photoUri, item.discovered]);
 
   return (
-  <TouchableOpacity
-    style={[styles.card, item.discovered ? styles.cardDiscovered : styles.cardUndiscovered]}
-    onPress={item.discovered ? onPress : undefined}
-    activeOpacity={item.discovered ? 0.7 : 1}
-  >
-    {photoExists ? (
-      <Image source={{ uri: item.photoUri! }} style={styles.cardImage} />
-    ) : (
-      <View style={styles.silhouette}>
-        <Text style={styles.questionMark}>?</Text>
+    <TouchableOpacity
+      style={[styles.card, item.discovered ? styles.cardDiscovered : styles.cardUndiscovered]}
+      onPress={item.discovered ? onPress : undefined}
+      activeOpacity={item.discovered ? 0.7 : 1}
+    >
+      {photoExists ? (
+        <Image source={{ uri: item.photoUri! }} style={styles.cardImage} />
+      ) : (
+        <View style={styles.silhouette}>
+          <Text style={styles.questionMark}>?</Text>
+        </View>
+      )}
+      <View style={styles.cardFooter}>
+        <Text style={styles.cardNumber}>#{item.id}</Text>
+        <Text style={styles.cardName}>{item.discovered ? formatLabel(item.label) : '???'}</Text>
       </View>
-    )}
-    <View style={styles.cardFooter}>
-      <Text style={styles.cardNumber}>#{item.id}</Text>
-      <Text style={styles.cardName}>
-        {item.discovered ? formatLabel(item.label) : '???'}
-      </Text>
+    </TouchableOpacity>
+  );
+};
+
+// --- Sighting Row ---
+const SightingRow: React.FC<{ item: Sighting }> = ({ item }) => {
+  const [photoExists, setPhotoExists] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    FileSystem.getInfoAsync(item.photoUri).then(({ exists }) => setPhotoExists(exists));
+  }, [item.photoUri]);
+
+  return (
+    <View style={styles.row}>
+      {photoExists ? (
+        <Image source={{ uri: item.photoUri }} style={styles.thumb} />
+      ) : (
+        <View style={styles.thumbPlaceholder}>
+          <Ionicons name="image-outline" size={24} color={COLORS.darkGrey} />
+        </View>
+      )}
+      <View style={styles.rowInfo}>
+        <Text style={styles.rowLabel}>{formatLabel(item.label)}</Text>
+        <Text style={styles.rowConfidence}>{(item.confidence * 100).toFixed(1)}% confidence</Text>
+        <Text style={styles.rowDate}>{new Date(item.timestamp).toLocaleDateString()}</Text>
+      </View>
+      <Ionicons name="checkmark-circle" size={20} color={COLORS.yellow} />
     </View>
-  </TouchableOpacity>
   );
 };
 
@@ -140,8 +168,10 @@ const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: s
 
 // --- Main Screen ---
 const WildDexScreen: React.FC = () => {
+  const [tab, setTab] = useState<'collection' | 'sightings'>('collection');
   const [species, setSpecies] = useState<SpeciesCardData[]>([]);
   const [discoveredCount, setDiscoveredCount] = useState(0);
+  const [sightings, setSightings] = useState<Sighting[]>([]);
   const [selected, setSelected] = useState<SpeciesCardData | null>(null);
   const [animalInfo, setAnimalInfo] = useState<AnimalInfo | null>(null);
   const [rarity, setRarity] = useState<RarityInfo | null>(null);
@@ -149,7 +179,7 @@ const WildDexScreen: React.FC = () => {
   const [infoError, setInfoError] = useState<string | null>(null);
 
   const loadData = async () => {
-    const discovered = await getDiscoveredLabels();
+    const [discovered, allSightings] = await Promise.all([getDiscoveredLabels(), getSightings()]);
     const data = await Promise.all(
       ALL_SPECIES.map(async (s) => {
         const isDiscovered = discovered.has(s.label);
@@ -159,6 +189,7 @@ const WildDexScreen: React.FC = () => {
     );
     setSpecies(data);
     setDiscoveredCount(data.filter((s) => s.discovered).length);
+    setSightings(allSightings);
   };
 
   useFocusEffect(useCallback(() => { loadData(); }, []));
@@ -174,7 +205,6 @@ const WildDexScreen: React.FC = () => {
       setAnimalInfo(info);
       setRarity(getRarityFromConservationStatus(info.conservationStatus));
     } catch (e: any) {
-      console.error('Animal profile error:', e?.message, e?.status, JSON.stringify(e));
       setInfoError(`Error: ${e?.message || 'Unknown error'}`);
     } finally {
       setInfoLoading(false);
@@ -198,15 +228,35 @@ const WildDexScreen: React.FC = () => {
         </View>
       </View>
 
-      <FlatList
-        data={species}
-        keyExtractor={(item) => item.id}
-        numColumns={3}
-        contentContainerStyle={styles.grid}
-        renderItem={({ item }) => (
-          <SpeciesCard item={item} onPress={() => openDetail(item)} />
-        )}
-      />
+      <SegmentedControl active={tab} onChange={setTab} />
+
+      {tab === 'collection' ? (
+        <FlatList
+          key="collection"
+          data={species}
+          keyExtractor={(item) => item.id}
+          numColumns={3}
+          contentContainerStyle={styles.grid}
+          renderItem={({ item }) => (
+            <SpeciesCard item={item} onPress={() => openDetail(item)} />
+          )}
+        />
+      ) : sightings.length === 0 ? (
+        <View style={styles.empty}>
+          <Ionicons name="eye-outline" size={64} color={COLORS.darkGrey} />
+          <Text style={styles.emptyTitle}>No sightings yet</Text>
+          <Text style={styles.emptySub}>Identify an animal to log your first sighting</Text>
+        </View>
+      ) : (
+        <FlatList
+          key="sightings"
+          data={sightings}
+          keyExtractor={(_, i) => String(i)}
+          contentContainerStyle={styles.list}
+          renderItem={({ item }) => <SightingRow item={item} />}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+        />
+      )}
 
       {/* Detail Modal */}
       <Modal visible={!!selected} animationType="slide" presentationStyle="pageSheet">
@@ -227,9 +277,7 @@ const WildDexScreen: React.FC = () => {
               </View>
             )}
 
-            <Text style={styles.detailName}>
-              {selected ? formatLabel(selected.label) : ''}
-            </Text>
+            <Text style={styles.detailName}>{selected ? formatLabel(selected.label) : ''}</Text>
             {animalInfo && <Text style={styles.sciName}>{animalInfo.scientificName}</Text>}
             {rarity && (
               <View style={[styles.rarityBadge, { borderColor: rarity.color }]}>
@@ -261,7 +309,6 @@ const WildDexScreen: React.FC = () => {
                   </View>
                 </View>
 
-                {/* Closest Pokémon */}
                 {animalInfo.closestPokemon?.length > 0 && (
                   <View style={styles.pokeCard}>
                     <Text style={styles.pokeTitle}>CLOSEST POKÉMON</Text>
@@ -275,9 +322,7 @@ const WildDexScreen: React.FC = () => {
                               <Text style={styles.pokePlaceholderText}>?</Text>
                             </View>
                           )}
-                          <Text style={styles.pokeName}>
-                            {p.name.charAt(0).toUpperCase() + p.name.slice(1)}
-                          </Text>
+                          <Text style={styles.pokeName}>{p.name.charAt(0).toUpperCase() + p.name.slice(1)}</Text>
                           <Text style={styles.pokeReason}>{p.reason}</Text>
                         </View>
                       ))}
@@ -309,6 +354,21 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 26, fontWeight: '900', color: COLORS.yellow, letterSpacing: 3 },
   badge: { backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
   badgeText: { color: COLORS.white, fontWeight: '700', fontSize: 14 },
+
+  // Segmented control
+  segmentWrapper: {
+    flexDirection: 'row',
+    margin: 12,
+    backgroundColor: COLORS.card,
+    borderRadius: 10,
+    padding: 3,
+  },
+  segment: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
+  segmentActive: { backgroundColor: COLORS.primary },
+  segmentText: { fontSize: 13, fontWeight: '700', color: COLORS.grey },
+  segmentTextActive: { color: COLORS.white },
+
+  // Collection grid
   grid: { padding: 12 },
   card: { flex: 1, margin: 6, borderRadius: 10, overflow: 'hidden', borderWidth: 1 },
   cardDiscovered: { backgroundColor: COLORS.card, borderColor: COLORS.yellow },
@@ -319,6 +379,20 @@ const styles = StyleSheet.create({
   cardFooter: { padding: 6, alignItems: 'center' },
   cardNumber: { fontSize: 10, color: COLORS.grey, fontWeight: '600' },
   cardName: { fontSize: 12, color: COLORS.white, fontWeight: '700', textTransform: 'capitalize' },
+
+  // Sightings list
+  list: { padding: 16 },
+  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.card, borderRadius: 12, padding: 12, gap: 12 },
+  thumb: { width: 56, height: 56, borderRadius: 8 },
+  thumbPlaceholder: { width: 56, height: 56, borderRadius: 8, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center' },
+  rowInfo: { flex: 1 },
+  rowLabel: { color: COLORS.white, fontSize: 16, fontWeight: '700', textTransform: 'capitalize' },
+  rowConfidence: { color: COLORS.grey, fontSize: 12, marginTop: 2 },
+  rowDate: { color: COLORS.darkGrey, fontSize: 11, marginTop: 2 },
+  separator: { height: 10 },
+  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: COLORS.white },
+  emptySub: { fontSize: 14, color: COLORS.grey, textAlign: 'center', paddingHorizontal: 40 },
 
   // Modal
   modalContainer: { flex: 1, backgroundColor: COLORS.background },
@@ -352,77 +426,16 @@ const styles = StyleSheet.create({
   funFactBox: { backgroundColor: COLORS.background, borderRadius: 10, padding: 12, marginTop: 4, borderLeftWidth: 3, borderLeftColor: COLORS.yellow },
   funFactLabel: { color: COLORS.yellow, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   funFactText: { color: COLORS.white, fontSize: 14, lineHeight: 20 },
-
-  // Rarity badge
-  rarityBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginBottom: 12,
-    gap: 6,
-  },
+  rarityBadge: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 12, gap: 6 },
   rarityEmoji: { fontSize: 14 },
   rarityLabel: { fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
-
-  // Pokémon section
-  pokeCard: {
-    width: '100%',
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.yellow,
-    padding: 16,
-    marginTop: 12,
-    marginBottom: 20,
-  },
-  pokeTitle: {
-    color: COLORS.primary,
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 2,
-    textAlign: 'center',
-    marginBottom: 14,
-  },
-  pokeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  pokeItem: {
-    alignItems: 'center',
-    flex: 1,
-    paddingHorizontal: 4,
-  },
-  pokeSprite: {
-    width: 80,
-    height: 80,
-  },
-  pokeSritePlaceholder: {
-    width: 80,
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.background,
-    borderRadius: 8,
-  },
-  pokePlaceholderText: {
-    color: COLORS.darkGrey,
-    fontSize: 24,
-    fontWeight: '900',
-  },
-  pokeName: {
-    color: COLORS.yellow,
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  pokeReason: {
-    color: COLORS.grey,
-    fontSize: 10,
-    textAlign: 'center',
-    marginTop: 2,
-  },
+  pokeCard: { width: '100%', backgroundColor: COLORS.card, borderRadius: 16, borderWidth: 1, borderColor: COLORS.yellow, padding: 16, marginTop: 12, marginBottom: 20 },
+  pokeTitle: { color: COLORS.primary, fontSize: 12, fontWeight: '900', letterSpacing: 2, textAlign: 'center', marginBottom: 14 },
+  pokeRow: { flexDirection: 'row', justifyContent: 'space-around' },
+  pokeItem: { alignItems: 'center', flex: 1, paddingHorizontal: 4 },
+  pokeSprite: { width: 80, height: 80 },
+  pokeSritePlaceholder: { width: 80, height: 80, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background, borderRadius: 8 },
+  pokePlaceholderText: { color: COLORS.darkGrey, fontSize: 24, fontWeight: '900' },
+  pokeName: { color: COLORS.yellow, fontSize: 12, fontWeight: '700', marginTop: 4, textAlign: 'center' },
+  pokeReason: { color: COLORS.grey, fontSize: 10, textAlign: 'center', marginTop: 2 },
 });
