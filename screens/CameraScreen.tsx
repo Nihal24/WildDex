@@ -31,6 +31,38 @@ import * as Location from 'expo-location';
 const LABELS = ['bald_eagle','canada_goose','cat','chameleon','cheetah','chicken','chimpanzee','cow','crocodile','crow','dog','dolphin','elephant','flamingo','giant_panda','giraffe','goat','gorilla','great_horned_owl','grizzly_bear','hippo','horse','hummingbird','kangaroo','koala','komodo_dragon','leopard','lion','mallard_duck','orangutan','parrot','peacock','pelican','penguin','pig','pigeon','polar_bear','rabbit','raccoon','red_fox','rhino','robin','sheep','squirrel','tiger','toucan','turtle','white_tailed_deer','wolf','zebra'];
 const MODEL_INPUT_SIZE = 224;
 const CONFIDENCE_THRESHOLD = 0.6;
+const INAT_CONFIDENCE_THRESHOLD = 0.3;
+const INAT_API_URL = 'https://api.inaturalist.org/v1/computervision/score_image';
+
+const scoreWithInat = async (
+  photoUri: string,
+  latitude?: number,
+  longitude?: number,
+): Promise<{ label: string; confidence: number } | null> => {
+  try {
+    const formData = new FormData();
+    formData.append('image', { uri: photoUri, type: 'image/jpeg', name: 'photo.jpg' } as any);
+    if (latitude != null) formData.append('lat', String(latitude));
+    if (longitude != null) formData.append('lng', String(longitude));
+
+    const response = await fetch(INAT_API_URL, { method: 'POST', body: formData });
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data.results || data.results.length === 0) return null;
+
+    const top = data.results[0];
+    const commonName = top.taxon?.preferred_common_name || top.taxon?.name;
+    if (!commonName) return null;
+
+    return {
+      label: commonName.toLowerCase().replace(/[\s-]+/g, '_'),
+      confidence: top.score ?? 0,
+    };
+  } catch (e) {
+    console.error('iNaturalist API error:', e);
+    return null;
+  }
+};
 
 const CameraScreen: React.FC = () => {
   const [facing, setFacing] = useState<CameraType>('back');
@@ -40,6 +72,7 @@ const CameraScreen: React.FC = () => {
   const [model, setModel] = useState<TensorflowModel | null>(null);
   const [prediction, setPrediction] = useState<{ label: string; confidence: number } | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [inatFallback, setInatFallback] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pendingSighting, setPendingSighting] = useState<{ label: string; confidence: number; photoUri: string } | null>(null);
   const [locationSearch, setLocationSearch] = useState('');
@@ -60,6 +93,7 @@ const CameraScreen: React.FC = () => {
     setIsRunning(true);
     setPrediction(null);
     setSaved(false);
+    setInatFallback(false);
     setPendingSighting(null);
 
     try {
@@ -91,13 +125,24 @@ const CameraScreen: React.FC = () => {
         if (scores[i] > scores[maxIdx]) maxIdx = i;
       }
 
-      const result = { label: LABELS[maxIdx], confidence: scores[maxIdx] };
-      setPrediction(result);
+      let finalResult = { label: LABELS[maxIdx], confidence: scores[maxIdx] };
+      let usedFallback = false;
 
-      if (result.confidence >= CONFIDENCE_THRESHOLD) {
+      if (finalResult.confidence < CONFIDENCE_THRESHOLD) {
+        const inatResult = await scoreWithInat(photoUri);
+        if (inatResult && inatResult.confidence >= INAT_CONFIDENCE_THRESHOLD) {
+          finalResult = inatResult;
+          usedFallback = true;
+        }
+      }
+
+      setPrediction(finalResult);
+      setInatFallback(usedFallback);
+
+      const shouldSave = finalResult.confidence >= CONFIDENCE_THRESHOLD || usedFallback;
+      if (shouldSave) {
         if (fromGallery) {
-          // Prompt user for location
-          setPendingSighting({ ...result, photoUri });
+          setPendingSighting({ ...finalResult, photoUri });
         } else {
           // Camera shot — auto-capture location
           let latitude: number | undefined;
@@ -108,7 +153,7 @@ const CameraScreen: React.FC = () => {
             latitude = loc.coords.latitude;
             longitude = loc.coords.longitude;
           }
-          await saveSighting({ ...result, photoUri, timestamp: Date.now(), latitude, longitude });
+          await saveSighting({ ...finalResult, photoUri, timestamp: Date.now(), latitude, longitude });
           setSaved(true);
         }
       }
@@ -191,6 +236,7 @@ const CameraScreen: React.FC = () => {
     setCapturedPhoto(null);
     setPrediction(null);
     setSaved(false);
+    setInatFallback(false);
   };
 
   if (!permission) return <View />;
@@ -230,6 +276,12 @@ const CameraScreen: React.FC = () => {
                   {(prediction.confidence * 100).toFixed(1)}% confidence
                 </Text>
               </View>
+              {inatFallback && (
+                <View style={styles.inatBadge}>
+                  <Ionicons name="leaf-outline" size={14} color={COLORS.yellow} />
+                  <Text style={styles.inatBadgeText}>via iNaturalist</Text>
+                </View>
+              )}
               {saved && (
                 <View style={styles.savedBadge}>
                   <Ionicons name="checkmark-circle" size={16} color={COLORS.yellow} />
@@ -390,6 +442,18 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 16,
     marginLeft: 10,
+  },
+  inatBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 2,
+  },
+  inatBadgeText: {
+    color: COLORS.yellow,
+    fontSize: 12,
+    fontWeight: '600',
+    opacity: 0.8,
   },
   savedBadge: {
     flexDirection: 'row',
