@@ -10,6 +10,9 @@ export default {
       supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY,
       inatApiToken: process.env.INAT_API_TOKEN,
     },
+    plugins: [
+      ['expo-notifications', { icon: './assets/icon.png', color: '#C0392B' }],
+    ],
     android: {
       package: 'com.anonymous.wilddex',
     },

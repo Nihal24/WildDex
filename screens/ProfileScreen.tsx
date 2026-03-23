@@ -7,25 +7,42 @@ import {
   StatusBar,
   TouchableOpacity,
   ScrollView,
+  Switch,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 import { supabase } from '../utils/supabase';
 import { getSightings, getDiscoveredLabels } from '../utils/storage';
+import { getNotificationsEnabled, enableDailyNotification, disableDailyNotification } from '../utils/notifications';
 
 const ProfileScreen: React.FC = () => {
   const [email, setEmail] = useState<string>('');
   const [sightingCount, setSightingCount] = useState(0);
   const [discoveredCount, setDiscoveredCount] = useState(0);
+  const [notifsEnabled, setNotifsEnabled] = useState(false);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setEmail(user?.email ?? '');
     });
     getSightings().then((s) => setSightingCount(s.length));
     getDiscoveredLabels().then((d) => setDiscoveredCount(d.size));
+    getNotificationsEnabled().then(setNotifsEnabled);
   }, []);
+
+  const toggleNotifications = async (value: boolean) => {
+    if (value) {
+      const granted = await enableDailyNotification();
+      if (!granted) {
+        Alert.alert('Permission required', 'Enable notifications in Settings to get daily reminders.');
+        return;
+      }
+    } else {
+      await disableDailyNotification();
+    }
+    setNotifsEnabled(value);
+  };
 
   const avatarLetter = email.charAt(0).toUpperCase();
 
@@ -56,13 +73,18 @@ const ProfileScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Settings placeholder */}
+        {/* Settings */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>SETTINGS</Text>
           <View style={styles.settingRow}>
             <Ionicons name="notifications-outline" size={20} color={COLORS.grey} />
-            <Text style={styles.settingText}>Notifications</Text>
-            <Text style={styles.settingValue}>Coming soon</Text>
+            <Text style={styles.settingText}>Daily Reminder</Text>
+            <Switch
+              value={notifsEnabled}
+              onValueChange={toggleNotifications}
+              trackColor={{ false: COLORS.cardBorder, true: COLORS.primary }}
+              thumbColor={COLORS.white}
+            />
           </View>
           <View style={styles.settingRow}>
             <Ionicons name="globe-outline" size={20} color={COLORS.grey} />
@@ -136,6 +158,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   settingText: { flex: 1, color: COLORS.white, fontSize: 15 },
+  settingSubtext: { color: COLORS.darkGrey, fontSize: 12, marginTop: 1 },
   settingValue: { color: COLORS.darkGrey, fontSize: 13 },
   logoutButton: {
     flexDirection: 'row',
@@ -151,18 +174,4 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   logoutText: { color: COLORS.primary, fontSize: 16, fontWeight: '700' },
-  purgeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    borderRadius: 12,
-    width: '100%',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  purgeText: { color: COLORS.grey, fontSize: 14, fontWeight: '600' },
 });
