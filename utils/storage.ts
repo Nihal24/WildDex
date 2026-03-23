@@ -114,13 +114,13 @@ export async function updateSightingLocation(
   await AsyncStorage.setItem(SIGHTINGS_KEY, JSON.stringify(updated));
 }
 
-export async function deleteSighting(timestamp: number): Promise<void> {
+export async function deleteSighting(photoUri: string): Promise<void> {
   const userId = await getCurrentUserId();
   if (userId) {
-    await supabase.from('sightings').delete().eq('user_id', userId).eq('timestamp', timestamp);
+    await supabase.from('sightings').delete().eq('user_id', userId).eq('photo_url', photoUri);
   }
   const local = await getLocalSightings();
-  await AsyncStorage.setItem(SIGHTINGS_KEY, JSON.stringify(local.filter((s) => s.timestamp !== timestamp)));
+  await AsyncStorage.setItem(SIGHTINGS_KEY, JSON.stringify(local.filter((s) => s.photoUri !== photoUri)));
 }
 
 export async function purgeBrokenPhotoSightings(): Promise<number> {

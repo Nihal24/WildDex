@@ -23,7 +23,7 @@ import * as MediaLibrary from 'expo-media-library';
 import { captureRef } from 'react-native-view-shot';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
-import { getDiscoveredLabels, getLatestPhotoForLabel, getSightings, Sighting, updateSightingLocation } from '../utils/storage';
+import { getDiscoveredLabels, getLatestPhotoForLabel, getSightings, Sighting, updateSightingLocation, deleteSighting } from '../utils/storage';
 import { getAnimalProfile, AnimalInfo } from '../utils/claude';
 import { getRarityFromConservationStatus, RarityInfo } from '../utils/rarity';
 import { WorldMap } from '../components/WorldMap';
@@ -288,7 +288,7 @@ const SpeciesCard: React.FC<{ item: SpeciesCardData; onPress: () => void }> = ({
 };
 
 // --- Sighting Row ---
-const SightingRow: React.FC<{ item: Sighting; onEdit: () => void }> = ({ item, onEdit }) => {
+const SightingRow: React.FC<{ item: Sighting; onEdit: () => void; onDelete: () => void }> = ({ item, onEdit, onDelete }) => {
   const [photoExists, setPhotoExists] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -315,6 +315,9 @@ const SightingRow: React.FC<{ item: Sighting; onEdit: () => void }> = ({ item, o
       </View>
       <TouchableOpacity onPress={onEdit} style={{ padding: 6 }}>
         <Ionicons name="pencil-outline" size={16} color={COLORS.grey} />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onDelete} style={{ padding: 6 }}>
+        <Ionicons name="trash-outline" size={16} color={COLORS.grey} />
       </TouchableOpacity>
     </View>
   );
@@ -400,6 +403,19 @@ const WildDexScreen: React.FC = () => {
         setEditCoords(features.map((f: any) => ({ latitude: f.geometry.coordinates[1], longitude: f.geometry.coordinates[0] })));
       } catch {}
     }, 400);
+  };
+
+  const handleDelete = (photoUri: string) => {
+    Alert.alert('Delete sighting?', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive',
+        onPress: async () => {
+          await deleteSighting(photoUri);
+          setSightings((prev) => prev.filter((s) => s.photoUri !== photoUri));
+        },
+      },
+    ]);
   };
 
   const saveEditLocation = async (index: number) => {
@@ -524,7 +540,7 @@ const WildDexScreen: React.FC = () => {
           data={sightings}
           keyExtractor={(_, i) => String(i)}
           contentContainerStyle={styles.list}
-          renderItem={({ item }) => <SightingRow item={item} onEdit={() => { setEditingSighting(item); setEditSearch(item.location ?? ''); setEditSuggestions([]); }} />}
+          renderItem={({ item }) => <SightingRow item={item} onEdit={() => { setEditingSighting(item); setEditSearch(item.location ?? ''); setEditSuggestions([]); }} onDelete={() => handleDelete(item.photoUri)} />}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       )}
