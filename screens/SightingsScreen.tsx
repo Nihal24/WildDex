@@ -12,6 +12,7 @@ import {
   TextInput,
   Alert,
   ScrollView,
+  Animated,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -170,6 +171,17 @@ const SightingRow: React.FC<{ item: Sighting; onEdit: () => void }> = ({ item, o
 const SightingsScreen: React.FC = () => {
   const [sightings, setSightings] = useState<Sighting[]>([]);
   const [editing, setEditing] = useState<Sighting | null>(null);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = () => {
+    if (toastTimeout.current) clearTimeout(toastTimeout.current);
+    Animated.sequence([
+      Animated.timing(toastOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.delay(1500),
+      Animated.timing(toastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start();
+  };
 
   useFocusEffect(useCallback(() => {
     getSightings().then(setSightings);
@@ -180,6 +192,7 @@ const SightingsScreen: React.FC = () => {
       prev.map((s) => s.timestamp === timestamp ? { ...s, location, latitude: lat, longitude: lon } : s)
     );
     setEditing(null);
+    showToast();
   };
 
   return (
@@ -213,6 +226,11 @@ const SightingsScreen: React.FC = () => {
         onClose={() => setEditing(null)}
         onSaved={handleSaved}
       />
+
+      <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
+        <Ionicons name="checkmark-circle" size={16} color={COLORS.yellow} />
+        <Text style={styles.toastText}>Location updated</Text>
+      </Animated.View>
     </SafeAreaView>
   );
 };
@@ -259,4 +277,19 @@ const styles = StyleSheet.create({
   dropdownLine2: { color: COLORS.grey, fontSize: 12, marginTop: 1 },
   cancelBtn: { alignItems: 'center', paddingVertical: 8 },
   cancelText: { color: COLORS.darkGrey, fontSize: 14 },
+  toast: {
+    position: 'absolute',
+    bottom: 24,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  toastText: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
 });
