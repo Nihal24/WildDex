@@ -9,18 +9,26 @@ import {
   ScrollView,
   Switch,
   Alert,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 import { supabase } from '../utils/supabase';
 import { getSightings, getDiscoveredLabels } from '../utils/storage';
 import { getNotificationsEnabled, enableDailyNotification, disableDailyNotification } from '../utils/notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const REGION_KEY = 'wilddex_region';
+const CONTINENTS = ['Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania', 'Antarctica'] as const;
+type ContinentOption = typeof CONTINENTS[number];
 
 const ProfileScreen: React.FC = () => {
   const [email, setEmail] = useState<string>('');
   const [sightingCount, setSightingCount] = useState(0);
   const [discoveredCount, setDiscoveredCount] = useState(0);
   const [notifsEnabled, setNotifsEnabled] = useState(false);
+  const [region, setRegion] = useState<ContinentOption | null>(null);
+  const [regionPickerVisible, setRegionPickerVisible] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -29,7 +37,14 @@ const ProfileScreen: React.FC = () => {
     getSightings().then((s) => setSightingCount(s.length));
     getDiscoveredLabels().then((d) => setDiscoveredCount(d.size));
     getNotificationsEnabled().then(setNotifsEnabled);
+    AsyncStorage.getItem(REGION_KEY).then((v) => { if (v) setRegion(v as ContinentOption); });
   }, []);
+
+  const selectRegion = async (continent: ContinentOption) => {
+    setRegion(continent);
+    await AsyncStorage.setItem(REGION_KEY, continent);
+    setRegionPickerVisible(false);
+  };
 
   const toggleNotifications = async (value: boolean) => {
     if (value) {
@@ -86,12 +101,28 @@ const ProfileScreen: React.FC = () => {
               thumbColor={COLORS.white}
             />
           </View>
-          <View style={styles.settingRow}>
+          <TouchableOpacity style={styles.settingRow} onPress={() => setRegionPickerVisible(true)}>
             <Ionicons name="globe-outline" size={20} color={COLORS.grey} />
             <Text style={styles.settingText}>Region</Text>
-            <Text style={styles.settingValue}>Coming soon</Text>
-          </View>
+            <Text style={styles.settingValue}>{region ?? 'Set region'}</Text>
+            <Ionicons name="chevron-forward" size={14} color={COLORS.darkGrey} />
+          </TouchableOpacity>
         </View>
+
+        {/* Region picker modal */}
+        <Modal visible={regionPickerVisible} animationType="slide" transparent presentationStyle="overFullScreen">
+          <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setRegionPickerVisible(false)}>
+            <TouchableOpacity activeOpacity={1} style={styles.pickerSheet}>
+              <Text style={styles.pickerTitle}>Select Your Region</Text>
+              {CONTINENTS.map((c) => (
+                <TouchableOpacity key={c} style={styles.pickerRow} onPress={() => selectRegion(c)}>
+                  <Text style={[styles.pickerOption, region === c && styles.pickerOptionSelected]}>{c}</Text>
+                  {region === c && <Ionicons name="checkmark" size={18} color={COLORS.yellow} />}
+                </TouchableOpacity>
+              ))}
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
 
         {/* Log out */}
         <TouchableOpacity style={styles.logoutButton} onPress={() => supabase.auth.signOut()}>
@@ -174,4 +205,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   logoutText: { color: COLORS.primary, fontSize: 16, fontWeight: '700' },
+  pickerOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
+  pickerSheet: { backgroundColor: COLORS.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 4 },
+  pickerTitle: { fontSize: 18, fontWeight: '800', color: COLORS.white, textAlign: 'center', marginBottom: 12 },
+  pickerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderTopWidth: 1, borderTopColor: COLORS.cardBorder },
+  pickerOption: { fontSize: 16, color: COLORS.white },
+  pickerOptionSelected: { color: COLORS.yellow, fontWeight: '700' },
 });
