@@ -11,8 +11,6 @@ import {
   Modal,
   TextInput,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -80,54 +78,55 @@ const EditLocationModal: React.FC<EditModalProps> = ({ sighting, onClose, onSave
 
   return (
     <Modal visible={!!sighting} animationType="slide" transparent presentationStyle="overFullScreen">
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <View style={styles.overlay}>
-          <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>Edit Location</Text>
-            <View style={styles.inputRow}>
-              <Ionicons name="search" size={16} color={COLORS.darkGrey} style={{ marginLeft: 12 }} />
-              <TextInput
-                style={styles.input}
-                placeholder="City, park, or address..."
-                placeholderTextColor={COLORS.darkGrey}
-                value={search}
-                onChangeText={onSearchChange}
-                autoCorrect={false}
-                autoFocus
-              />
-              {search.length > 0 && (
-                <TouchableOpacity onPress={() => { setSearch(''); setSuggestions([]); }} style={{ marginRight: 12 }}>
-                  <Ionicons name="close-circle" size={18} color={COLORS.darkGrey} />
-                </TouchableOpacity>
-              )}
-            </View>
-            {suggestions.length > 0 && (
-              <ScrollView keyboardShouldPersistTaps="always" style={styles.dropdown}>
-                {suggestions.map((s, i) => {
-                  const sub = [s.region, s.country].filter(Boolean).join(', ');
-                  const location = [s.city, s.region, s.country].filter(Boolean).join(', ');
-                  return (
-                    <TouchableOpacity
-                      key={i}
-                      style={[styles.dropdownItem, i > 0 && styles.dropdownDivider]}
-                      onPress={() => save(location, coords[i]?.latitude, coords[i]?.longitude)}
-                    >
-                      <Ionicons name="location-outline" size={16} color={COLORS.yellow} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.dropdownLine1}>{s.city}</Text>
-                        {sub ? <Text style={styles.dropdownLine2}>{sub}</Text> : null}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+      <ScrollView
+        contentContainerStyle={styles.overlay}
+        keyboardShouldPersistTaps="always"
+        scrollEnabled={false}
+      >
+        <View style={styles.sheet}>
+          <Text style={styles.sheetTitle}>Edit Location</Text>
+          <View style={styles.inputRow}>
+            <Ionicons name="search" size={16} color={COLORS.darkGrey} style={{ marginLeft: 12 }} />
+            <TextInput
+              style={styles.input}
+              placeholder="City, park, or address..."
+              placeholderTextColor={COLORS.darkGrey}
+              value={search}
+              onChangeText={onSearchChange}
+              autoCorrect={false}
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => { setSearch(''); setSuggestions([]); }} style={{ marginRight: 12 }}>
+                <Ionicons name="close-circle" size={18} color={COLORS.darkGrey} />
+              </TouchableOpacity>
             )}
-            <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
           </View>
+          {suggestions.length > 0 && (
+            <View style={styles.dropdown}>
+              {suggestions.map((s, i) => {
+                const sub = [s.region, s.country].filter(Boolean).join(', ');
+                const location = [s.city, s.region, s.country].filter(Boolean).join(', ');
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    style={[styles.dropdownItem, i > 0 && styles.dropdownDivider]}
+                    onPress={() => save(location, coords[i]?.latitude, coords[i]?.longitude)}
+                  >
+                    <Ionicons name="location-outline" size={16} color={COLORS.yellow} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.dropdownLine1}>{s.city}</Text>
+                      {sub ? <Text style={styles.dropdownLine2}>{sub}</Text> : null}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+          <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
+            <Text style={styles.cancelText}>Cancel</Text>
+          </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      </ScrollView>
     </Modal>
   );
 };
