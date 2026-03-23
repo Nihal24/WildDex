@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Linking,
   Alert,
+  TextInput,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -21,9 +22,11 @@ import * as MediaLibrary from 'expo-media-library';
 import { captureRef } from 'react-native-view-shot';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
-import { getDiscoveredLabels, getLatestPhotoForLabel, getSightings, Sighting } from '../utils/storage';
+import { getDiscoveredLabels, getLatestPhotoForLabel, getSightings, Sighting, updateSightingLocation } from '../utils/storage';
 import { getAnimalProfile, AnimalInfo } from '../utils/claude';
 import { getRarityFromConservationStatus, RarityInfo } from '../utils/rarity';
+import { WorldMap } from '../components/WorldMap';
+import { Continent } from '../utils/claude';
 
 const ALL_SPECIES = [
   { id: '001', label: 'alligator' },
@@ -284,7 +287,7 @@ const SpeciesCard: React.FC<{ item: SpeciesCardData; onPress: () => void }> = ({
 };
 
 // --- Sighting Row ---
-const SightingRow: React.FC<{ item: Sighting }> = ({ item }) => {
+const SightingRow: React.FC<{ item: Sighting; onEdit: () => void }> = ({ item, onEdit }) => {
   const [photoExists, setPhotoExists] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -302,10 +305,16 @@ const SightingRow: React.FC<{ item: Sighting }> = ({ item }) => {
       )}
       <View style={styles.rowInfo}>
         <Text style={styles.rowLabel}>{formatLabel(item.label)}</Text>
-        <Text style={styles.rowConfidence}>{(item.confidence * 100).toFixed(1)}% confidence</Text>
+        {item.location ? (
+          <Text style={styles.rowLocation} numberOfLines={1}>
+            <Ionicons name="location-outline" size={11} color={COLORS.grey} /> {item.location}
+          </Text>
+        ) : null}
         <Text style={styles.rowDate}>{new Date(item.timestamp).toLocaleDateString()}</Text>
       </View>
-      <Ionicons name="checkmark-circle" size={20} color={COLORS.yellow} />
+      <TouchableOpacity onPress={onEdit} style={{ padding: 6 }}>
+        <Ionicons name="pencil-outline" size={16} color={COLORS.grey} />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -332,9 +341,15 @@ const WildDexScreen: React.FC = () => {
   const [rarity, setRarity] = useState<RarityInfo | null>(null);
   const [infoLoading, setInfoLoading] = useState(false);
   const [infoError, setInfoError] = useState<string | null>(null);
+  const [detailTab, setDetailTab] = useState<'info' | 'range'>('info');
   const viewShotRef = useRef<View>(null);
   const [shareSheetVisible, setShareSheetVisible] = useState(false);
   const [capturedUri, setCapturedUri] = useState<string | null>(null);
+  const [editingSighting, setEditingSighting] = useState<Sighting | null>(null);
+  const [editSearch, setEditSearch] = useState('');
+  const [editSuggestions, setEditSuggestions] = useState<{ city: string; region: string; country: string }[]>([]);
+  const [editCoords, setEditCoords] = useState<{ latitude: number; longitude: number }[]>([]);
+  const editTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadData = async () => {
     const [discovered, allSightings] = await Promise.all([getDiscoveredLabels(), getSightings()]);
@@ -352,8 +367,52 @@ const WildDexScreen: React.FC = () => {
 
   useFocusEffect(useCallback(() => { loadData(); }, []));
 
+  const onEditSearchChange = (text: string) => {
+    setEditSearch(text);
+    setEditSuggestions([]);
+    if (editTimeout.current) clearTimeout(editTimeout.current);
+    if (!text.trim()) return;
+    editTimeout.current = setTimeout(async () => {
+      try {
+        const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(text.trim())}&limit=5&lang=en`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const features = data.features ?? [];
+        const addrs = features.map((f: any) => {
+          const p = f.properties;
+          const name = [p.housenumber, p.street].filter(Boolean).join(' ') || p.name || '';
+          const city = p.city || p.town || p.village || '';
+          const region = [city, p.state || p.county].filter(Boolean).join(', ');
+          const country = p.country || '';
+          return { city: name || city, region: name ? region : [p.state || p.county, country].filter(Boolean).join(', '), country: name ? country : '' };
+        });
+        setEditSuggestions(addrs);
+        setEditCoords(features.map((f: any) => ({ latitude: f.geometry.coordinates[1], longitude: f.geometry.coordinates[0] })));
+      } catch {}
+    }, 400);
+  };
+
+  const saveEditLocation = async (index: number) => {
+    if (!editingSighting) return;
+    const { latitude, longitude } = editCoords[index];
+    const s = editSuggestions[index];
+    const location = [s.city, s.region, s.country].filter(Boolean).join(', ');
+    try {
+      await updateSightingLocation(editingSighting.photoUri, location, latitude, longitude);
+      setSightings((prev) =>
+        prev.map((sg) => sg.photoUri === editingSighting.photoUri ? { ...sg, location, latitude, longitude } : sg)
+      );
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    }
+    setEditingSighting(null);
+    setEditSearch('');
+    setEditSuggestions([]);
+  };
+
   const openDetail = async (item: SpeciesCardData) => {
     setSelected(item);
+    setDetailTab('info');
     setAnimalInfo(null);
     setRarity(null);
     setInfoError(null);
@@ -454,10 +513,81 @@ const WildDexScreen: React.FC = () => {
           data={sightings}
           keyExtractor={(_, i) => String(i)}
           contentContainerStyle={styles.list}
-          renderItem={({ item }) => <SightingRow item={item} />}
+          renderItem={({ item }) => <SightingRow item={item} onEdit={() => { setEditingSighting(item); setEditSearch(item.location ?? ''); setEditSuggestions([]); }} />}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       )}
+
+      {/* Edit Location Modal */}
+      <Modal visible={!!editingSighting} animationType="slide" transparent presentationStyle="overFullScreen">
+        <TouchableOpacity style={styles.editOverlay} activeOpacity={1} onPress={() => { setEditingSighting(null); setEditSearch(''); setEditSuggestions([]); }}>
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+          <View style={styles.editSheet}>
+            <Text style={styles.editTitle}>Edit Location</Text>
+            <View style={styles.editInputRow}>
+              <Ionicons name="search" size={16} color={COLORS.darkGrey} style={{ marginLeft: 12 }} />
+              <TextInput
+                style={styles.editInput}
+                placeholder="City, park, or address..."
+                placeholderTextColor={COLORS.darkGrey}
+                value={editSearch}
+                onChangeText={onEditSearchChange}
+                autoCorrect={false}
+                autoFocus
+              />
+              {editSearch.length > 0 && (
+                <TouchableOpacity onPress={() => { setEditSearch(''); setEditSuggestions([]); }} style={{ marginRight: 12 }}>
+                  <Ionicons name="close-circle" size={18} color={COLORS.darkGrey} />
+                </TouchableOpacity>
+              )}
+            </View>
+            {editSuggestions.length > 0 && (
+              <View style={styles.editDropdown}>
+                {editSuggestions.map((s, i) => {
+                  const sub = [s.region, s.country].filter(Boolean).join(', ');
+                  return (
+                    <TouchableOpacity key={i} style={[styles.editDropdownItem, i > 0 && styles.editDropdownDivider]} onPress={() => saveEditLocation(i)}>
+                      <Ionicons name="location-outline" size={16} color={COLORS.yellow} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.dropdownLine1}>{s.city}</Text>
+                        {sub ? <Text style={styles.dropdownLine2}>{sub}</Text> : null}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+            <TouchableOpacity
+              style={[styles.editSaveBtn, !editSearch.trim() && { opacity: 0.4 }]}
+              disabled={!editSearch.trim()}
+              onPress={async () => {
+                if (!editingSighting || !editSearch.trim()) return;
+                try {
+                  let lat: number | undefined, lon: number | undefined;
+                  try {
+                    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(editSearch.trim())}&limit=1&lang=en`;
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    const f = data.features?.[0];
+                    if (f) { lat = f.geometry.coordinates[1]; lon = f.geometry.coordinates[0]; }
+                  } catch {}
+                  await updateSightingLocation(editingSighting.photoUri, editSearch.trim(), lat, lon);
+                  setSightings((prev) =>
+                    prev.map((sg) => sg.photoUri === editingSighting.photoUri ? { ...sg, location: editSearch.trim(), latitude: lat, longitude: lon } : sg)
+                  );
+                } catch (e: any) { Alert.alert('Error', e.message); }
+                setEditingSighting(null); setEditSearch(''); setEditSuggestions([]);
+              }}
+            >
+              <Text style={styles.editSaveText}>Save</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { setEditingSighting(null); setEditSearch(''); setEditSuggestions([]); }} style={styles.editCancel}>
+              <Text style={styles.editCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Detail Modal */}
       <Modal visible={!!selected} animationType="slide" presentationStyle="pageSheet">
@@ -490,54 +620,76 @@ const WildDexScreen: React.FC = () => {
                 <Text style={[styles.rarityLabel, { color: rarity.color }]}>{rarity.label}</Text>
               </View>
             )}
-            <Text style={styles.shareWatermark}>WildDex • Pokédex for the real world</Text>
+            </View>
+
+            {/* Info / Range tab switcher */}
+            <View style={styles.detailTabRow}>
+              <TouchableOpacity
+                style={[styles.detailTabBtn, detailTab === 'info' && styles.detailTabActive]}
+                onPress={() => setDetailTab('info')}
+              >
+                <Text style={[styles.detailTabText, detailTab === 'info' && styles.detailTabTextActive]}>Info</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.detailTabBtn, detailTab === 'range' && styles.detailTabActive]}
+                onPress={() => setDetailTab('range')}
+              >
+                <Text style={[styles.detailTabText, detailTab === 'range' && styles.detailTabTextActive]}>Range</Text>
+              </TouchableOpacity>
             </View>
 
             {infoLoading && (
               <View style={styles.loadingBox}>
                 <ActivityIndicator color={COLORS.yellow} />
-                <Text style={styles.loadingText}>Asking Claude...</Text>
+                <Text style={styles.loadingText}>Loading...</Text>
               </View>
             )}
 
             {infoError && <Text style={styles.errorText}>{infoError}</Text>}
 
-            {animalInfo && (
-              <>
-                <View style={styles.infoCard}>
-                  <Text style={styles.summaryText}>{animalInfo.summary}</Text>
-                  <View style={styles.divider} />
-                  <InfoRow icon="leaf-outline" label="Habitat" value={animalInfo.habitat} />
-                  <InfoRow icon="restaurant-outline" label="Diet" value={animalInfo.diet} />
-                  <InfoRow icon="shield-checkmark-outline" label="Conservation" value={animalInfo.conservationStatus} />
-                  <View style={styles.funFactBox}>
-                    <Text style={styles.funFactLabel}>Fun Fact</Text>
-                    <Text style={styles.funFactText}>{animalInfo.funFact}</Text>
-                  </View>
+            {animalInfo && detailTab === 'info' && (
+              <View style={styles.infoCard}>
+                <Text style={styles.summaryText}>{animalInfo.summary}</Text>
+                <View style={styles.divider} />
+                <InfoRow icon="leaf-outline" label="Habitat" value={animalInfo.habitat} />
+                <InfoRow icon="restaurant-outline" label="Diet" value={animalInfo.diet} />
+                <InfoRow icon="shield-checkmark-outline" label="Conservation" value={animalInfo.conservationStatus} />
+                <View style={styles.funFactBox}>
+                  <Text style={styles.funFactLabel}>Fun Fact</Text>
+                  <Text style={styles.funFactText}>{animalInfo.funFact}</Text>
                 </View>
-
-                {animalInfo.closestPokemon?.length > 0 && (
-                  <View style={styles.pokeCard}>
-                    <Text style={styles.pokeTitle}>CLOSEST POKÉMON</Text>
-                    <View style={styles.pokeRow}>
-                      {animalInfo.closestPokemon.map((p) => (
-                        <View key={p.name} style={styles.pokeItem}>
-                          {p.spriteUrl ? (
-                            <Image source={{ uri: p.spriteUrl }} style={styles.pokeSprite} />
-                          ) : (
-                            <View style={styles.pokeSritePlaceholder}>
-                              <Text style={styles.pokePlaceholderText}>?</Text>
-                            </View>
-                          )}
-                          <Text style={styles.pokeName}>{p.name.charAt(0).toUpperCase() + p.name.slice(1)}</Text>
-                          <Text style={styles.pokeReason}>{p.reason}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                )}
-              </>
+              </View>
             )}
+
+            {animalInfo && detailTab === 'range' && (
+              <View style={styles.rangeCard}>
+                <Text style={styles.rangeTitle}>NATIVE RANGE</Text>
+                <WorldMap highlightedContinents={(animalInfo.continents ?? []) as Continent[]} />
+              </View>
+            )}
+
+            {/* CLOSEST POKÉMON section — commented out for now
+            {animalInfo.closestPokemon?.length > 0 && (
+              <View style={styles.pokeCard}>
+                <Text style={styles.pokeTitle}>CLOSEST POKÉMON</Text>
+                <View style={styles.pokeRow}>
+                  {animalInfo.closestPokemon.map((p) => (
+                    <View key={p.name} style={styles.pokeItem}>
+                      {p.spriteUrl ? (
+                        <Image source={{ uri: p.spriteUrl }} style={styles.pokeSprite} />
+                      ) : (
+                        <View style={styles.pokeSritePlaceholder}>
+                          <Text style={styles.pokePlaceholderText}>?</Text>
+                        </View>
+                      )}
+                      <Text style={styles.pokeName}>{p.name.charAt(0).toUpperCase() + p.name.slice(1)}</Text>
+                      <Text style={styles.pokeReason}>{p.reason}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+            */}
           </ScrollView>
 
           {/* Share action sheet — inside detail modal to avoid nested modal conflicts */}
@@ -632,8 +784,23 @@ const styles = StyleSheet.create({
   rowInfo: { flex: 1 },
   rowLabel: { color: COLORS.white, fontSize: 16, fontWeight: '700', textTransform: 'capitalize' },
   rowConfidence: { color: COLORS.grey, fontSize: 12, marginTop: 2 },
+  rowLocation: { color: COLORS.grey, fontSize: 12, marginTop: 2 },
   rowDate: { color: COLORS.darkGrey, fontSize: 11, marginTop: 2 },
   separator: { height: 10 },
+  editOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
+  editSheet: { backgroundColor: COLORS.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 16 },
+  editTitle: { fontSize: 20, fontWeight: '800', color: COLORS.white, textAlign: 'center' },
+  editInputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.background, borderRadius: 12, borderWidth: 1, borderColor: COLORS.cardBorder },
+  editInput: { flex: 1, padding: 14, color: COLORS.white, fontSize: 15 },
+  editDropdown: { backgroundColor: COLORS.background, borderRadius: 12, borderWidth: 1, borderColor: COLORS.cardBorder, overflow: 'hidden' },
+  editDropdownItem: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 10 },
+  editDropdownDivider: { borderTopWidth: 1, borderTopColor: COLORS.cardBorder },
+  dropdownLine1: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
+  dropdownLine2: { color: COLORS.grey, fontSize: 12, marginTop: 1 },
+  editSaveBtn: { backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  editSaveText: { color: COLORS.white, fontSize: 15, fontWeight: '800' },
+  editCancel: { alignItems: 'center', paddingVertical: 12, borderTopWidth: 1, borderTopColor: COLORS.cardBorder, marginTop: 4 },
+  editCancelText: { color: COLORS.primary, fontSize: 15, fontWeight: '700' },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: COLORS.white },
   emptySub: { fontSize: 14, color: COLORS.grey, textAlign: 'center', paddingHorizontal: 40 },
@@ -669,6 +836,13 @@ const styles = StyleSheet.create({
   loadingBox: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 20 },
   loadingText: { color: COLORS.grey, fontSize: 14 },
   errorText: { color: COLORS.primary, marginTop: 20, textAlign: 'center' },
+  detailTabRow: { flexDirection: 'row', width: '100%', backgroundColor: COLORS.card, borderRadius: 12, borderWidth: 1, borderColor: COLORS.cardBorder, marginTop: 16, overflow: 'hidden' },
+  detailTabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center' },
+  detailTabActive: { backgroundColor: COLORS.primary },
+  detailTabText: { color: COLORS.grey, fontWeight: '700', fontSize: 14 },
+  detailTabTextActive: { color: COLORS.white },
+  rangeCard: { width: '100%', backgroundColor: COLORS.card, borderRadius: 16, borderWidth: 1, borderColor: COLORS.cardBorder, padding: 16, marginTop: 8 },
+  rangeTitle: { color: COLORS.grey, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 12 },
   infoCard: { width: '100%', backgroundColor: COLORS.card, borderRadius: 16, borderWidth: 1, borderColor: COLORS.cardBorder, padding: 16, marginTop: 8 },
   summaryText: { color: COLORS.white, fontSize: 14, lineHeight: 22 },
   divider: { height: 1, backgroundColor: COLORS.cardBorder, marginVertical: 14 },

@@ -15,6 +15,8 @@ export interface ClosestPokemon {
   spriteUrl?: string; // fetched from PokéAPI
 }
 
+export type Continent = 'Africa' | 'Asia' | 'Europe' | 'North America' | 'South America' | 'Oceania' | 'Antarctica';
+
 export interface AnimalInfo {
   commonName: string;
   scientificName: string;
@@ -23,6 +25,7 @@ export interface AnimalInfo {
   funFact: string;
   conservationStatus: string;
   summary: string;
+  continents: Continent[];
   closestPokemon: ClosestPokemon[];
 }
 
@@ -101,6 +104,7 @@ export async function getAnimalProfile(animalName: string): Promise<AnimalInfo> 
 - funFact (string, 1 surprising, specific, little-known fact — NOT about appearance, habitat, or diet; ideally about behavior, physiology, or a record-breaking trait)
 - conservationStatus (string, e.g. "Least Concern")
 - summary (string, 2-3 sentences overview)
+- continents (array of continents where this animal is commonly found today, including introduced or domesticated populations — use only these exact values: "Africa", "Asia", "Europe", "North America", "South America", "Oceania", "Antarctica")
 - closestPokemon (array of exactly 3 objects, each with "name" (lowercase Pokémon name, valid PokéAPI slug) and "reason" (max 6 words why it matches)). Choose Pokémon that are clearly based on or visually similar to this real animal. Prefer Pokémon that were directly inspired by it (e.g. Torchic/Blaziken for chicken, Pidgey for pigeon). Use well-known Pokémon where possible.
 
 Return ONLY the JSON object, no markdown or extra text.`,

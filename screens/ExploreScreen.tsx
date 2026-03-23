@@ -1,36 +1,62 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, StatusBar, ActivityIndicator, Image } from 'react-native';
-import MapView, { Marker, Callout } from 'react-native-maps';
+import React, { useState, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, StatusBar, ActivityIndicator, Image, TouchableOpacity } from 'react-native';
+import MapView, { Marker, Callout, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
-import { getSightings, Sighting } from '../utils/storage';
+import { getSightings, purgeBrokenPhotoSightings, Sighting } from '../utils/storage';
 
 const formatLabel = (label: string) =>
   label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-const AnimalMarker = ({ photoUri }: { photoUri: string }) => (
-  <View style={styles.markerContainer}>
-    <View style={styles.markerBubble}>
-      <Image source={{ uri: photoUri }} style={styles.markerPhoto} />
+const AnimalMarker = ({ photoUri, label }: { photoUri: string; label: string }) => {
+  const [failed, setFailed] = React.useState(false);
+  const initials = label.split('_').map((w) => w[0]?.toUpperCase()).join('').slice(0, 2);
+  return (
+    <View style={styles.markerContainer}>
+      <View style={styles.markerBubble}>
+        {!failed ? (
+          <Image source={{ uri: photoUri }} style={styles.markerPhoto} onError={() => setFailed(true)} />
+        ) : (
+          <View style={styles.markerFallback}>
+            <Text style={styles.markerInitials}>{initials}</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.markerTail} />
     </View>
-    <View style={styles.markerTail} />
-  </View>
-);
+  );
+};
 
 const ExploreScreen: React.FC = () => {
   const [sightings, setSightings] = useState<Sighting[]>([]);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const mapRef = useRef<MapView>(null);
+  const savedRegion = useRef<Region | null>(null);
+  const prevLocatedCount = useRef(0);
 
   useFocusEffect(useCallback(() => {
     const load = async () => {
       setLoading(true);
+      await purgeBrokenPhotoSightings();
       const [all, { status }] = await Promise.all([
         getSightings(),
         Location.requestForegroundPermissionsAsync(),
       ]);
+
+      const located = all.filter((s) => s.latitude != null && s.longitude != null);
+
+      // If a new located sighting was added, animate to it
+      if (located.length > prevLocatedCount.current && located.length > 0) {
+        const newest = located[0];
+        const newRegion = { latitude: newest.latitude!, longitude: newest.longitude!, latitudeDelta: 0.05, longitudeDelta: 0.05 };
+        savedRegion.current = newRegion;
+        setTimeout(() => mapRef.current?.animateToRegion(newRegion, 600), 300);
+      }
+      prevLocatedCount.current = located.length;
+
       setSightings(all);
       if (status === 'granted') {
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
@@ -41,13 +67,30 @@ const ExploreScreen: React.FC = () => {
     load();
   }, []));
 
-  const located = sightings.filter((s) => s.latitude != null && s.longitude != null);
+  const locatedRaw = sightings.filter((s) => s.latitude != null && s.longitude != null);
 
-  const initialRegion = located.length > 0
-    ? { latitude: located[0].latitude!, longitude: located[0].longitude!, latitudeDelta: 0.1, longitudeDelta: 0.1 }
-    : userLocation
-    ? { ...userLocation, latitudeDelta: 0.1, longitudeDelta: 0.1 }
-    : { latitude: 40.7128, longitude: -74.006, latitudeDelta: 10, longitudeDelta: 10 };
+  // Slightly offset markers sharing the same coordinate so they're all tappable
+  const coordCount = new Map<string, number>();
+  const located = locatedRaw.map((s) => {
+    const key = `${s.latitude!.toFixed(5)},${s.longitude!.toFixed(5)}`;
+    const count = coordCount.get(key) ?? 0;
+    coordCount.set(key, count + 1);
+    const angle = (count * 60 * Math.PI) / 180;
+    const offset = count === 0 ? 0 : 0.0003;
+    return {
+      ...s,
+      latitude: s.latitude! + offset * Math.cos(angle),
+      longitude: s.longitude! + offset * Math.sin(angle),
+    };
+  });
+
+  const initialRegion = savedRegion.current ?? (
+    located.length > 0
+      ? { latitude: located[0].latitude!, longitude: located[0].longitude!, latitudeDelta: 0.1, longitudeDelta: 0.1 }
+      : userLocation
+      ? { ...userLocation, latitudeDelta: 0.1, longitudeDelta: 0.1 }
+      : { latitude: 40.7128, longitude: -74.006, latitudeDelta: 10, longitudeDelta: 10 }
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -55,39 +98,60 @@ const ExploreScreen: React.FC = () => {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>EXPLORE</Text>
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>{located.length} pinned</Text>
+          <Ionicons name="location" size={13} color={COLORS.white} />
+          <Text style={styles.badgeText}>{located.length} on map</Text>
         </View>
       </View>
 
-      {loading ? (
+      {loading && sightings.length === 0 ? (
         <View style={styles.center}>
           <ActivityIndicator color={COLORS.yellow} size="large" />
         </View>
       ) : (
-        <MapView
-          style={styles.map}
-          initialRegion={initialRegion}
-          showsUserLocation
-          showsMyLocationButton
-          userInterfaceStyle="dark"
-        >
-          {located.map((s, i) => (
-            <Marker
-              key={i}
-              coordinate={{ latitude: s.latitude!, longitude: s.longitude! }}
-              anchor={{ x: 0.5, y: 1 }}
-            >
-              <AnimalMarker photoUri={s.photoUri} />
-              <Callout>
-                <View style={styles.callout}>
-                  <Text style={styles.calloutLabel}>{formatLabel(s.label)}</Text>
-                  <Text style={styles.calloutDate}>{new Date(s.timestamp).toLocaleDateString()}</Text>
-                  <Text style={styles.calloutConf}>{(s.confidence * 100).toFixed(0)}% confidence</Text>
-                </View>
-              </Callout>
-            </Marker>
-          ))}
-        </MapView>
+        <View style={{ flex: 1 }}>
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            initialRegion={initialRegion}
+            onRegionChangeComplete={(r) => { savedRegion.current = r; }}
+            showsUserLocation
+            showsMyLocationButton
+            userInterfaceStyle="dark"
+          >
+            {located.map((s, i) => (
+              <Marker
+                key={i}
+                coordinate={{ latitude: s.latitude!, longitude: s.longitude! }}
+                anchor={{ x: 0.5, y: 1 }}
+              >
+                <AnimalMarker photoUri={s.photoUri} label={s.label} />
+                <Callout>
+                  <View style={styles.callout}>
+                    <Image source={{ uri: s.photoUri }} style={styles.calloutPhoto} />
+                    <Text style={styles.calloutLabel}>{formatLabel(s.label)}</Text>
+                    <Text style={styles.calloutDate}>{new Date(s.timestamp).toLocaleDateString()}</Text>
+                    <Text style={styles.calloutConf}>{(s.confidence * 100).toFixed(0)}% confidence</Text>
+                  </View>
+                </Callout>
+              </Marker>
+            ))}
+          </MapView>
+          <View style={styles.zoomControls}>
+            <TouchableOpacity style={styles.zoomButton} onPress={() => {
+              const r = savedRegion.current ?? initialRegion;
+              mapRef.current?.animateToRegion({ ...r, latitudeDelta: r.latitudeDelta / 2, longitudeDelta: r.longitudeDelta / 2 }, 300);
+            }}>
+              <Ionicons name="add" size={22} color={COLORS.white} />
+            </TouchableOpacity>
+            <View style={styles.zoomDivider} />
+            <TouchableOpacity style={styles.zoomButton} onPress={() => {
+              const r = savedRegion.current ?? initialRegion;
+              mapRef.current?.animateToRegion({ ...r, latitudeDelta: Math.min(r.latitudeDelta * 2, 90), longitudeDelta: Math.min(r.longitudeDelta * 2, 180) }, 300);
+            }}>
+              <Ionicons name="remove" size={22} color={COLORS.white} />
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
 
       {!loading && located.length === 0 && (
@@ -115,9 +179,26 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.primary,
   },
   headerTitle: { fontSize: 26, fontWeight: '900', color: COLORS.yellow, letterSpacing: 3 },
-  badge: { backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
+  badge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
   badgeText: { color: COLORS.white, fontWeight: '700', fontSize: 14 },
   map: { flex: 1 },
+  zoomControls: {
+    position: 'absolute',
+    right: 16,
+    bottom: 100,
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    overflow: 'hidden',
+  },
+  zoomButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  zoomDivider: { height: 1, backgroundColor: COLORS.cardBorder },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyOverlay: { position: 'absolute', bottom: 80, left: 0, right: 0, alignItems: 'center', gap: 8 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: COLORS.white },
@@ -135,6 +216,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   markerPhoto: { width: 48, height: 48 },
+  markerFallback: { width: 48, height: 48, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' },
+  markerInitials: { color: COLORS.yellow, fontWeight: '900', fontSize: 16 },
   markerTail: {
     width: 0,
     height: 0,
@@ -146,7 +229,8 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.primary,
     marginTop: -1,
   },
-  callout: { padding: 8, minWidth: 140 },
+  callout: { padding: 8, minWidth: 160 },
+  calloutPhoto: { width: '100%', height: 100, borderRadius: 8, marginBottom: 6 },
   calloutLabel: { fontSize: 15, fontWeight: '700', color: '#000' },
   calloutDate: { fontSize: 12, color: '#555', marginTop: 2 },
   calloutConf: { fontSize: 12, color: '#555' },
