@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
 import jpeg from 'jpeg-js';
+import Constants from 'expo-constants';
 import { COLORS } from '../constants/theme';
 import { saveSighting } from '../utils/storage';
 import * as Location from 'expo-location';
@@ -31,6 +32,42 @@ import * as Location from 'expo-location';
 const LABELS = ['bald_eagle','canada_goose','cat','chameleon','cheetah','chicken','chimpanzee','cow','crocodile','crow','dog','dolphin','elephant','flamingo','giant_panda','giraffe','goat','gorilla','great_horned_owl','grizzly_bear','hippo','horse','hummingbird','kangaroo','koala','komodo_dragon','leopard','lion','mallard_duck','orangutan','parrot','peacock','pelican','penguin','pig','pigeon','polar_bear','rabbit','raccoon','red_fox','rhino','robin','sheep','squirrel','tiger','toucan','turtle','white_tailed_deer','wolf','zebra'];
 const MODEL_INPUT_SIZE = 224;
 const CONFIDENCE_THRESHOLD = 0.6;
+const INAT_API_URL = 'https://api.inaturalist.org/v1/computervision/score_image';
+
+const scoreWithInat = async (
+  photoUri: string,
+  latitude?: number,
+  longitude?: number,
+): Promise<{ label: string; confidence: number; error?: string } | null> => {
+  try {
+    const formData = new FormData();
+    formData.append('image', { uri: photoUri, type: 'image/jpeg', name: 'photo.jpg' } as any);
+    if (latitude != null) formData.append('lat', String(latitude));
+    if (longitude != null) formData.append('lng', String(longitude));
+
+    const token = Constants.expoConfig?.extra?.inatApiToken;
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(INAT_API_URL, { method: 'POST', body: formData, headers });
+    if (!response.ok) {
+      const text = await response.text();
+      return { label: '', confidence: 0, error: `HTTP ${response.status}: ${text.slice(0, 100)}` };
+    }
+    const data = await response.json();
+    if (!data.results || data.results.length === 0) return { label: '', confidence: 0, error: 'no results' };
+
+    const top = data.results[0];
+    const commonName = top.taxon?.preferred_common_name || top.taxon?.name;
+    if (!commonName) return { label: '', confidence: 0, error: 'no common name' };
+
+    return {
+      label: commonName.toLowerCase().replace(/[\s-]+/g, '_'),
+      confidence: (top.combined_score ?? top.vision_score ?? top.score ?? 85) / 100,
+    };
+  } catch (e: any) {
+    return { label: '', confidence: 0, error: String(e?.message ?? e) };
+  }
+};
 
 const CameraScreen: React.FC = () => {
   const [facing, setFacing] = useState<CameraType>('back');
@@ -40,10 +77,14 @@ const CameraScreen: React.FC = () => {
   const [model, setModel] = useState<TensorflowModel | null>(null);
   const [prediction, setPrediction] = useState<{ label: string; confidence: number } | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [inatFallback, setInatFallback] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pendingSighting, setPendingSighting] = useState<{ label: string; confidence: number; photoUri: string } | null>(null);
   const [locationSearch, setLocationSearch] = useState('');
   const [locationLoading, setLocationLoading] = useState(false);
+  const [locationSuggestions, setLocationSuggestions] = useState<{ city: string; region: string; country: string }[]>([]);
+  const [suggestionCoords, setSuggestionCoords] = useState<{ latitude: number; longitude: number }[]>([]);
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     loadTensorflowModel(require('../assets/models/wilddex_model.tflite'))
@@ -60,6 +101,7 @@ const CameraScreen: React.FC = () => {
     setIsRunning(true);
     setPrediction(null);
     setSaved(false);
+    setInatFallback(false);
     setPendingSighting(null);
 
     try {
@@ -91,13 +133,29 @@ const CameraScreen: React.FC = () => {
         if (scores[i] > scores[maxIdx]) maxIdx = i;
       }
 
-      const result = { label: LABELS[maxIdx], confidence: scores[maxIdx] };
-      setPrediction(result);
+      let finalResult = { label: LABELS[maxIdx], confidence: scores[maxIdx] };
+      let usedFallback = false;
 
-      if (result.confidence >= CONFIDENCE_THRESHOLD) {
+      if (finalResult.confidence < CONFIDENCE_THRESHOLD) {
+        const inatResized = await ImageManipulator.manipulateAsync(
+          photoUri,
+          [{ resize: { width: 800 } }],
+          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        const inatResult = await scoreWithInat(inatResized.uri);
+        if (inatResult && !inatResult.error && inatResult.label) {
+          finalResult = inatResult;
+          usedFallback = true;
+        }
+      }
+
+      setPrediction(finalResult);
+      setInatFallback(usedFallback);
+
+      const shouldSave = finalResult.confidence >= CONFIDENCE_THRESHOLD || usedFallback;
+      if (shouldSave) {
         if (fromGallery) {
-          // Prompt user for location
-          setPendingSighting({ ...result, photoUri });
+          setPendingSighting({ ...finalResult, photoUri });
         } else {
           // Camera shot — auto-capture location
           let latitude: number | undefined;
@@ -108,7 +166,7 @@ const CameraScreen: React.FC = () => {
             latitude = loc.coords.latitude;
             longitude = loc.coords.longitude;
           }
-          await saveSighting({ ...result, photoUri, timestamp: Date.now(), latitude, longitude });
+          await saveSighting({ ...finalResult, photoUri, timestamp: Date.now(), latitude, longitude });
           setSaved(true);
         }
       }
@@ -159,6 +217,48 @@ const CameraScreen: React.FC = () => {
     }
   };
 
+  const onLocationSearchChange = (text: string) => {
+    setLocationSearch(text);
+    setLocationSuggestions([]);
+    setSuggestionCoords([]);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    if (!text.trim()) return;
+    searchTimeout.current = setTimeout(async () => {
+      try {
+        const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(text.trim())}&limit=5&lang=en`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const features = data.features ?? [];
+        const addresses = features.map((f: any) => {
+          const p = f.properties;
+          const name = [p.housenumber, p.street].filter(Boolean).join(' ') || p.name || '';
+          const city = p.city || p.town || p.village || '';
+          const region = [city, p.state || p.county].filter(Boolean).join(', ');
+          const country = p.country || '';
+          return { city: name || city, region: name ? region : [p.state || p.county, country].filter(Boolean).join(', '), country: name ? country : '' };
+        });
+        const coords = features.map((f: any) => ({
+          latitude: f.geometry.coordinates[1],
+          longitude: f.geometry.coordinates[0],
+        }));
+        setLocationSuggestions(addresses);
+        setSuggestionCoords(coords);
+      } catch {}
+    }, 400);
+  };
+
+  const saveWithSuggestion = async (index: number) => {
+    if (!pendingSighting) return;
+    const { latitude, longitude } = suggestionCoords[index];
+    const s = locationSuggestions[index];
+    const location = [s.city, s.region, s.country].filter(Boolean).join(', ');
+    setLocationSuggestions([]);
+    setLocationSearch('');
+    await saveSighting({ ...pendingSighting, timestamp: Date.now(), latitude, longitude, location });
+    setPendingSighting(null);
+    setSaved(true);
+  };
+
   const saveWithNoLocation = async () => {
     if (!pendingSighting) return;
     await saveSighting({ ...pendingSighting, timestamp: Date.now() });
@@ -191,6 +291,7 @@ const CameraScreen: React.FC = () => {
     setCapturedPhoto(null);
     setPrediction(null);
     setSaved(false);
+    setInatFallback(false);
   };
 
   if (!permission) return <View />;
@@ -214,7 +315,7 @@ const CameraScreen: React.FC = () => {
           <Image source={{ uri: capturedPhoto.uri }} style={styles.previewImage} />
 
           {isRunning && (
-            <View style={styles.resultBox}>
+            <View style={[styles.resultBox, { flexDirection: 'row', alignItems: 'center' }]}>
               <ActivityIndicator color={COLORS.yellow} />
               <Text style={styles.resultText}>Identifying...</Text>
             </View>
@@ -230,11 +331,22 @@ const CameraScreen: React.FC = () => {
                   {(prediction.confidence * 100).toFixed(1)}% confidence
                 </Text>
               </View>
+              {inatFallback && (
+                <View style={styles.inatBadge}>
+                  <Ionicons name="leaf-outline" size={14} color={COLORS.yellow} />
+                  <Text style={styles.inatBadgeText}>via iNaturalist</Text>
+                </View>
+              )}
               {saved && (
                 <View style={styles.savedBadge}>
                   <Ionicons name="checkmark-circle" size={16} color={COLORS.yellow} />
                   <Text style={styles.savedText}>Added to WildDex</Text>
                 </View>
+              )}
+              {pendingSighting && !saved && (
+                <TouchableOpacity style={styles.saveButton} onPress={() => setPendingSighting({ ...pendingSighting, _showSheet: true } as any)}>
+                  <Text style={styles.saveButtonText}>Save to WildDex →</Text>
+                </TouchableOpacity>
               )}
             </View>
           )}
@@ -267,7 +379,7 @@ const CameraScreen: React.FC = () => {
         </View>
       )}
       {/* Location prompt for gallery uploads */}
-      <Modal visible={!!pendingSighting} animationType="slide" transparent presentationStyle="overFullScreen">
+      <Modal visible={!!(pendingSighting as any)?._showSheet} animationType="slide" transparent presentationStyle="overFullScreen">
         <View style={styles.locationOverlay}>
           <View style={styles.locationSheet}>
             <Text style={styles.locationTitle}>Where was this taken?</Text>
@@ -284,21 +396,40 @@ const CameraScreen: React.FC = () => {
               <View style={styles.locationLine} />
             </View>
 
-            <TextInput
-              style={styles.locationInput}
-              placeholder="City, park, or address..."
-              placeholderTextColor={COLORS.darkGrey}
-              value={locationSearch}
-              onChangeText={setLocationSearch}
-            />
-            <TouchableOpacity
-              style={[styles.locationOptionButton, { backgroundColor: COLORS.primary, opacity: locationSearch.trim() ? 1 : 0.4 }]}
-              onPress={saveWithSearchedLocation}
-              disabled={!locationSearch.trim() || locationLoading}
-            >
-              {locationLoading ? <ActivityIndicator color={COLORS.white} size="small" /> : <Ionicons name="search" size={20} color={COLORS.white} />}
-              <Text style={[styles.locationOptionText, { color: COLORS.white }]}>Search & save</Text>
-            </TouchableOpacity>
+            <View>
+              <View style={styles.locationInputRow}>
+                <Ionicons name="search" size={16} color={COLORS.darkGrey} style={{ marginLeft: 12 }} />
+                <TextInput
+                  style={styles.locationInput}
+                  placeholder="City, park, or address..."
+                  placeholderTextColor={COLORS.darkGrey}
+                  value={locationSearch}
+                  onChangeText={onLocationSearchChange}
+                  autoCorrect={false}
+                />
+                {locationSearch.length > 0 && (
+                  <TouchableOpacity onPress={() => { setLocationSearch(''); setLocationSuggestions([]); }} style={{ marginRight: 12 }}>
+                    <Ionicons name="close-circle" size={18} color={COLORS.darkGrey} />
+                  </TouchableOpacity>
+                )}
+              </View>
+              {locationSuggestions.length > 0 && (
+                <View style={styles.dropdown}>
+                  {locationSuggestions.map((s, i) => {
+                    const sub = [s.region, s.country].filter(Boolean).join(', ');
+                    return (
+                      <TouchableOpacity key={i} style={[styles.dropdownItem, i > 0 && styles.dropdownDivider]} onPress={() => saveWithSuggestion(i)}>
+                        <Ionicons name="location-outline" size={16} color={COLORS.yellow} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.dropdownLine1}>{s.city}</Text>
+                          {sub ? <Text style={styles.dropdownLine2}>{sub}</Text> : null}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
 
             <TouchableOpacity onPress={saveWithNoLocation} style={styles.locationSkip}>
               <Text style={styles.locationSkipText}>Skip — save without location</Text>
@@ -374,6 +505,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.cardBorder,
     padding: 16,
     gap: 8,
+    flexDirection: 'column',
   },
   resultLabel: {
     color: COLORS.yellow,
@@ -390,6 +522,26 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 16,
     marginLeft: 10,
+  },
+  saveButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  saveButtonText: { color: COLORS.white, fontWeight: '800', fontSize: 15 },
+  inatBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 2,
+  },
+  inatBadgeText: {
+    color: COLORS.yellow,
+    fontSize: 12,
+    fontWeight: '600',
+    opacity: 0.8,
   },
   savedBadge: {
     flexDirection: 'row',
@@ -473,15 +625,38 @@ const styles = StyleSheet.create({
   locationDivider: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   locationLine: { flex: 1, height: 1, backgroundColor: COLORS.cardBorder },
   locationOr: { color: COLORS.grey, fontSize: 12 },
-  locationInput: {
+  locationInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.background,
     borderRadius: 12,
-    padding: 14,
-    color: COLORS.white,
-    fontSize: 15,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
   },
+  locationInput: {
+    flex: 1,
+    padding: 14,
+    color: COLORS.white,
+    fontSize: 15,
+  },
+  dropdown: {
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  dropdownDivider: { borderTopWidth: 1, borderTopColor: COLORS.cardBorder },
+  dropdownLine1: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
+  dropdownLine2: { color: COLORS.grey, fontSize: 12, marginTop: 1 },
   locationSkip: { alignItems: 'center', paddingVertical: 8 },
   locationSkipText: { color: COLORS.darkGrey, fontSize: 13 },
 });

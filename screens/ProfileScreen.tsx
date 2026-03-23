@@ -7,16 +7,33 @@ import {
   StatusBar,
   TouchableOpacity,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 import { supabase } from '../utils/supabase';
-import { getSightings, getDiscoveredLabels } from '../utils/storage';
+import { getSightings, getDiscoveredLabels, purgeBrokenPhotoSightings } from '../utils/storage';
 
 const ProfileScreen: React.FC = () => {
   const [email, setEmail] = useState<string>('');
   const [sightingCount, setSightingCount] = useState(0);
   const [discoveredCount, setDiscoveredCount] = useState(0);
+  const [purging, setPurging] = useState(false);
+
+  const handlePurge = async () => {
+    setPurging(true);
+    try {
+      const deleted = await purgeBrokenPhotoSightings();
+      const s = await getSightings();
+      setSightingCount(s.length);
+      Alert.alert('Done', `Removed ${deleted} broken sightings. ${s.length} remaining.`);
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setPurging(false);
+    }
+  };
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -69,6 +86,14 @@ const ProfileScreen: React.FC = () => {
             <Text style={styles.settingValue}>Coming soon</Text>
           </View>
         </View>
+
+        {/* Clean up */}
+        <TouchableOpacity style={styles.purgeButton} onPress={handlePurge} disabled={purging}>
+          {purging
+            ? <ActivityIndicator color={COLORS.grey} size="small" />
+            : <Ionicons name="trash-outline" size={20} color={COLORS.grey} />}
+          <Text style={styles.purgeText}>Remove sightings with missing photos</Text>
+        </TouchableOpacity>
 
         {/* Log out */}
         <TouchableOpacity style={styles.logoutButton} onPress={() => supabase.auth.signOut()}>
@@ -150,4 +175,18 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   logoutText: { color: COLORS.primary, fontSize: 16, fontWeight: '700' },
+  purgeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    borderRadius: 12,
+    width: '100%',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  purgeText: { color: COLORS.grey, fontSize: 14, fontWeight: '600' },
 });

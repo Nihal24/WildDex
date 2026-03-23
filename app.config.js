@@ -8,12 +8,14 @@ export default {
       anthropicApiKey: process.env.ANTHROPIC_API_KEY,
       supabaseUrl: process.env.SUPABASE_URL,
       supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY,
+      inatApiToken: process.env.INAT_API_TOKEN,
     },
     android: {
       package: 'com.anonymous.wilddex',
     },
     ios: {
       bundleIdentifier: 'com.anonymous.wilddex',
+      usesAppleSignIn: true,
       infoPlist: {
         NSLocationWhenInUseUsageDescription: 'WildDex uses your location to log where you spotted each animal.',
       },

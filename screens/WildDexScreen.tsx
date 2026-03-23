@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,66 +11,225 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
+  Linking,
+  Alert,
+  TextInput,
+  Animated,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import * as MediaLibrary from 'expo-media-library';
+import { captureRef } from 'react-native-view-shot';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
-import { getDiscoveredLabels, getLatestPhotoForLabel, getSightings, Sighting } from '../utils/storage';
+import { getDiscoveredLabels, getLatestPhotoForLabel, getSightings, Sighting, updateSightingLocation } from '../utils/storage';
 import { getAnimalProfile, AnimalInfo } from '../utils/claude';
 import { getRarityFromConservationStatus, RarityInfo } from '../utils/rarity';
+import { WorldMap } from '../components/WorldMap';
+import { Continent } from '../utils/claude';
 
 const ALL_SPECIES = [
-  { id: '001', label: 'bald_eagle' },
-  { id: '002', label: 'canada_goose' },
-  { id: '003', label: 'crow' },
-  { id: '004', label: 'flamingo' },
-  { id: '005', label: 'great_horned_owl' },
-  { id: '006', label: 'hummingbird' },
-  { id: '007', label: 'mallard_duck' },
-  { id: '008', label: 'parrot' },
-  { id: '009', label: 'peacock' },
-  { id: '010', label: 'pelican' },
-  { id: '011', label: 'penguin' },
-  { id: '012', label: 'pigeon' },
-  { id: '013', label: 'robin' },
-  { id: '014', label: 'toucan' },
-  { id: '015', label: 'chicken' },
-  { id: '016', label: 'cat' },
-  { id: '017', label: 'cow' },
-  { id: '018', label: 'dog' },
-  { id: '019', label: 'goat' },
-  { id: '020', label: 'horse' },
-  { id: '021', label: 'pig' },
-  { id: '022', label: 'rabbit' },
-  { id: '023', label: 'sheep' },
-  { id: '024', label: 'raccoon' },
-  { id: '025', label: 'red_fox' },
-  { id: '026', label: 'squirrel' },
-  { id: '027', label: 'white_tailed_deer' },
-  { id: '028', label: 'wolf' },
-  { id: '029', label: 'grizzly_bear' },
-  { id: '030', label: 'polar_bear' },
+  { id: '001', label: 'alligator' },
+  { id: '002', label: 'american_goldfinch' },
+  { id: '003', label: 'american_robin' },
+  { id: '004', label: 'anaconda' },
+  { id: '005', label: 'armadillo' },
+  { id: '006', label: 'axolotl' },
+  { id: '007', label: 'baboon' },
+  { id: '008', label: 'bald_eagle' },
+  { id: '009', label: 'barn_owl' },
+  { id: '010', label: 'barn_swallow' },
+  { id: '011', label: 'bat' },
+  { id: '012', label: 'bearded_dragon' },
+  { id: '013', label: 'beaver' },
+  { id: '014', label: 'belted_kingfisher' },
+  { id: '015', label: 'binturong' },
+  { id: '016', label: 'bison' },
+  { id: '017', label: 'black_bear' },
+  { id: '018', label: 'black_vulture' },
+  { id: '019', label: 'blue_heron' },
+  { id: '020', label: 'blue_jay' },
+  { id: '021', label: 'boa_constrictor' },
+  { id: '022', label: 'bobcat' },
+  { id: '023', label: 'bullfrog' },
+  { id: '024', label: 'butterfly' },
+  { id: '025', label: 'canada_goose' },
+  { id: '026', label: 'capybara' },
+  { id: '027', label: 'cardinal' },
+  { id: '028', label: 'cassowary' },
+  { id: '029', label: 'cat' },
+  { id: '030', label: 'chameleon' },
   { id: '031', label: 'cheetah' },
-  { id: '032', label: 'chimpanzee' },
-  { id: '033', label: 'elephant' },
-  { id: '034', label: 'giant_panda' },
-  { id: '035', label: 'giraffe' },
-  { id: '036', label: 'gorilla' },
-  { id: '037', label: 'hippo' },
-  { id: '038', label: 'kangaroo' },
-  { id: '039', label: 'koala' },
-  { id: '040', label: 'leopard' },
-  { id: '041', label: 'lion' },
-  { id: '042', label: 'orangutan' },
-  { id: '043', label: 'rhino' },
-  { id: '044', label: 'tiger' },
-  { id: '045', label: 'zebra' },
-  { id: '046', label: 'chameleon' },
-  { id: '047', label: 'crocodile' },
-  { id: '048', label: 'komodo_dragon' },
-  { id: '049', label: 'turtle' },
-  { id: '050', label: 'dolphin' },
+  { id: '032', label: 'chicken' },
+  { id: '033', label: 'chimpanzee' },
+  { id: '034', label: 'chipmunk' },
+  { id: '035', label: 'clownfish' },
+  { id: '036', label: 'cobra' },
+  { id: '037', label: 'cockatoo' },
+  { id: '038', label: 'common_raven' },
+  { id: '039', label: 'cougar' },
+  { id: '040', label: 'cow' },
+  { id: '041', label: 'coyote' },
+  { id: '042', label: 'crab' },
+  { id: '043', label: 'crane' },
+  { id: '044', label: 'crocodile' },
+  { id: '045', label: 'crow' },
+  { id: '046', label: 'deer_mouse' },
+  { id: '047', label: 'dingo' },
+  { id: '048', label: 'dog' },
+  { id: '049', label: 'dolphin' },
+  { id: '050', label: 'dragonfly' },
+  { id: '051', label: 'echidna' },
+  { id: '052', label: 'egret' },
+  { id: '053', label: 'elephant' },
+  { id: '054', label: 'elephant_seal' },
+  { id: '055', label: 'emu' },
+  { id: '056', label: 'firefly' },
+  { id: '057', label: 'flamingo' },
+  { id: '058', label: 'fox_squirrel' },
+  { id: '059', label: 'frog' },
+  { id: '060', label: 'gecko' },
+  { id: '061', label: 'giant_centipede' },
+  { id: '062', label: 'giant_panda' },
+  { id: '063', label: 'giant_squid' },
+  { id: '064', label: 'gila_monster' },
+  { id: '065', label: 'giraffe' },
+  { id: '066', label: 'goat' },
+  { id: '067', label: 'gorilla' },
+  { id: '068', label: 'gray_squirrel' },
+  { id: '069', label: 'gray_wolf' },
+  { id: '070', label: 'great_horned_owl' },
+  { id: '071', label: 'great_white_shark' },
+  { id: '072', label: 'green_tree_frog' },
+  { id: '073', label: 'grizzly_bear' },
+  { id: '074', label: 'groundhog' },
+  { id: '075', label: 'hammerhead_shark' },
+  { id: '076', label: 'hawk' },
+  { id: '077', label: 'hercules_beetle' },
+  { id: '078', label: 'heron' },
+  { id: '079', label: 'hippo' },
+  { id: '080', label: 'honey_bee' },
+  { id: '081', label: 'horse' },
+  { id: '082', label: 'horseshoe_crab' },
+  { id: '083', label: 'house_sparrow' },
+  { id: '084', label: 'hummingbird' },
+  { id: '085', label: 'humpback_whale' },
+  { id: '086', label: 'hyena' },
+  { id: '087', label: 'iguana' },
+  { id: '088', label: 'jaguar' },
+  { id: '089', label: 'jellyfish' },
+  { id: '090', label: 'kangaroo' },
+  { id: '091', label: 'killdeer' },
+  { id: '092', label: 'koala' },
+  { id: '093', label: 'komodo_dragon' },
+  { id: '094', label: 'ladybug' },
+  { id: '095', label: 'lemur' },
+  { id: '096', label: 'leopard' },
+  { id: '097', label: 'lion' },
+  { id: '098', label: 'lobster' },
+  { id: '099', label: 'luna_moth' },
+  { id: '100', label: 'lynx' },
+  { id: '101', label: 'macaw' },
+  { id: '102', label: 'mallard' },
+  { id: '103', label: 'manatee' },
+  { id: '104', label: 'manta_ray' },
+  { id: '105', label: 'mantis_shrimp' },
+  { id: '106', label: 'meerkat' },
+  { id: '107', label: 'mockingbird' },
+  { id: '108', label: 'monarch_butterfly' },
+  { id: '109', label: 'monitor_lizard' },
+  { id: '110', label: 'moose' },
+  { id: '111', label: 'mountain_goat' },
+  { id: '112', label: 'mourning_dove' },
+  { id: '113', label: 'mule_deer' },
+  { id: '114', label: 'numbat' },
+  { id: '115', label: 'octopus' },
+  { id: '116', label: 'opossum' },
+  { id: '117', label: 'orangutan' },
+  { id: '118', label: 'orca' },
+  { id: '119', label: 'osprey' },
+  { id: '120', label: 'ostrich' },
+  { id: '121', label: 'otter' },
+  { id: '122', label: 'pangolin' },
+  { id: '123', label: 'parrot' },
+  { id: '124', label: 'peacock' },
+  { id: '125', label: 'pelican' },
+  { id: '126', label: 'penguin' },
+  { id: '127', label: 'peregrine_falcon' },
+  { id: '128', label: 'pig' },
+  { id: '129', label: 'pigeon' },
+  { id: '130', label: 'pileated_woodpecker' },
+  { id: '131', label: 'platypus' },
+  { id: '132', label: 'poison_dart_frog' },
+  { id: '133', label: 'polar_bear' },
+  { id: '134', label: 'porcupine' },
+  { id: '135', label: 'praying_mantis' },
+  { id: '136', label: 'puffin' },
+  { id: '137', label: 'purple_martin' },
+  { id: '138', label: 'rabbit' },
+  { id: '139', label: 'raccoon' },
+  { id: '140', label: 'rattlesnake' },
+  { id: '141', label: 'red_eared_slider' },
+  { id: '142', label: 'red_fox' },
+  { id: '143', label: 'red_panda' },
+  { id: '144', label: 'red_tailed_hawk' },
+  { id: '145', label: 'red_winged_blackbird' },
+  { id: '146', label: 'rhino' },
+  { id: '147', label: 'roseate_spoonbill' },
+  { id: '148', label: 'ruby_throated_hummingbird' },
+  { id: '149', label: 'salamander' },
+  { id: '150', label: 'sandhill_crane' },
+  { id: '151', label: 'scarlet_macaw' },
+  { id: '152', label: 'scorpion' },
+  { id: '153', label: 'sea_lion' },
+  { id: '154', label: 'sea_otter' },
+  { id: '155', label: 'sea_turtle' },
+  { id: '156', label: 'seagull' },
+  { id: '157', label: 'seahorse' },
+  { id: '158', label: 'seal' },
+  { id: '159', label: 'secretary_bird' },
+  { id: '160', label: 'shark' },
+  { id: '161', label: 'sheep' },
+  { id: '162', label: 'shoebill' },
+  { id: '163', label: 'skunk' },
+  { id: '164', label: 'sloth' },
+  { id: '165', label: 'sloth_bear' },
+  { id: '166', label: 'snake' },
+  { id: '167', label: 'snapping_turtle' },
+  { id: '168', label: 'snow_leopard' },
+  { id: '169', label: 'snowy_owl' },
+  { id: '170', label: 'sparrow' },
+  { id: '171', label: 'squirrel' },
+  { id: '172', label: 'starfish' },
+  { id: '173', label: 'starling' },
+  { id: '174', label: 'stingray' },
+  { id: '175', label: 'stork' },
+  { id: '176', label: 'swan' },
+  { id: '177', label: 'tapir' },
+  { id: '178', label: 'tarantula' },
+  { id: '179', label: 'tiger' },
+  { id: '180', label: 'tiger_salamander' },
+  { id: '181', label: 'tortoise' },
+  { id: '182', label: 'toucan' },
+  { id: '183', label: 'turkey' },
+  { id: '184', label: 'turkey_vulture' },
+  { id: '185', label: 'turtle' },
+  { id: '186', label: 'vulture' },
+  { id: '187', label: 'walking_stick' },
+  { id: '188', label: 'walrus' },
+  { id: '189', label: 'warthog' },
+  { id: '190', label: 'water_moccasin' },
+  { id: '191', label: 'whale_shark' },
+  { id: '192', label: 'white_tailed_deer' },
+  { id: '193', label: 'whooping_crane' },
+  { id: '194', label: 'wild_boar' },
+  { id: '195', label: 'wolf' },
+  { id: '196', label: 'wolverine' },
+  { id: '197', label: 'wombat' },
+  { id: '198', label: 'woodpecker' },
+  { id: '199', label: 'yellow_warbler' },
+  { id: '200', label: 'zebra' },
 ];
 
 const formatLabel = (label: string) =>
@@ -129,7 +288,7 @@ const SpeciesCard: React.FC<{ item: SpeciesCardData; onPress: () => void }> = ({
 };
 
 // --- Sighting Row ---
-const SightingRow: React.FC<{ item: Sighting }> = ({ item }) => {
+const SightingRow: React.FC<{ item: Sighting; onEdit: () => void }> = ({ item, onEdit }) => {
   const [photoExists, setPhotoExists] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -147,10 +306,16 @@ const SightingRow: React.FC<{ item: Sighting }> = ({ item }) => {
       )}
       <View style={styles.rowInfo}>
         <Text style={styles.rowLabel}>{formatLabel(item.label)}</Text>
-        <Text style={styles.rowConfidence}>{(item.confidence * 100).toFixed(1)}% confidence</Text>
+        {item.location ? (
+          <Text style={styles.rowLocation} numberOfLines={1}>
+            <Ionicons name="location-outline" size={11} color={COLORS.grey} /> {item.location}
+          </Text>
+        ) : null}
         <Text style={styles.rowDate}>{new Date(item.timestamp).toLocaleDateString()}</Text>
       </View>
-      <Ionicons name="checkmark-circle" size={20} color={COLORS.yellow} />
+      <TouchableOpacity onPress={onEdit} style={{ padding: 6 }}>
+        <Ionicons name="pencil-outline" size={16} color={COLORS.grey} />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -177,6 +342,24 @@ const WildDexScreen: React.FC = () => {
   const [rarity, setRarity] = useState<RarityInfo | null>(null);
   const [infoLoading, setInfoLoading] = useState(false);
   const [infoError, setInfoError] = useState<string | null>(null);
+  const [detailTab, setDetailTab] = useState<'info' | 'range'>('info');
+  const viewShotRef = useRef<View>(null);
+  const [shareSheetVisible, setShareSheetVisible] = useState(false);
+  const [capturedUri, setCapturedUri] = useState<string | null>(null);
+  const [editingSighting, setEditingSighting] = useState<Sighting | null>(null);
+  const [editSearch, setEditSearch] = useState('');
+  const [editSuggestions, setEditSuggestions] = useState<{ city: string; region: string; country: string }[]>([]);
+  const [editCoords, setEditCoords] = useState<{ latitude: number; longitude: number }[]>([]);
+  const editTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+
+  const showToast = () => {
+    Animated.sequence([
+      Animated.timing(toastOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.delay(1500),
+      Animated.timing(toastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start();
+  };
 
   const loadData = async () => {
     const [discovered, allSightings] = await Promise.all([getDiscoveredLabels(), getSightings()]);
@@ -194,8 +377,53 @@ const WildDexScreen: React.FC = () => {
 
   useFocusEffect(useCallback(() => { loadData(); }, []));
 
+  const onEditSearchChange = (text: string) => {
+    setEditSearch(text);
+    setEditSuggestions([]);
+    if (editTimeout.current) clearTimeout(editTimeout.current);
+    if (!text.trim()) return;
+    editTimeout.current = setTimeout(async () => {
+      try {
+        const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(text.trim())}&limit=5&lang=en`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const features = data.features ?? [];
+        const addrs = features.map((f: any) => {
+          const p = f.properties;
+          const name = [p.housenumber, p.street].filter(Boolean).join(' ') || p.name || '';
+          const city = p.city || p.town || p.village || '';
+          const region = [city, p.state || p.county].filter(Boolean).join(', ');
+          const country = p.country || '';
+          return { city: name || city, region: name ? region : [p.state || p.county, country].filter(Boolean).join(', '), country: name ? country : '' };
+        });
+        setEditSuggestions(addrs);
+        setEditCoords(features.map((f: any) => ({ latitude: f.geometry.coordinates[1], longitude: f.geometry.coordinates[0] })));
+      } catch {}
+    }, 400);
+  };
+
+  const saveEditLocation = async (index: number) => {
+    if (!editingSighting) return;
+    const { latitude, longitude } = editCoords[index];
+    const s = editSuggestions[index];
+    const location = [s.city, s.region, s.country].filter(Boolean).join(', ');
+    try {
+      await updateSightingLocation(editingSighting.photoUri, location, latitude, longitude);
+      setSightings((prev) =>
+        prev.map((sg) => sg.photoUri === editingSighting.photoUri ? { ...sg, location, latitude, longitude } : sg)
+      );
+      showToast();
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    }
+    setEditingSighting(null);
+    setEditSearch('');
+    setEditSuggestions([]);
+  };
+
   const openDetail = async (item: SpeciesCardData) => {
     setSelected(item);
+    setDetailTab('info');
     setAnimalInfo(null);
     setRarity(null);
     setInfoError(null);
@@ -216,6 +444,49 @@ const WildDexScreen: React.FC = () => {
     setAnimalInfo(null);
     setRarity(null);
     setInfoError(null);
+    setShareSheetVisible(false);
+    setCapturedUri(null);
+  };
+
+  const openShareSheet = async () => {
+    if (!viewShotRef.current) return;
+    try {
+      const uri = await captureRef(viewShotRef, { format: 'png', quality: 1 });
+      setCapturedUri(uri);
+      setShareSheetVisible(true);
+    } catch (e: any) {
+      Alert.alert('Share failed', e?.message ?? String(e));
+    }
+  };
+
+  const shareViaSystem = async () => {
+    if (!capturedUri) return;
+    setShareSheetVisible(false);
+    await Sharing.shareAsync(capturedUri, { mimeType: 'image/png' });
+  };
+
+  const shareToInstagram = async () => {
+    if (!capturedUri) return;
+    setShareSheetVisible(false);
+    const url = `instagram-stories://share?backgroundImage=${encodeURIComponent(capturedUri)}`;
+    const canOpen = await Linking.canOpenURL(url);
+    if (canOpen) {
+      await Linking.openURL(url);
+    } else {
+      Alert.alert('Instagram not installed', 'Install Instagram to share directly to Stories.');
+    }
+  };
+
+  const saveToPhotos = async () => {
+    if (!capturedUri) return;
+    setShareSheetVisible(false);
+    const { status } = await MediaLibrary.requestPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission required', 'Allow photo library access to save.');
+      return;
+    }
+    await MediaLibrary.saveToLibraryAsync(capturedUri);
+    Alert.alert('Saved!', 'Sighting card saved to your Photos.');
   };
 
   return (
@@ -253,10 +524,61 @@ const WildDexScreen: React.FC = () => {
           data={sightings}
           keyExtractor={(_, i) => String(i)}
           contentContainerStyle={styles.list}
-          renderItem={({ item }) => <SightingRow item={item} />}
+          renderItem={({ item }) => <SightingRow item={item} onEdit={() => { setEditingSighting(item); setEditSearch(item.location ?? ''); setEditSuggestions([]); }} />}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       )}
+
+      {/* Edit Location Modal */}
+      <Modal visible={!!editingSighting} animationType="slide" transparent presentationStyle="overFullScreen">
+        <TouchableOpacity style={styles.editOverlay} activeOpacity={1} onPress={() => { setEditingSighting(null); setEditSearch(''); setEditSuggestions([]); }}>
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+          <View style={styles.editSheet}>
+            <Text style={styles.editTitle}>Edit Location</Text>
+            <View style={styles.editInputRow}>
+              <Ionicons name="search" size={16} color={COLORS.darkGrey} style={{ marginLeft: 12 }} />
+              <TextInput
+                style={styles.editInput}
+                placeholder="City, park, or address..."
+                placeholderTextColor={COLORS.darkGrey}
+                value={editSearch}
+                onChangeText={onEditSearchChange}
+                autoCorrect={false}
+              />
+              {editSearch.length > 0 && (
+                <TouchableOpacity onPress={() => { setEditSearch(''); setEditSuggestions([]); }} style={{ marginRight: 12 }}>
+                  <Ionicons name="close-circle" size={18} color={COLORS.darkGrey} />
+                </TouchableOpacity>
+              )}
+            </View>
+            {editSuggestions.length > 0 && (
+              <ScrollView style={styles.editDropdown} keyboardShouldPersistTaps="always">
+                {editSuggestions.map((s, i) => {
+                  const sub = [s.region, s.country].filter(Boolean).join(', ');
+                  return (
+                    <TouchableOpacity key={i} style={[styles.editDropdownItem, i > 0 && styles.editDropdownDivider]} onPress={() => saveEditLocation(i)}>
+                      <Ionicons name="location-outline" size={16} color={COLORS.yellow} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.dropdownLine1}>{s.city}</Text>
+                        {sub ? <Text style={styles.dropdownLine2}>{sub}</Text> : null}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            )}
+            <TouchableOpacity onPress={() => { setEditingSighting(null); setEditSearch(''); setEditSuggestions([]); }} style={styles.editCancel}>
+              <Text style={styles.editCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
+        <Ionicons name="checkmark-circle" size={16} color={COLORS.yellow} />
+        <Text style={styles.toastText}>Location updated</Text>
+      </Animated.View>
 
       {/* Detail Modal */}
       <Modal visible={!!selected} animationType="slide" presentationStyle="pageSheet">
@@ -266,9 +588,13 @@ const WildDexScreen: React.FC = () => {
               <Ionicons name="arrow-back" size={24} color={COLORS.white} />
             </TouchableOpacity>
             <Text style={styles.modalHeaderNum}>#{selected?.id}</Text>
+            <TouchableOpacity onPress={openShareSheet} style={styles.backButton}>
+              <Ionicons name="share-outline" size={24} color={COLORS.white} />
+            </TouchableOpacity>
           </View>
 
           <ScrollView contentContainerStyle={styles.modalScroll}>
+            <View ref={viewShotRef} style={styles.shareCard} collapsable={false}>
             {selected?.photoUri ? (
               <Image source={{ uri: selected.photoUri }} style={styles.detailPhoto} />
             ) : (
@@ -285,53 +611,114 @@ const WildDexScreen: React.FC = () => {
                 <Text style={[styles.rarityLabel, { color: rarity.color }]}>{rarity.label}</Text>
               </View>
             )}
+            </View>
+
+            {/* Info / Range tab switcher */}
+            <View style={styles.detailTabRow}>
+              <TouchableOpacity
+                style={[styles.detailTabBtn, detailTab === 'info' && styles.detailTabActive]}
+                onPress={() => setDetailTab('info')}
+              >
+                <Text style={[styles.detailTabText, detailTab === 'info' && styles.detailTabTextActive]}>Info</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.detailTabBtn, detailTab === 'range' && styles.detailTabActive]}
+                onPress={() => setDetailTab('range')}
+              >
+                <Text style={[styles.detailTabText, detailTab === 'range' && styles.detailTabTextActive]}>Range</Text>
+              </TouchableOpacity>
+            </View>
 
             {infoLoading && (
               <View style={styles.loadingBox}>
                 <ActivityIndicator color={COLORS.yellow} />
-                <Text style={styles.loadingText}>Asking Claude...</Text>
+                <Text style={styles.loadingText}>Loading...</Text>
               </View>
             )}
 
             {infoError && <Text style={styles.errorText}>{infoError}</Text>}
 
-            {animalInfo && (
-              <>
-                <View style={styles.infoCard}>
-                  <Text style={styles.summaryText}>{animalInfo.summary}</Text>
-                  <View style={styles.divider} />
-                  <InfoRow icon="leaf-outline" label="Habitat" value={animalInfo.habitat} />
-                  <InfoRow icon="restaurant-outline" label="Diet" value={animalInfo.diet} />
-                  <InfoRow icon="shield-checkmark-outline" label="Conservation" value={animalInfo.conservationStatus} />
-                  <View style={styles.funFactBox}>
-                    <Text style={styles.funFactLabel}>Fun Fact</Text>
-                    <Text style={styles.funFactText}>{animalInfo.funFact}</Text>
-                  </View>
+            {animalInfo && detailTab === 'info' && (
+              <View style={styles.infoCard}>
+                <Text style={styles.summaryText}>{animalInfo.summary}</Text>
+                <View style={styles.divider} />
+                <InfoRow icon="leaf-outline" label="Habitat" value={animalInfo.habitat} />
+                <InfoRow icon="restaurant-outline" label="Diet" value={animalInfo.diet} />
+                <InfoRow icon="shield-checkmark-outline" label="Conservation" value={animalInfo.conservationStatus} />
+                <View style={styles.funFactBox}>
+                  <Text style={styles.funFactLabel}>Fun Fact</Text>
+                  <Text style={styles.funFactText}>{animalInfo.funFact}</Text>
                 </View>
-
-                {animalInfo.closestPokemon?.length > 0 && (
-                  <View style={styles.pokeCard}>
-                    <Text style={styles.pokeTitle}>CLOSEST POKÉMON</Text>
-                    <View style={styles.pokeRow}>
-                      {animalInfo.closestPokemon.map((p) => (
-                        <View key={p.name} style={styles.pokeItem}>
-                          {p.spriteUrl ? (
-                            <Image source={{ uri: p.spriteUrl }} style={styles.pokeSprite} />
-                          ) : (
-                            <View style={styles.pokeSritePlaceholder}>
-                              <Text style={styles.pokePlaceholderText}>?</Text>
-                            </View>
-                          )}
-                          <Text style={styles.pokeName}>{p.name.charAt(0).toUpperCase() + p.name.slice(1)}</Text>
-                          <Text style={styles.pokeReason}>{p.reason}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                )}
-              </>
+              </View>
             )}
+
+            {animalInfo && detailTab === 'range' && (
+              <View style={styles.rangeCard}>
+                <Text style={styles.rangeTitle}>NATIVE RANGE</Text>
+                <WorldMap highlightedContinents={(animalInfo.continents ?? []) as Continent[]} />
+              </View>
+            )}
+
+            {/* CLOSEST POKÉMON section — commented out for now
+            {animalInfo.closestPokemon?.length > 0 && (
+              <View style={styles.pokeCard}>
+                <Text style={styles.pokeTitle}>CLOSEST POKÉMON</Text>
+                <View style={styles.pokeRow}>
+                  {animalInfo.closestPokemon.map((p) => (
+                    <View key={p.name} style={styles.pokeItem}>
+                      {p.spriteUrl ? (
+                        <Image source={{ uri: p.spriteUrl }} style={styles.pokeSprite} />
+                      ) : (
+                        <View style={styles.pokeSritePlaceholder}>
+                          <Text style={styles.pokePlaceholderText}>?</Text>
+                        </View>
+                      )}
+                      <Text style={styles.pokeName}>{p.name.charAt(0).toUpperCase() + p.name.slice(1)}</Text>
+                      <Text style={styles.pokeReason}>{p.reason}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+            */}
           </ScrollView>
+
+          {/* Share action sheet — inside detail modal to avoid nested modal conflicts */}
+          {shareSheetVisible && (
+            <TouchableOpacity style={styles.shareOverlay} activeOpacity={1} onPress={() => setShareSheetVisible(false)}>
+              <View style={styles.shareSheet}>
+                <Text style={styles.shareTitle}>Share Sighting</Text>
+
+                <TouchableOpacity style={styles.shareOption} onPress={shareToInstagram}>
+                  <View style={[styles.shareIconBg, { backgroundColor: '#E1306C' }]}>
+                    <Ionicons name="logo-instagram" size={22} color="#fff" />
+                  </View>
+                  <Text style={styles.shareOptionText}>Instagram Stories</Text>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.darkGrey} />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.shareOption} onPress={shareViaSystem}>
+                  <View style={[styles.shareIconBg, { backgroundColor: COLORS.primary }]}>
+                    <Ionicons name="share-outline" size={22} color="#fff" />
+                  </View>
+                  <Text style={styles.shareOptionText}>More (Twitter, Facebook…)</Text>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.darkGrey} />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.shareOption} onPress={saveToPhotos}>
+                  <View style={[styles.shareIconBg, { backgroundColor: '#4CD964' }]}>
+                    <Ionicons name="download-outline" size={22} color="#fff" />
+                  </View>
+                  <Text style={styles.shareOptionText}>Save to Photos</Text>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.darkGrey} />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.shareCancel} onPress={() => setShareSheetVisible(false)}>
+                  <Text style={styles.shareCancelText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          )}
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -388,8 +775,36 @@ const styles = StyleSheet.create({
   rowInfo: { flex: 1 },
   rowLabel: { color: COLORS.white, fontSize: 16, fontWeight: '700', textTransform: 'capitalize' },
   rowConfidence: { color: COLORS.grey, fontSize: 12, marginTop: 2 },
+  rowLocation: { color: COLORS.grey, fontSize: 12, marginTop: 2 },
   rowDate: { color: COLORS.darkGrey, fontSize: 11, marginTop: 2 },
   separator: { height: 10 },
+  editOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
+  editSheet: { backgroundColor: COLORS.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 16 },
+  editTitle: { fontSize: 20, fontWeight: '800', color: COLORS.white, textAlign: 'center' },
+  editInputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.background, borderRadius: 12, borderWidth: 1, borderColor: COLORS.cardBorder },
+  editInput: { flex: 1, padding: 14, color: COLORS.white, fontSize: 15 },
+  editDropdown: { backgroundColor: COLORS.background, borderRadius: 12, borderWidth: 1, borderColor: COLORS.cardBorder, overflow: 'hidden' },
+  editDropdownItem: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 10 },
+  editDropdownDivider: { borderTopWidth: 1, borderTopColor: COLORS.cardBorder },
+  dropdownLine1: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
+  dropdownLine2: { color: COLORS.grey, fontSize: 12, marginTop: 1 },
+  editCancel: { alignItems: 'center', paddingVertical: 12, borderTopWidth: 1, borderTopColor: COLORS.cardBorder, marginTop: 4 },
+  toast: {
+    position: 'absolute',
+    bottom: 24,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  toastText: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
+  editCancelText: { color: COLORS.primary, fontSize: 15, fontWeight: '700' },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: COLORS.white },
   emptySub: { fontSize: 14, color: COLORS.grey, textAlign: 'center', paddingHorizontal: 40 },
@@ -408,6 +823,16 @@ const styles = StyleSheet.create({
   backButton: { padding: 4 },
   modalHeaderNum: { color: COLORS.grey, fontSize: 16, fontWeight: '600' },
   modalScroll: { padding: 20, alignItems: 'center' },
+  shareCard: { width: '100%', alignItems: 'center', backgroundColor: COLORS.background, paddingBottom: 12 },
+  shareWatermark: { fontSize: 11, color: COLORS.darkGrey, marginTop: 8, letterSpacing: 0.5 },
+  shareOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100 },
+  shareSheet: { backgroundColor: COLORS.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 8 },
+  shareTitle: { fontSize: 16, fontWeight: '800', color: COLORS.white, textAlign: 'center', marginBottom: 8 },
+  shareOption: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, paddingHorizontal: 4 },
+  shareIconBg: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  shareOptionText: { flex: 1, color: COLORS.white, fontSize: 15, fontWeight: '600' },
+  shareCancel: { marginTop: 8, paddingVertical: 14, alignItems: 'center', backgroundColor: COLORS.background, borderRadius: 12 },
+  shareCancelText: { color: COLORS.grey, fontSize: 15, fontWeight: '600' },
   detailPhoto: { width: '100%', height: 300, borderRadius: 16, borderWidth: 2, borderColor: COLORS.yellow },
   detailPhotoPlaceholder: { width: '100%', height: 300, borderRadius: 16, backgroundColor: COLORS.card, justifyContent: 'center', alignItems: 'center' },
   detailName: { fontSize: 32, fontWeight: '900', color: COLORS.yellow, marginTop: 16, letterSpacing: 1, textTransform: 'capitalize' },
@@ -415,6 +840,13 @@ const styles = StyleSheet.create({
   loadingBox: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 20 },
   loadingText: { color: COLORS.grey, fontSize: 14 },
   errorText: { color: COLORS.primary, marginTop: 20, textAlign: 'center' },
+  detailTabRow: { flexDirection: 'row', width: '100%', backgroundColor: COLORS.card, borderRadius: 12, borderWidth: 1, borderColor: COLORS.cardBorder, marginTop: 16, overflow: 'hidden' },
+  detailTabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center' },
+  detailTabActive: { backgroundColor: COLORS.primary },
+  detailTabText: { color: COLORS.grey, fontWeight: '700', fontSize: 14 },
+  detailTabTextActive: { color: COLORS.white },
+  rangeCard: { width: '100%', backgroundColor: COLORS.card, borderRadius: 16, borderWidth: 1, borderColor: COLORS.cardBorder, padding: 16, marginTop: 8 },
+  rangeTitle: { color: COLORS.grey, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 12 },
   infoCard: { width: '100%', backgroundColor: COLORS.card, borderRadius: 16, borderWidth: 1, borderColor: COLORS.cardBorder, padding: 16, marginTop: 8 },
   summaryText: { color: COLORS.white, fontSize: 14, lineHeight: 22 },
   divider: { height: 1, backgroundColor: COLORS.cardBorder, marginVertical: 14 },

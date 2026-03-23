@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { supabase } from '../utils/supabase';
 import { COLORS } from '../constants/theme';
 
@@ -18,6 +19,7 @@ const AuthScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -38,6 +40,31 @@ const AuthScreen: React.FC = () => {
       setError(e.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setAppleLoading(true);
+    setError(null);
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (!credential.identityToken) throw new Error('No identity token from Apple');
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: credential.identityToken,
+      });
+      if (error) throw error;
+    } catch (e: any) {
+      if (e.code !== 'ERR_REQUEST_CANCELED') {
+        setError(e.message);
+      }
+    } finally {
+      setAppleLoading(false);
     }
   };
 
@@ -83,6 +110,21 @@ const AuthScreen: React.FC = () => {
               <Text style={styles.toggleAccent}>{mode === 'login' ? 'Sign Up' : 'Log In'}</Text>
             </Text>
           </TouchableOpacity>
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+            cornerRadius={12}
+            style={styles.appleButton}
+            onPress={handleAppleSignIn}
+          />
+          {appleLoading && <ActivityIndicator color={COLORS.white} style={{ marginTop: 8 }} />}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -118,6 +160,10 @@ const styles = StyleSheet.create({
   buttonText: { color: COLORS.white, fontWeight: '800', fontSize: 16 },
   error: { color: COLORS.primary, fontSize: 13, textAlign: 'center' },
   messageText: { color: COLORS.yellow, fontSize: 13, textAlign: 'center' },
-  toggle: { color: COLORS.grey, textAlign: 'center', marginTop: 8, fontSize: 13 },
+  toggle: { color: COLORS.grey, textAlign: 'center', marginTop: 4, fontSize: 13 },
   toggleAccent: { color: COLORS.yellow, fontWeight: '700' },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 4 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.cardBorder },
+  dividerText: { color: COLORS.grey, fontSize: 13 },
+  appleButton: { width: '100%', height: 50 },
 });

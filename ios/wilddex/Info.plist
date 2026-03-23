@@ -71,5 +71,7 @@
     <false/>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>WildDex uses your location to log where you spotted each animal.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>WildDex saves your sighting cards to Photos.</string>
   </dict>
 </plist>

@@ -10,6 +10,7 @@ export interface Sighting {
   confidence: number;
   photoUri: string;
   timestamp: number;
+  location?: string;
   latitude?: number;
   longitude?: number;
 }
@@ -45,6 +46,7 @@ export async function saveSighting(sighting: Sighting): Promise<void> {
       confidence: sighting.confidence,
       photo_url: permanentUri,
       timestamp: sighting.timestamp,
+      location: sighting.location,
       latitude: sighting.latitude,
       longitude: sighting.longitude,
     }).then(({ error }) => {
@@ -64,7 +66,7 @@ export async function getSightings(): Promise<Sighting[]> {
   if (userId) {
     const { data, error } = await supabase
       .from('sightings')
-      .select('label, confidence, photo_url, timestamp, latitude, longitude')
+      .select('label, confidence, photo_url, timestamp, location, latitude, longitude')
       .eq('user_id', userId)
       .order('timestamp', { ascending: false });
 
@@ -74,6 +76,7 @@ export async function getSightings(): Promise<Sighting[]> {
         confidence: row.confidence,
         photoUri: row.photo_url,
         timestamp: row.timestamp,
+        location: row.location,
         latitude: row.latitude,
         longitude: row.longitude,
       }));
@@ -84,6 +87,75 @@ export async function getSightings(): Promise<Sighting[]> {
   }
   // Offline fallback
   return getLocalSightings();
+}
+
+export async function updateSightingLocation(
+  photoUri: string,
+  location: string,
+  latitude?: number,
+  longitude?: number,
+): Promise<void> {
+  const userId = await getCurrentUserId();
+  if (userId) {
+    const update: any = { location };
+    if (latitude !== undefined) update.latitude = latitude;
+    if (longitude !== undefined) update.longitude = longitude;
+    const { error } = await supabase
+      .from('sightings')
+      .update(update)
+      .eq('user_id', userId)
+      .eq('photo_url', photoUri);
+    if (error) throw new Error(error.message);
+  }
+  const local = await getLocalSightings();
+  const updated = local.map((s) =>
+    s.photoUri === photoUri ? { ...s, location, latitude, longitude } : s
+  );
+  await AsyncStorage.setItem(SIGHTINGS_KEY, JSON.stringify(updated));
+}
+
+export async function deleteSighting(timestamp: number): Promise<void> {
+  const userId = await getCurrentUserId();
+  if (userId) {
+    await supabase.from('sightings').delete().eq('user_id', userId).eq('timestamp', timestamp);
+  }
+  const local = await getLocalSightings();
+  await AsyncStorage.setItem(SIGHTINGS_KEY, JSON.stringify(local.filter((s) => s.timestamp !== timestamp)));
+}
+
+export async function purgeBrokenPhotoSightings(): Promise<number> {
+  const userId = await getCurrentUserId();
+  if (!userId) return 0;
+
+  const sightings = await getSightings();
+  const brokenUris: string[] = [];
+
+  for (const s of sightings) {
+    if (!s.photoUri || s.photoUri.startsWith('http')) continue;
+    try {
+      const uri = s.photoUri.startsWith('file://') ? s.photoUri : `file://${s.photoUri}`;
+      const info = await FileSystem.getInfoAsync(uri);
+      if (!info.exists) brokenUris.push(s.photoUri);
+    } catch {
+      brokenUris.push(s.photoUri);
+    }
+  }
+
+  if (brokenUris.length === 0) return 0;
+
+  // Delete from Supabase by photo_url (more reliable than timestamp type matching)
+  const { error } = await supabase
+    .from('sightings')
+    .delete()
+    .eq('user_id', userId)
+    .in('photo_url', brokenUris);
+
+  if (error) throw new Error(error.message);
+
+  // Wipe local cache entirely so next getSightings() pulls fresh from Supabase
+  await AsyncStorage.removeItem(SIGHTINGS_KEY);
+
+  return brokenUris.length;
 }
 
 export async function getDiscoveredLabels(): Promise<Set<string>> {
