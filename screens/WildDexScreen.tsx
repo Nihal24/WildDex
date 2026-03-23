@@ -23,7 +23,7 @@ import * as MediaLibrary from 'expo-media-library';
 import { captureRef } from 'react-native-view-shot';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
-import { getDiscoveredLabels, getLatestPhotoForLabel, getSightings, Sighting, updateSightingLocation, deleteSighting } from '../utils/storage';
+import { getDiscoveredLabels, getLatestPhotoForLabel, getSightings, getLocalSightings, Sighting, updateSightingLocation, deleteSighting } from '../utils/storage';
 import { getAnimalProfile, AnimalInfo } from '../utils/claude';
 import { getRarityFromConservationStatus, RarityInfo } from '../utils/rarity';
 import { WorldMap } from '../components/WorldMap';
@@ -365,6 +365,15 @@ const WildDexScreen: React.FC = () => {
   };
 
   const loadData = async () => {
+    // Phase 1: local cache (instant) so count updates immediately
+    const localSightings = await getLocalSightings();
+    if (localSightings.length > 0) {
+      setSightings(localSightings);
+      const localLabels = new Set(localSightings.map((s) => s.label));
+      setDiscoveredCount(localLabels.size);
+    }
+
+    // Phase 2: Supabase (source of truth, may take a moment)
     const [discovered, allSightings] = await Promise.all([getDiscoveredLabels(), getSightings()]);
     const data = await Promise.all(
       ALL_SPECIES.map(async (s) => {
@@ -484,12 +493,25 @@ const WildDexScreen: React.FC = () => {
   const shareToInstagram = async () => {
     if (!capturedUri) return;
     setShareSheetVisible(false);
-    const url = `instagram-stories://share?backgroundImage=${encodeURIComponent(capturedUri)}`;
-    const canOpen = await Linking.canOpenURL(url);
-    if (canOpen) {
-      await Linking.openURL(url);
-    } else {
-      Alert.alert('Instagram not installed', 'Install Instagram to share directly to Stories.');
+    try {
+      // Instagram Stories requires the image to be in the photo library
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Allow photo library access to share to Instagram.');
+        return;
+      }
+      const asset = await MediaLibrary.saveToLibraryAsync(capturedUri);
+      const assetUri = `ph://${asset.id}`;
+      const url = `instagram-stories://share?backgroundImage=${encodeURIComponent(assetUri)}`;
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        // Fallback to system share sheet
+        await Sharing.shareAsync(capturedUri, { mimeType: 'image/png' });
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
     }
   };
 

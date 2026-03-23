@@ -55,7 +55,7 @@ export async function saveSighting(sighting: Sighting): Promise<void> {
   }
 }
 
-async function getLocalSightings(): Promise<Sighting[]> {
+export async function getLocalSightings(): Promise<Sighting[]> {
   const raw = await AsyncStorage.getItem(SIGHTINGS_KEY);
   return raw ? JSON.parse(raw) : [];
 }
