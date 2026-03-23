@@ -14,6 +14,7 @@ import {
   Linking,
   Alert,
   TextInput,
+  Animated,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -350,6 +351,15 @@ const WildDexScreen: React.FC = () => {
   const [editSuggestions, setEditSuggestions] = useState<{ city: string; region: string; country: string }[]>([]);
   const [editCoords, setEditCoords] = useState<{ latitude: number; longitude: number }[]>([]);
   const editTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+
+  const showToast = () => {
+    Animated.sequence([
+      Animated.timing(toastOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.delay(1500),
+      Animated.timing(toastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start();
+  };
 
   const loadData = async () => {
     const [discovered, allSightings] = await Promise.all([getDiscoveredLabels(), getSightings()]);
@@ -402,6 +412,7 @@ const WildDexScreen: React.FC = () => {
       setSightings((prev) =>
         prev.map((sg) => sg.photoUri === editingSighting.photoUri ? { ...sg, location, latitude, longitude } : sg)
       );
+      showToast();
     } catch (e: any) {
       Alert.alert('Error', e.message);
     }
@@ -533,7 +544,6 @@ const WildDexScreen: React.FC = () => {
                 value={editSearch}
                 onChangeText={onEditSearchChange}
                 autoCorrect={false}
-                autoFocus
               />
               {editSearch.length > 0 && (
                 <TouchableOpacity onPress={() => { setEditSearch(''); setEditSuggestions([]); }} style={{ marginRight: 12 }}>
@@ -542,7 +552,7 @@ const WildDexScreen: React.FC = () => {
               )}
             </View>
             {editSuggestions.length > 0 && (
-              <View style={styles.editDropdown}>
+              <ScrollView style={styles.editDropdown} keyboardShouldPersistTaps="always">
                 {editSuggestions.map((s, i) => {
                   const sub = [s.region, s.country].filter(Boolean).join(', ');
                   return (
@@ -555,32 +565,8 @@ const WildDexScreen: React.FC = () => {
                     </TouchableOpacity>
                   );
                 })}
-              </View>
+              </ScrollView>
             )}
-            <TouchableOpacity
-              style={[styles.editSaveBtn, !editSearch.trim() && { opacity: 0.4 }]}
-              disabled={!editSearch.trim()}
-              onPress={async () => {
-                if (!editingSighting || !editSearch.trim()) return;
-                try {
-                  let lat: number | undefined, lon: number | undefined;
-                  try {
-                    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(editSearch.trim())}&limit=1&lang=en`;
-                    const res = await fetch(url);
-                    const data = await res.json();
-                    const f = data.features?.[0];
-                    if (f) { lat = f.geometry.coordinates[1]; lon = f.geometry.coordinates[0]; }
-                  } catch {}
-                  await updateSightingLocation(editingSighting.photoUri, editSearch.trim(), lat, lon);
-                  setSightings((prev) =>
-                    prev.map((sg) => sg.photoUri === editingSighting.photoUri ? { ...sg, location: editSearch.trim(), latitude: lat, longitude: lon } : sg)
-                  );
-                } catch (e: any) { Alert.alert('Error', e.message); }
-                setEditingSighting(null); setEditSearch(''); setEditSuggestions([]);
-              }}
-            >
-              <Text style={styles.editSaveText}>Save</Text>
-            </TouchableOpacity>
             <TouchableOpacity onPress={() => { setEditingSighting(null); setEditSearch(''); setEditSuggestions([]); }} style={styles.editCancel}>
               <Text style={styles.editCancelText}>Cancel</Text>
             </TouchableOpacity>
@@ -588,6 +574,11 @@ const WildDexScreen: React.FC = () => {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
+        <Ionicons name="checkmark-circle" size={16} color={COLORS.yellow} />
+        <Text style={styles.toastText}>Location updated</Text>
+      </Animated.View>
 
       {/* Detail Modal */}
       <Modal visible={!!selected} animationType="slide" presentationStyle="pageSheet">
@@ -797,9 +788,22 @@ const styles = StyleSheet.create({
   editDropdownDivider: { borderTopWidth: 1, borderTopColor: COLORS.cardBorder },
   dropdownLine1: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
   dropdownLine2: { color: COLORS.grey, fontSize: 12, marginTop: 1 },
-  editSaveBtn: { backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-  editSaveText: { color: COLORS.white, fontSize: 15, fontWeight: '800' },
   editCancel: { alignItems: 'center', paddingVertical: 12, borderTopWidth: 1, borderTopColor: COLORS.cardBorder, marginTop: 4 },
+  toast: {
+    position: 'absolute',
+    bottom: 24,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  toastText: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
   editCancelText: { color: COLORS.primary, fontSize: 15, fontWeight: '700' },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: COLORS.white },
