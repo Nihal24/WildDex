@@ -40,7 +40,7 @@ export async function saveSighting(sighting: Sighting): Promise<void> {
   // Sync to Supabase with user_id
   const userId = await getCurrentUserId();
   if (userId) {
-    supabase.from('sightings').insert({
+    const { error } = await supabase.from('sightings').insert({
       user_id: userId,
       label: sighting.label,
       confidence: sighting.confidence,
@@ -49,9 +49,8 @@ export async function saveSighting(sighting: Sighting): Promise<void> {
       location: sighting.location,
       latitude: sighting.latitude,
       longitude: sighting.longitude,
-    }).then(({ error }) => {
-      if (error) console.warn('Supabase sighting sync failed:', error.message);
     });
+    if (error) console.warn('Supabase sighting sync failed:', error.message);
   }
 }
 
@@ -114,10 +113,25 @@ export async function updateSightingLocation(
   await AsyncStorage.setItem(SIGHTINGS_KEY, JSON.stringify(updated));
 }
 
-export async function deleteSighting(photoUri: string): Promise<void> {
+export async function deleteSighting(photoUri: string, timestamp?: number): Promise<void> {
   const userId = await getCurrentUserId();
   if (userId) {
-    await supabase.from('sightings').delete().eq('user_id', userId).eq('photo_url', photoUri);
+    // Prefer matching by timestamp (stable across reinstalls) with photo_url as fallback
+    let deleteResult;
+    if (timestamp !== undefined) {
+      deleteResult = await supabase
+        .from('sightings')
+        .delete()
+        .eq('user_id', userId)
+        .eq('timestamp', timestamp);
+    } else {
+      deleteResult = await supabase
+        .from('sightings')
+        .delete()
+        .eq('user_id', userId)
+        .eq('photo_url', photoUri);
+    }
+    if (deleteResult.error) throw new Error(`Supabase delete failed: ${deleteResult.error.message}`);
   }
   const local = await getLocalSightings();
   await AsyncStorage.setItem(SIGHTINGS_KEY, JSON.stringify(local.filter((s) => s.photoUri !== photoUri)));

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, StatusBar, ActivityIndicator, Image, TouchableOpacity } from 'react-native';
-import MapView, { Marker, Callout, Region } from 'react-native-maps';
+import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,12 +10,12 @@ import { getSightings, purgeBrokenPhotoSightings, Sighting } from '../utils/stor
 const formatLabel = (label: string) =>
   label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-const AnimalMarker = ({ photoUri, label }: { photoUri: string; label: string }) => {
+const AnimalMarker = ({ photoUri, label, selected }: { photoUri: string; label: string; selected: boolean }) => {
   const [failed, setFailed] = React.useState(false);
   const initials = label.split('_').map((w) => w[0]?.toUpperCase()).join('').slice(0, 2);
   return (
     <View style={styles.markerContainer}>
-      <View style={styles.markerBubble}>
+      <View style={[styles.markerBubble, selected && styles.markerBubbleSelected]}>
         {!failed ? (
           <Image source={{ uri: photoUri }} style={styles.markerPhoto} onError={() => setFailed(true)} />
         ) : (
@@ -24,7 +24,7 @@ const AnimalMarker = ({ photoUri, label }: { photoUri: string; label: string }) 
           </View>
         )}
       </View>
-      <View style={styles.markerTail} />
+      <View style={[styles.markerTail, selected && styles.markerTailSelected]} />
     </View>
   );
 };
@@ -33,6 +33,7 @@ const ExploreScreen: React.FC = () => {
   const [sightings, setSightings] = useState<Sighting[]>([]);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedSighting, setSelectedSighting] = useState<(Sighting & { latitude: number; longitude: number }) | null>(null);
   const mapRef = useRef<MapView>(null);
   const savedRegion = useRef<Region | null>(null);
   const prevLocatedCount = useRef(0);
@@ -114,8 +115,8 @@ const ExploreScreen: React.FC = () => {
             style={styles.map}
             initialRegion={initialRegion}
             onRegionChangeComplete={(r) => { savedRegion.current = r; }}
+            onPress={() => setSelectedSighting(null)}
             showsUserLocation
-            showsMyLocationButton
             userInterfaceStyle="dark"
           >
             {located.map((s, i) => (
@@ -123,19 +124,38 @@ const ExploreScreen: React.FC = () => {
                 key={i}
                 coordinate={{ latitude: s.latitude!, longitude: s.longitude! }}
                 anchor={{ x: 0.5, y: 1 }}
+                onPress={(e) => { e.stopPropagation(); setSelectedSighting(s); }}
               >
-                <AnimalMarker photoUri={s.photoUri} label={s.label} />
-                <Callout>
-                  <View style={styles.callout}>
-                    <Image source={{ uri: s.photoUri }} style={styles.calloutPhoto} />
-                    <Text style={styles.calloutLabel}>{formatLabel(s.label)}</Text>
-                    <Text style={styles.calloutDate}>{new Date(s.timestamp).toLocaleDateString()}</Text>
-                    <Text style={styles.calloutConf}>{(s.confidence * 100).toFixed(0)}% confidence</Text>
-                  </View>
-                </Callout>
+                <AnimalMarker
+                  photoUri={s.photoUri}
+                  label={s.label}
+                  selected={false}
+                />
               </Marker>
             ))}
           </MapView>
+
+          {/* Custom floating card */}
+          {selectedSighting && (
+            <View style={styles.floatingCard} onStartShouldSetResponder={() => true}>
+              <Image source={{ uri: selectedSighting.photoUri }} style={styles.floatingPhoto} />
+              <View style={styles.floatingInfo}>
+                <Text style={styles.floatingLabel}>{formatLabel(selectedSighting.label)}</Text>
+                <Text style={styles.floatingDate}>{new Date(selectedSighting.timestamp).toLocaleDateString()}</Text>
+                {selectedSighting.location && (
+                  <View style={styles.floatingLocationRow}>
+                    <Ionicons name="location-outline" size={11} color={COLORS.grey} />
+                    <Text style={styles.floatingLocation}>{selectedSighting.location}</Text>
+                  </View>
+                )}
+                <Text style={styles.floatingConf}>{(selectedSighting.confidence * 100).toFixed(0)}% confidence</Text>
+              </View>
+              <TouchableOpacity style={styles.floatingClose} onPress={() => setSelectedSighting(null)}>
+                <Ionicons name="close" size={18} color={COLORS.grey} />
+              </TouchableOpacity>
+            </View>
+          )}
+
           <View style={styles.zoomControls}>
             <TouchableOpacity style={styles.zoomButton} onPress={() => {
               const r = savedRegion.current ?? initialRegion;
@@ -149,6 +169,13 @@ const ExploreScreen: React.FC = () => {
               mapRef.current?.animateToRegion({ ...r, latitudeDelta: Math.min(r.latitudeDelta * 2, 90), longitudeDelta: Math.min(r.longitudeDelta * 2, 180) }, 300);
             }}>
               <Ionicons name="remove" size={22} color={COLORS.white} />
+            </TouchableOpacity>
+            <View style={styles.zoomDivider} />
+            <TouchableOpacity style={styles.zoomButton} onPress={() => {
+              const r = savedRegion.current ?? initialRegion;
+              mapRef.current?.animateToRegion({ ...r, latitudeDelta: 180, longitudeDelta: 360 }, 500);
+            }}>
+              <Ionicons name="earth-outline" size={20} color={COLORS.white} />
             </TouchableOpacity>
           </View>
         </View>
@@ -185,7 +212,7 @@ const styles = StyleSheet.create({
   zoomControls: {
     position: 'absolute',
     right: 16,
-    bottom: 100,
+    top: 16,
     backgroundColor: COLORS.card,
     borderRadius: 12,
     borderWidth: 1,
@@ -215,6 +242,10 @@ const styles = StyleSheet.create({
     elevation: 5,
     overflow: 'hidden',
   },
+  markerBubbleSelected: {
+    borderColor: COLORS.yellow,
+    borderWidth: 3,
+  },
   markerPhoto: { width: 48, height: 48 },
   markerFallback: { width: 48, height: 48, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' },
   markerInitials: { color: COLORS.yellow, fontWeight: '900', fontSize: 16 },
@@ -229,9 +260,34 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.primary,
     marginTop: -1,
   },
-  callout: { padding: 8, minWidth: 160 },
-  calloutPhoto: { width: '100%', height: 100, borderRadius: 8, marginBottom: 6 },
-  calloutLabel: { fontSize: 15, fontWeight: '700', color: '#000' },
-  calloutDate: { fontSize: 12, color: '#555', marginTop: 2 },
-  calloutConf: { fontSize: 12, color: '#555' },
+  markerTailSelected: {
+    borderTopColor: COLORS.yellow,
+  },
+  floatingCard: {
+    position: 'absolute',
+    bottom: 36,
+    left: 16,
+    right: 16,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  floatingPhoto: { width: 64, height: 64, borderRadius: 10 },
+  floatingInfo: { flex: 1, gap: 2 },
+  floatingLabel: { color: COLORS.white, fontSize: 15, fontWeight: '700' },
+  floatingDate: { color: COLORS.grey, fontSize: 12 },
+  floatingLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 1 },
+  floatingLocation: { color: COLORS.grey, fontSize: 12 },
+  floatingConf: { color: COLORS.darkGrey, fontSize: 11, marginTop: 2 },
+  floatingClose: { padding: 4 },
 });

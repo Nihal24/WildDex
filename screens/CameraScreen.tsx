@@ -182,13 +182,22 @@ const CameraScreen: React.FC = () => {
     setLocationLoading(true);
     let latitude: number | undefined;
     let longitude: number | undefined;
+    let location: string | undefined;
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status === 'granted') {
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       latitude = loc.coords.latitude;
       longitude = loc.coords.longitude;
+      try {
+        const [place] = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (place) {
+          const city = place.city || place.subregion || place.region || '';
+          const country = place.country || '';
+          location = [city, country].filter(Boolean).join(', ');
+        }
+      } catch {}
     }
-    await saveSighting({ ...pendingSighting, timestamp: Date.now(), latitude, longitude });
+    await saveSighting({ ...pendingSighting, timestamp: Date.now(), latitude, longitude, location });
     setPendingSighting(null);
     setLocationSearch('');
     setLocationLoading(false);
@@ -321,35 +330,48 @@ const CameraScreen: React.FC = () => {
             </View>
           )}
 
-          {!isRunning && prediction && (
-            <View style={styles.resultBox}>
-              <View>
-                <Text style={styles.resultLabel}>
-                  {prediction.label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                </Text>
-                <Text style={styles.resultConfidence}>
-                  {(prediction.confidence * 100).toFixed(1)}% confidence
-                </Text>
+          {!isRunning && prediction && (() => {
+            const recognized = prediction.confidence >= CONFIDENCE_THRESHOLD || inatFallback;
+            return (
+              <View style={[styles.resultBox, !recognized && styles.resultBoxUnrecognized]}>
+                {recognized ? (
+                  <View>
+                    <Text style={styles.resultLabel}>
+                      {prediction.label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                    </Text>
+                    <Text style={styles.resultConfidence}>
+                      {(prediction.confidence * 100).toFixed(1)}% confidence
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.unrecognizedContent}>
+                    <Ionicons name="help-circle-outline" size={28} color={COLORS.darkGrey} />
+                    <View>
+                      <Text style={styles.unrecognizedLabel}>Unrecognized</Text>
+                      <Text style={styles.unrecognizedSub}>Try a clearer photo or different angle</Text>
+                    </View>
+                  </View>
+                )}
+                {inatFallback && (
+                  <View style={styles.inatBadge}>
+                    <Ionicons name="leaf-outline" size={14} color={COLORS.yellow} />
+                    <Text style={styles.inatBadgeText}>via iNaturalist</Text>
+                  </View>
+                )}
+                {saved && (
+                  <View style={styles.savedBadge}>
+                    <Ionicons name="checkmark-circle" size={16} color={COLORS.yellow} />
+                    <Text style={styles.savedText}>Added to WildDex</Text>
+                  </View>
+                )}
+                {pendingSighting && !saved && (
+                  <TouchableOpacity style={styles.saveButton} onPress={() => setPendingSighting({ ...pendingSighting, _showSheet: true } as any)}>
+                    <Text style={styles.saveButtonText}>Save to WildDex →</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-              {inatFallback && (
-                <View style={styles.inatBadge}>
-                  <Ionicons name="leaf-outline" size={14} color={COLORS.yellow} />
-                  <Text style={styles.inatBadgeText}>via iNaturalist</Text>
-                </View>
-              )}
-              {saved && (
-                <View style={styles.savedBadge}>
-                  <Ionicons name="checkmark-circle" size={16} color={COLORS.yellow} />
-                  <Text style={styles.savedText}>Added to WildDex</Text>
-                </View>
-              )}
-              {pendingSighting && !saved && (
-                <TouchableOpacity style={styles.saveButton} onPress={() => setPendingSighting({ ...pendingSighting, _showSheet: true } as any)}>
-                  <Text style={styles.saveButtonText}>Save to WildDex →</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+            );
+          })()}
 
           <TouchableOpacity style={styles.retakeButton} onPress={retake}>
             <Ionicons name="arrow-back" size={18} color={COLORS.white} />
@@ -507,6 +529,10 @@ const styles = StyleSheet.create({
     gap: 8,
     flexDirection: 'column',
   },
+  resultBoxUnrecognized: {
+    borderColor: COLORS.darkGrey,
+    backgroundColor: COLORS.background,
+  },
   resultLabel: {
     color: COLORS.yellow,
     fontSize: 24,
@@ -517,6 +543,21 @@ const styles = StyleSheet.create({
   resultConfidence: {
     color: COLORS.grey,
     fontSize: 14,
+  },
+  unrecognizedContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  unrecognizedLabel: {
+    color: COLORS.grey,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  unrecognizedSub: {
+    color: COLORS.darkGrey,
+    fontSize: 12,
+    marginTop: 2,
   },
   resultText: {
     color: COLORS.white,
