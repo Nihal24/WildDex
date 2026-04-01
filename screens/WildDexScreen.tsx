@@ -23,7 +23,7 @@ import * as MediaLibrary from 'expo-media-library';
 import { captureRef } from 'react-native-view-shot';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
-import { getDiscoveredLabels, getLatestPhotoForLabel, getSightings, Sighting, updateSightingLocation, deleteSighting } from '../utils/storage';
+import { getDiscoveredLabels, getLatestPhotoForLabel, getSightings, getLocalSightings, Sighting, updateSightingLocation, deleteSighting } from '../utils/storage';
 import { getAnimalProfile, AnimalInfo } from '../utils/claude';
 import { getRarityFromConservationStatus, RarityInfo } from '../utils/rarity';
 import { WorldMap } from '../components/WorldMap';
@@ -345,7 +345,7 @@ const WildDexScreen: React.FC = () => {
   const [rarity, setRarity] = useState<RarityInfo | null>(null);
   const [infoLoading, setInfoLoading] = useState(false);
   const [infoError, setInfoError] = useState<string | null>(null);
-  const [detailTab, setDetailTab] = useState<'info' | 'range'>('info');
+  const [detailTab, setDetailTab] = useState<'info' | 'range' | 'pokemon'>('info');
   const viewShotRef = useRef<View>(null);
   const [shareSheetVisible, setShareSheetVisible] = useState(false);
   const [capturedUri, setCapturedUri] = useState<string | null>(null);
@@ -365,6 +365,15 @@ const WildDexScreen: React.FC = () => {
   };
 
   const loadData = async () => {
+    // Phase 1: local cache (instant) so count updates immediately
+    const localSightings = await getLocalSightings();
+    if (localSightings.length > 0) {
+      setSightings(localSightings);
+      const localLabels = new Set(localSightings.map((s) => s.label));
+      setDiscoveredCount(localLabels.size);
+    }
+
+    // Phase 2: Supabase (source of truth, may take a moment)
     const [discovered, allSightings] = await Promise.all([getDiscoveredLabels(), getSightings()]);
     const data = await Promise.all(
       ALL_SPECIES.map(async (s) => {
@@ -405,14 +414,18 @@ const WildDexScreen: React.FC = () => {
     }, 400);
   };
 
-  const handleDelete = (photoUri: string) => {
+  const handleDelete = (photoUri: string, timestamp?: number) => {
     Alert.alert('Delete sighting?', 'This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive',
         onPress: async () => {
-          await deleteSighting(photoUri);
-          setSightings((prev) => prev.filter((s) => s.photoUri !== photoUri));
+          try {
+            await deleteSighting(photoUri, timestamp);
+            loadData();
+          } catch (e: any) {
+            Alert.alert('Delete failed', e.message);
+          }
         },
       },
     ]);
@@ -484,12 +497,25 @@ const WildDexScreen: React.FC = () => {
   const shareToInstagram = async () => {
     if (!capturedUri) return;
     setShareSheetVisible(false);
-    const url = `instagram-stories://share?backgroundImage=${encodeURIComponent(capturedUri)}`;
-    const canOpen = await Linking.canOpenURL(url);
-    if (canOpen) {
-      await Linking.openURL(url);
-    } else {
-      Alert.alert('Instagram not installed', 'Install Instagram to share directly to Stories.');
+    try {
+      // Instagram Stories requires the image to be in the photo library
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Allow photo library access to share to Instagram.');
+        return;
+      }
+      const asset = await MediaLibrary.saveToLibraryAsync(capturedUri);
+      const assetUri = `ph://${asset.id}`;
+      const url = `instagram-stories://share?backgroundImage=${encodeURIComponent(assetUri)}`;
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        // Fallback to system share sheet
+        await Sharing.shareAsync(capturedUri, { mimeType: 'image/png' });
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
     }
   };
 
@@ -540,7 +566,7 @@ const WildDexScreen: React.FC = () => {
           data={sightings}
           keyExtractor={(_, i) => String(i)}
           contentContainerStyle={styles.list}
-          renderItem={({ item }) => <SightingRow item={item} onEdit={() => { setEditingSighting(item); setEditSearch(item.location ?? ''); setEditSuggestions([]); }} onDelete={() => handleDelete(item.photoUri)} />}
+          renderItem={({ item }) => <SightingRow item={item} onEdit={() => { setEditingSighting(item); setEditSearch(item.location ?? ''); setEditSuggestions([]); }} onDelete={() => handleDelete(item.photoUri, item.timestamp)} />}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       )}
@@ -629,7 +655,7 @@ const WildDexScreen: React.FC = () => {
             )}
             </View>
 
-            {/* Info / Range tab switcher */}
+            {/* Info / Range / Pokédex tab switcher */}
             <View style={styles.detailTabRow}>
               <TouchableOpacity
                 style={[styles.detailTabBtn, detailTab === 'info' && styles.detailTabActive]}
@@ -642,6 +668,12 @@ const WildDexScreen: React.FC = () => {
                 onPress={() => setDetailTab('range')}
               >
                 <Text style={[styles.detailTabText, detailTab === 'range' && styles.detailTabTextActive]}>Range</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.detailTabBtn, detailTab === 'pokemon' && styles.detailTabActive]}
+                onPress={() => setDetailTab('pokemon')}
+              >
+                <Text style={[styles.detailTabText, detailTab === 'pokemon' && styles.detailTabTextActive]}>Pokédex</Text>
               </TouchableOpacity>
             </View>
 
@@ -675,28 +707,29 @@ const WildDexScreen: React.FC = () => {
               </View>
             )}
 
-            {/* CLOSEST POKÉMON section — commented out for now
-            {animalInfo.closestPokemon?.length > 0 && (
-              <View style={styles.pokeCard}>
-                <Text style={styles.pokeTitle}>CLOSEST POKÉMON</Text>
-                <View style={styles.pokeRow}>
-                  {animalInfo.closestPokemon.map((p) => (
-                    <View key={p.name} style={styles.pokeItem}>
-                      {p.spriteUrl ? (
-                        <Image source={{ uri: p.spriteUrl }} style={styles.pokeSprite} />
-                      ) : (
-                        <View style={styles.pokeSritePlaceholder}>
-                          <Text style={styles.pokePlaceholderText}>?</Text>
-                        </View>
-                      )}
-                      <Text style={styles.pokeName}>{p.name.charAt(0).toUpperCase() + p.name.slice(1)}</Text>
-                      <Text style={styles.pokeReason}>{p.reason}</Text>
-                    </View>
-                  ))}
-                </View>
+            {animalInfo && detailTab === 'pokemon' && (
+              <View style={styles.infoCard}>
+                {animalInfo.closestPokemon?.length > 0 ? (
+                  <View style={styles.pokeRow}>
+                    {animalInfo.closestPokemon.map((p) => (
+                      <View key={p.name} style={styles.pokeItem}>
+                        {p.spriteUrl ? (
+                          <Image source={{ uri: p.spriteUrl }} style={styles.pokeSprite} />
+                        ) : (
+                          <View style={styles.pokeSritePlaceholder}>
+                            <Text style={styles.pokePlaceholderText}>?</Text>
+                          </View>
+                        )}
+                        <Text style={styles.pokeName}>{p.name.charAt(0).toUpperCase() + p.name.slice(1)}</Text>
+                        <Text style={styles.pokeReason}>{p.reason}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.pokeEmptyText}>No Pokédex data yet</Text>
+                )}
               </View>
             )}
-            */}
           </ScrollView>
 
           {/* Share action sheet — inside detail modal to avoid nested modal conflicts */}
@@ -849,18 +882,18 @@ const styles = StyleSheet.create({
   shareOptionText: { flex: 1, color: COLORS.white, fontSize: 15, fontWeight: '600' },
   shareCancel: { marginTop: 8, paddingVertical: 14, alignItems: 'center', backgroundColor: COLORS.background, borderRadius: 12 },
   shareCancelText: { color: COLORS.grey, fontSize: 15, fontWeight: '600' },
-  detailPhoto: { width: '100%', height: 300, borderRadius: 16, borderWidth: 2, borderColor: COLORS.yellow },
+  detailPhoto: { width: '100%', height: 300, borderRadius: 16 },
   detailPhotoPlaceholder: { width: '100%', height: 300, borderRadius: 16, backgroundColor: COLORS.card, justifyContent: 'center', alignItems: 'center' },
   detailName: { fontSize: 32, fontWeight: '900', color: COLORS.yellow, marginTop: 16, letterSpacing: 1, textTransform: 'capitalize' },
   sciName: { fontSize: 14, color: COLORS.grey, fontStyle: 'italic', marginTop: 4, marginBottom: 16 },
   loadingBox: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 20 },
   loadingText: { color: COLORS.grey, fontSize: 14 },
   errorText: { color: COLORS.primary, marginTop: 20, textAlign: 'center' },
-  detailTabRow: { flexDirection: 'row', width: '100%', backgroundColor: COLORS.card, borderRadius: 12, borderWidth: 1, borderColor: COLORS.cardBorder, marginTop: 16, overflow: 'hidden' },
-  detailTabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center' },
+  detailTabRow: { flexDirection: 'row', width: '100%', backgroundColor: COLORS.card, borderRadius: 12, borderWidth: 1, borderColor: COLORS.cardBorder, marginTop: 16, padding: 4, gap: 2 },
+  detailTabBtn: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 9 },
   detailTabActive: { backgroundColor: COLORS.primary },
-  detailTabText: { color: COLORS.grey, fontWeight: '700', fontSize: 14 },
-  detailTabTextActive: { color: COLORS.white },
+  detailTabText: { color: COLORS.grey, fontWeight: '500', fontSize: 13, letterSpacing: 0.3 },
+  detailTabTextActive: { color: COLORS.white, fontWeight: '600', letterSpacing: 0.3 },
   rangeCard: { width: '100%', backgroundColor: COLORS.card, borderRadius: 16, borderWidth: 1, borderColor: COLORS.cardBorder, padding: 16, marginTop: 8 },
   rangeTitle: { color: COLORS.grey, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 12 },
   infoCard: { width: '100%', backgroundColor: COLORS.card, borderRadius: 16, borderWidth: 1, borderColor: COLORS.cardBorder, padding: 16, marginTop: 8 },
@@ -877,8 +910,12 @@ const styles = StyleSheet.create({
   rarityBadge: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 12, gap: 6 },
   rarityEmoji: { fontSize: 14 },
   rarityLabel: { fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
-  pokeCard: { width: '100%', backgroundColor: COLORS.card, borderRadius: 16, borderWidth: 1, borderColor: COLORS.yellow, padding: 16, marginTop: 12, marginBottom: 20 },
+  pokeCard: { width: '100%', backgroundColor: COLORS.card, borderRadius: 16, borderWidth: 1, borderColor: COLORS.cardBorder, padding: 16, marginTop: 12, marginBottom: 20 },
   pokeTitle: { color: COLORS.primary, fontSize: 12, fontWeight: '900', letterSpacing: 2, textAlign: 'center', marginBottom: 14 },
+  pokeHeaderRow: { marginBottom: 4 },
+  pokeTabTitle: { color: COLORS.white, fontSize: 15, fontWeight: '700', marginBottom: 6 },
+  pokeTabSubtitle: { color: COLORS.grey, fontSize: 13, lineHeight: 19 },
+  pokeEmptyText: { color: COLORS.darkGrey, fontSize: 14, textAlign: 'center', paddingVertical: 20 },
   pokeRow: { flexDirection: 'row', justifyContent: 'space-around' },
   pokeItem: { alignItems: 'center', flex: 1, paddingHorizontal: 4 },
   pokeSprite: { width: 80, height: 80 },

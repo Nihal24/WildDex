@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
+import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../utils/supabase';
 import { getSightings, getDiscoveredLabels } from '../utils/storage';
 import { getNotificationsEnabled, enableDailyNotification, disableDailyNotification } from '../utils/notifications';
@@ -30,7 +31,7 @@ const ProfileScreen: React.FC = () => {
   const [region, setRegion] = useState<ContinentOption | null>(null);
   const [regionPickerVisible, setRegionPickerVisible] = useState(false);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setEmail(user?.email ?? '');
     });
@@ -38,7 +39,7 @@ const ProfileScreen: React.FC = () => {
     getDiscoveredLabels().then((d) => setDiscoveredCount(d.size));
     getNotificationsEnabled().then(setNotifsEnabled);
     AsyncStorage.getItem(REGION_KEY).then((v) => { if (v) setRegion(v as ContinentOption); });
-  }, []);
+  }, []));
 
   const selectRegion = async (continent: ContinentOption) => {
     setRegion(continent);
