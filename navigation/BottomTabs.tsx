@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { View, StyleSheet } from 'react-native';
 
+import FeedScreen from '../screens/FeedScreen';
 import ExploreScreen from '../screens/ExploreScreen';
 import CameraScreen from '../screens/CameraScreen';
 import WildDexScreen from '../screens/WildDexScreen';
@@ -10,6 +11,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import { COLORS } from '../constants/theme';
 
 export type BottomTabParamList = {
+  Feed: undefined;
   Explore: undefined;
   Camera: undefined;
   WildDex: undefined;
@@ -18,16 +20,32 @@ export type BottomTabParamList = {
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 
+const TabIcon = ({
+  name,
+  outlineName,
+  focused,
+}: {
+  name: React.ComponentProps<typeof Ionicons>['name'];
+  outlineName: React.ComponentProps<typeof Ionicons>['name'];
+  focused: boolean;
+}) => (
+  <Ionicons
+    name={focused ? name : outlineName}
+    size={24}
+    color={focused ? COLORS.yellow : COLORS.grey}
+  />
+);
+
 const CameraTabIcon = ({ focused }: { focused: boolean }) => (
   <View style={[styles.cameraTab, focused && styles.cameraTabActive]}>
-    <Ionicons name="camera" size={28} color={COLORS.white} />
+    <Ionicons name="camera" size={26} color={COLORS.white} />
   </View>
 );
 
 const BottomTabs: React.FC = () => {
   return (
     <Tab.Navigator
-      initialRouteName="Camera"
+      initialRouteName="Feed"
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
@@ -37,11 +55,21 @@ const BottomTabs: React.FC = () => {
       }}
     >
       <Tab.Screen
+        name="Feed"
+        component={FeedScreen}
+        options={{
+          tabBarLabel: 'Community',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="people" outlineName="people-outline" focused={focused} />
+          ),
+        }}
+      />
+      <Tab.Screen
         name="Explore"
         component={ExploreScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <Ionicons name={focused ? 'compass' : 'compass-outline'} size={24} color={focused ? COLORS.yellow : COLORS.grey} />
+            <TabIcon name="map" outlineName="map-outline" focused={focused} />
           ),
         }}
       />
@@ -57,8 +85,9 @@ const BottomTabs: React.FC = () => {
         name="WildDex"
         component={WildDexScreen}
         options={{
+          tabBarLabel: 'Collection',
           tabBarIcon: ({ focused }) => (
-            <Ionicons name={focused ? 'book' : 'book-outline'} size={24} color={focused ? COLORS.yellow : COLORS.grey} />
+            <TabIcon name="paw" outlineName="paw-outline" focused={focused} />
           ),
         }}
       />
@@ -67,7 +96,7 @@ const BottomTabs: React.FC = () => {
         component={ProfileScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={focused ? COLORS.yellow : COLORS.grey} />
+            <TabIcon name="person" outlineName="person-outline" focused={focused} />
           ),
         }}
       />
@@ -79,25 +108,27 @@ export default BottomTabs;
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: '#1a0000',
-    borderTopColor: COLORS.primary,
-    borderTopWidth: 3,
-    height: 72,
-    paddingBottom: 10,
+    backgroundColor: COLORS.background,
+    borderTopColor: 'rgba(255,255,255,0.07)',
+    borderTopWidth: 1,
+    height: 76,
+    paddingBottom: 12,
+    paddingTop: 4,
   },
   tabLabel: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '500',
+    letterSpacing: 0.2,
   },
   cameraTab: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     backgroundColor: COLORS.darkGrey,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
-    borderWidth: 2,
+    marginBottom: 8,
+    borderWidth: 1.5,
     borderColor: COLORS.cardBorder,
   },
   cameraTabActive: {

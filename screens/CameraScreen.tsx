@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -20,50 +20,34 @@ import {
 } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImageManipulator from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
-import { loadTensorflowModel, TensorflowModel } from 'react-native-fast-tflite';
-import jpeg from 'jpeg-js';
 import Constants from 'expo-constants';
 import { COLORS } from '../constants/theme';
 import { saveSighting } from '../utils/storage';
 import * as Location from 'expo-location';
 
-const LABELS = ['bald_eagle','canada_goose','cat','chameleon','cheetah','chicken','chimpanzee','cow','crocodile','crow','dog','dolphin','elephant','flamingo','giant_panda','giraffe','goat','gorilla','great_horned_owl','grizzly_bear','hippo','horse','hummingbird','kangaroo','koala','komodo_dragon','leopard','lion','mallard_duck','orangutan','parrot','peacock','pelican','penguin','pig','pigeon','polar_bear','rabbit','raccoon','red_fox','rhino','robin','sheep','squirrel','tiger','toucan','turtle','white_tailed_deer','wolf','zebra'];
-const MODEL_INPUT_SIZE = 224;
-const CONFIDENCE_THRESHOLD = 0.6;
-const INAT_API_URL = 'https://api.inaturalist.org/v1/computervision/score_image';
+const CONFIDENCE_THRESHOLD = 0.0;
 
-const scoreWithInat = async (
+const identifyAnimal = async (
   photoUri: string,
-  latitude?: number,
-  longitude?: number,
-): Promise<{ label: string; confidence: number; error?: string } | null> => {
+): Promise<{ label: string; confidence: number; source?: string; error?: string } | null> => {
   try {
+    const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl;
+    const supabaseKey = Constants.expoConfig?.extra?.supabasePublishableKey;
+    if (!supabaseUrl || !supabaseKey) return { label: '', confidence: 0, error: 'missing config' };
+
     const formData = new FormData();
     formData.append('image', { uri: photoUri, type: 'image/jpeg', name: 'photo.jpg' } as any);
-    if (latitude != null) formData.append('lat', String(latitude));
-    if (longitude != null) formData.append('lng', String(longitude));
 
-    const token = Constants.expoConfig?.extra?.inatApiToken;
-    const headers: Record<string, string> = {};
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    const response = await fetch(INAT_API_URL, { method: 'POST', body: formData, headers });
-    if (!response.ok) {
-      const text = await response.text();
-      return { label: '', confidence: 0, error: `HTTP ${response.status}: ${text.slice(0, 100)}` };
-    }
-    const data = await response.json();
-    if (!data.results || data.results.length === 0) return { label: '', confidence: 0, error: 'no results' };
+    const res = await fetch(`${supabaseUrl}/functions/v1/identify-animal`, {
+      method: 'POST',
+      headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
+      body: formData,
+    });
 
-    const top = data.results[0];
-    const commonName = top.taxon?.preferred_common_name || top.taxon?.name;
-    if (!commonName) return { label: '', confidence: 0, error: 'no common name' };
-
-    return {
-      label: commonName.toLowerCase().replace(/[\s-]+/g, '_'),
-      confidence: (top.combined_score ?? top.vision_score ?? top.score ?? 85) / 100,
-    };
+    const data = await res.json();
+    if (data.error) return { label: '', confidence: 0, error: data.error };
+    return { label: data.label, confidence: data.confidence, source: data.source };
   } catch (e: any) {
     return { label: '', confidence: 0, error: String(e?.message ?? e) };
   }
@@ -74,85 +58,52 @@ const CameraScreen: React.FC = () => {
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<CameraCapturedPicture | null>(null);
-  const [model, setModel] = useState<TensorflowModel | null>(null);
   const [prediction, setPrediction] = useState<{ label: string; confidence: number } | null>(null);
   const [isRunning, setIsRunning] = useState(false);
-  const [inatFallback, setInatFallback] = useState(false);
+  const [isNotAnimal, setIsNotAnimal] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pendingSighting, setPendingSighting] = useState<{ label: string; confidence: number; photoUri: string } | null>(null);
+  const [caption, setCaption] = useState('');
   const [locationSearch, setLocationSearch] = useState('');
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationSuggestions, setLocationSuggestions] = useState<{ city: string; region: string; country: string }[]>([]);
   const [suggestionCoords, setSuggestionCoords] = useState<{ latitude: number; longitude: number }[]>([]);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    loadTensorflowModel(require('../assets/models/wilddex_model.tflite'))
-      .then(setModel)
-      .catch((e) => console.error('Failed to load model:', e));
-  }, []);
-
   const toggleCameraFacing = () => {
     setFacing((current) => (current === 'back' ? 'front' : 'back'));
   };
 
   const runInference = async (photoUri: string, fromGallery = false) => {
-    if (!model) return;
     setIsRunning(true);
     setPrediction(null);
     setSaved(false);
-    setInatFallback(false);
+    setIsNotAnimal(false);
     setPendingSighting(null);
 
     try {
       const resized = await ImageManipulator.manipulateAsync(
         photoUri,
-        [{ resize: { width: MODEL_INPUT_SIZE, height: MODEL_INPUT_SIZE } }],
-        { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
+        [{ resize: { width: 800 } }],
+        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
       );
+      const result = await identifyAnimal(resized.uri);
 
-      const base64 = await FileSystem.readAsStringAsync(resized.uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      const rawBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-      const { data: pixels } = jpeg.decode(rawBytes, { useTArray: true });
-
-      const numPixels = MODEL_INPUT_SIZE * MODEL_INPUT_SIZE;
-      const input = new Float32Array(numPixels * 3);
-      for (let i = 0; i < numPixels; i++) {
-        input[i * 3 + 0] = pixels[i * 4 + 0];
-        input[i * 3 + 1] = pixels[i * 4 + 1];
-        input[i * 3 + 2] = pixels[i * 4 + 2];
+      if (result?.error === 'not_animal') {
+        setIsNotAnimal(true);
+        setPrediction({ label: 'not_animal', confidence: 0 });
+        return;
       }
 
-      const output = await model.run([input]);
-      const scores = output[0] as Float32Array;
-
-      let maxIdx = 0;
-      for (let i = 1; i < scores.length; i++) {
-        if (scores[i] > scores[maxIdx]) maxIdx = i;
+      if (!result || result.error || !result.label) {
+        setPrediction({ label: result?.error ?? 'unknown error', confidence: -1 });
+        return;
       }
 
-      let finalResult = { label: LABELS[maxIdx], confidence: scores[maxIdx] };
-      let usedFallback = false;
-
-      if (finalResult.confidence < CONFIDENCE_THRESHOLD) {
-        const inatResized = await ImageManipulator.manipulateAsync(
-          photoUri,
-          [{ resize: { width: 800 } }],
-          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
-        );
-        const inatResult = await scoreWithInat(inatResized.uri);
-        if (inatResult && !inatResult.error && inatResult.label) {
-          finalResult = inatResult;
-          usedFallback = true;
-        }
-      }
-
+      const finalResult = result;
       setPrediction(finalResult);
-      setInatFallback(usedFallback);
 
-      const shouldSave = finalResult.confidence >= CONFIDENCE_THRESHOLD || usedFallback;
+      const shouldSave = finalResult.confidence >= CONFIDENCE_THRESHOLD;
       if (shouldSave) {
         if (fromGallery) {
           setPendingSighting({ ...finalResult, photoUri });
@@ -167,7 +118,7 @@ const CameraScreen: React.FC = () => {
             longitude = loc.coords.longitude;
           }
           await saveSighting({ ...finalResult, photoUri, timestamp: Date.now(), latitude, longitude });
-          setSaved(true);
+          setSaved(true); setTimeout(() => retake(), 1500);
         }
       }
     } catch (e) {
@@ -197,11 +148,12 @@ const CameraScreen: React.FC = () => {
         }
       } catch {}
     }
-    await saveSighting({ ...pendingSighting, timestamp: Date.now(), latitude, longitude, location });
+    await saveSighting({ ...pendingSighting, timestamp: Date.now(), latitude, longitude, location, caption: caption.trim() || undefined });
     setPendingSighting(null);
     setLocationSearch('');
+    setCaption('');
     setLocationLoading(false);
-    setSaved(true);
+    setSaved(true); setTimeout(() => retake(), 1500);
   };
 
   const saveWithSearchedLocation = async () => {
@@ -215,10 +167,11 @@ const CameraScreen: React.FC = () => {
         return;
       }
       const { latitude, longitude } = results[0];
-      await saveSighting({ ...pendingSighting, timestamp: Date.now(), latitude, longitude });
+      await saveSighting({ ...pendingSighting, timestamp: Date.now(), latitude, longitude, caption: caption.trim() || undefined });
       setPendingSighting(null);
       setLocationSearch('');
-      setSaved(true);
+      setCaption('');
+      setSaved(true); setTimeout(() => retake(), 1500);
     } catch {
       Alert.alert('Error', 'Could not geocode location.');
     } finally {
@@ -263,17 +216,19 @@ const CameraScreen: React.FC = () => {
     const location = [s.city, s.region, s.country].filter(Boolean).join(', ');
     setLocationSuggestions([]);
     setLocationSearch('');
-    await saveSighting({ ...pendingSighting, timestamp: Date.now(), latitude, longitude, location });
+    await saveSighting({ ...pendingSighting, timestamp: Date.now(), latitude, longitude, location, caption: caption.trim() || undefined });
     setPendingSighting(null);
-    setSaved(true);
+    setCaption('');
+    setSaved(true); setTimeout(() => retake(), 1500);
   };
 
   const saveWithNoLocation = async () => {
     if (!pendingSighting) return;
-    await saveSighting({ ...pendingSighting, timestamp: Date.now() });
+    await saveSighting({ ...pendingSighting, timestamp: Date.now(), caption: caption.trim() || undefined });
     setPendingSighting(null);
+    setCaption('');
     setLocationSearch('');
-    setSaved(true);
+    setSaved(true); setTimeout(() => retake(), 1500);
   };
 
   const takePhoto = async () => {
@@ -300,7 +255,10 @@ const CameraScreen: React.FC = () => {
     setCapturedPhoto(null);
     setPrediction(null);
     setSaved(false);
-    setInatFallback(false);
+    setIsNotAnimal(false);
+    setCaption('');
+    setLocationSearch('');
+    setLocationSuggestions([]);
   };
 
   if (!permission) return <View />;
@@ -331,31 +289,35 @@ const CameraScreen: React.FC = () => {
           )}
 
           {!isRunning && prediction && (() => {
-            const recognized = prediction.confidence >= CONFIDENCE_THRESHOLD || inatFallback;
+            if (isNotAnimal) {
+              return (
+                <View style={[styles.resultBox, styles.resultBoxUnrecognized]}>
+                  <View style={styles.unrecognizedContent}>
+                    <Ionicons name="paw-outline" size={28} color={COLORS.darkGrey} />
+                    <View>
+                      <Text style={styles.unrecognizedLabel}>No animal detected</Text>
+                      <Text style={styles.unrecognizedSub}>Try a photo with a clear animal subject</Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            }
+            const recognized = prediction.confidence >= 0 && prediction.label !== '';
             return (
               <View style={[styles.resultBox, !recognized && styles.resultBoxUnrecognized]}>
                 {recognized ? (
-                  <View>
+                  <View style={{ alignItems: 'center' }}>
                     <Text style={styles.resultLabel}>
                       {prediction.label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                    </Text>
-                    <Text style={styles.resultConfidence}>
-                      {(prediction.confidence * 100).toFixed(1)}% confidence
                     </Text>
                   </View>
                 ) : (
                   <View style={styles.unrecognizedContent}>
                     <Ionicons name="help-circle-outline" size={28} color={COLORS.darkGrey} />
-                    <View>
-                      <Text style={styles.unrecognizedLabel}>Unrecognized</Text>
-                      <Text style={styles.unrecognizedSub}>Try a clearer photo or different angle</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.unrecognizedLabel}>API Error</Text>
+                      <Text style={styles.unrecognizedSub} numberOfLines={3}>{prediction.label}</Text>
                     </View>
-                  </View>
-                )}
-                {inatFallback && (
-                  <View style={styles.inatBadge}>
-                    <Ionicons name="leaf-outline" size={14} color={COLORS.yellow} />
-                    <Text style={styles.inatBadgeText}>via iNaturalist</Text>
                   </View>
                 )}
                 {saved && (
@@ -365,9 +327,20 @@ const CameraScreen: React.FC = () => {
                   </View>
                 )}
                 {pendingSighting && !saved && (
-                  <TouchableOpacity style={styles.saveButton} onPress={() => setPendingSighting({ ...pendingSighting, _showSheet: true } as any)}>
-                    <Text style={styles.saveButtonText}>Save to WildDex →</Text>
-                  </TouchableOpacity>
+                  <>
+                    <TextInput
+                      style={styles.captionInput}
+                      placeholder="Add a caption... (optional)"
+                      placeholderTextColor={COLORS.darkGrey}
+                      value={caption}
+                      onChangeText={setCaption}
+                      maxLength={200}
+                      multiline
+                    />
+                    <TouchableOpacity style={styles.saveButton} onPress={() => setPendingSighting({ ...pendingSighting, _showSheet: true } as any)}>
+                      <Text style={styles.saveButtonText}>Save to WildDex →</Text>
+                    </TouchableOpacity>
+                  </>
                 )}
               </View>
             );
@@ -392,12 +365,6 @@ const CameraScreen: React.FC = () => {
             </TouchableOpacity>
           </CameraView>
 
-          {!model && (
-            <View style={styles.modelLoading}>
-              <ActivityIndicator color={COLORS.yellow} size="small" />
-              <Text style={styles.modelLoadingText}>Loading model...</Text>
-            </View>
-          )}
         </View>
       )}
       {/* Location prompt for gallery uploads */}
@@ -539,10 +506,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textTransform: 'capitalize',
     letterSpacing: 1,
-  },
-  resultConfidence: {
-    color: COLORS.grey,
-    fontSize: 14,
+    textAlign: 'center',
   },
   unrecognizedContent: {
     flexDirection: 'row',
@@ -572,18 +536,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   saveButtonText: { color: COLORS.white, fontWeight: '800', fontSize: 15 },
-  inatBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 2,
-  },
-  inatBadgeText: {
-    color: COLORS.yellow,
-    fontSize: 12,
-    fontWeight: '600',
-    opacity: 0.8,
-  },
   savedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -624,22 +576,6 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   permissionButtonText: { color: COLORS.white, fontWeight: '700' },
-  modelLoading: {
-    position: 'absolute',
-    bottom: 120,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  modelLoadingText: {
-    color: COLORS.white,
-    marginLeft: 8,
-    fontSize: 13,
-  },
   locationOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -700,4 +636,15 @@ const styles = StyleSheet.create({
   dropdownLine2: { color: COLORS.grey, fontSize: 12, marginTop: 1 },
   locationSkip: { alignItems: 'center', paddingVertical: 8 },
   locationSkipText: { color: COLORS.darkGrey, fontSize: 13 },
+  captionInput: {
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    padding: 10,
+    color: COLORS.white,
+    fontSize: 14,
+    minHeight: 36,
+    textAlignVertical: 'top',
+  },
 });

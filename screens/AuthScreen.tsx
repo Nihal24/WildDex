@@ -18,6 +18,7 @@ const AuthScreen: React.FC = () => {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,14 +27,28 @@ const AuthScreen: React.FC = () => {
   const handleSubmit = async () => {
     setError(null);
     setMessage(null);
+    const cleanUsername = username.trim().replace(/^@/, '').toLowerCase();
+    if (mode === 'signup') {
+      if (!cleanUsername) { setError('Please choose a username.'); return; }
+      if (!/^[a-z0-9_]{2,20}$/.test(cleanUsername)) {
+        setError('Username must be 2–20 characters: letters, numbers, underscores only.');
+        return;
+      }
+    }
     setLoading(true);
     try {
       if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
+        // Check uniqueness first
+        const { data: existing } = await supabase.from('profiles').select('id').eq('username', cleanUsername).maybeSingle();
+        if (existing) { setError('That username is already taken.'); setLoading(false); return; }
+        const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
+        if (data.user) {
+          await supabase.from('profiles').upsert({ id: data.user.id, username: cleanUsername });
+        }
         setMessage('Check your email to confirm your account.');
       }
     } catch (e: any) {
@@ -54,11 +69,12 @@ const AuthScreen: React.FC = () => {
         ],
       });
       if (!credential.identityToken) throw new Error('No identity token from Apple');
-      const { error } = await supabase.auth.signInWithIdToken({
+      const { data, error } = await supabase.auth.signInWithIdToken({
         provider: 'apple',
         token: credential.identityToken,
       });
       if (error) throw error;
+      // Apple doesn't give username — profile will be incomplete until they set one
     } catch (e: any) {
       if (e.code !== 'ERR_REQUEST_CANCELED') {
         setError(e.message);
@@ -75,6 +91,20 @@ const AuthScreen: React.FC = () => {
         <Text style={styles.subtitle}>Pokédex for the real world</Text>
 
         <View style={styles.form}>
+          {mode === 'signup' && (
+            <View style={styles.usernameRow}>
+              <Text style={styles.atSign}>@</Text>
+              <TextInput
+                style={styles.usernameInput}
+                placeholder="username"
+                placeholderTextColor={COLORS.darkGrey}
+                value={username}
+                onChangeText={(t) => setUsername(t.replace(/^@/, '').toLowerCase())}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+          )}
           <TextInput
             style={styles.input}
             placeholder="Email"
@@ -104,7 +134,7 @@ const AuthScreen: React.FC = () => {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); setMessage(null); }}>
+          <TouchableOpacity onPress={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); setMessage(null); setUsername(''); }}>
             <Text style={styles.toggle}>
               {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
               <Text style={styles.toggleAccent}>{mode === 'login' ? 'Sign Up' : 'Log In'}</Text>
@@ -166,4 +196,10 @@ const styles = StyleSheet.create({
   dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.cardBorder },
   dividerText: { color: COLORS.grey, fontSize: 13 },
   appleButton: { width: '100%', height: 50 },
+  usernameRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.cardBorder, borderRadius: 12,
+  },
+  atSign: { paddingLeft: 16, fontSize: 16, color: COLORS.grey, fontWeight: '700' },
+  usernameInput: { flex: 1, paddingHorizontal: 8, paddingVertical: 14, color: COLORS.white, fontSize: 15 },
 });

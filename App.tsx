@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { Session } from '@supabase/supabase-js';
-import BottomTabs from './navigation/BottomTabs';
+import RootNavigator from './navigation/RootNavigator';
 import AuthScreen from './screens/AuthScreen';
 import { supabase } from './utils/supabase';
 import { migrateLocalSightingsToSupabase } from './utils/storage';
@@ -43,7 +43,7 @@ const App: React.FC = () => {
 
   return (
     <NavigationContainer>
-      <BottomTabs />
+      <RootNavigator />
     </NavigationContainer>
   );
 };
