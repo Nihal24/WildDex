@@ -11,236 +11,25 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
-  Linking,
   Alert,
   TextInput,
   Animated,
+  Dimensions,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import * as MediaLibrary from 'expo-media-library';
 import { captureRef } from 'react-native-view-shot';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
-import { getDiscoveredLabels, getLatestPhotoForLabel, getSightings, getLocalSightings, Sighting, updateSightingLocation, deleteSighting } from '../utils/storage';
+import { getSightings, Sighting, updateSightingLocation, deleteSighting } from '../utils/storage';
 import { getAnimalProfile, AnimalInfo } from '../utils/claude';
 import { getRarityFromConservationStatus, RarityInfo } from '../utils/rarity';
 import { WorldMap } from '../components/WorldMap';
 import { Continent } from '../utils/claude';
 
-const ALL_SPECIES = [
-  { id: '001', label: 'alligator' },
-  { id: '002', label: 'american_goldfinch' },
-  { id: '003', label: 'american_robin' },
-  { id: '004', label: 'anaconda' },
-  { id: '005', label: 'armadillo' },
-  { id: '006', label: 'axolotl' },
-  { id: '007', label: 'baboon' },
-  { id: '008', label: 'bald_eagle' },
-  { id: '009', label: 'barn_owl' },
-  { id: '010', label: 'barn_swallow' },
-  { id: '011', label: 'bat' },
-  { id: '012', label: 'bearded_dragon' },
-  { id: '013', label: 'beaver' },
-  { id: '014', label: 'belted_kingfisher' },
-  { id: '015', label: 'binturong' },
-  { id: '016', label: 'bison' },
-  { id: '017', label: 'black_bear' },
-  { id: '018', label: 'black_vulture' },
-  { id: '019', label: 'blue_heron' },
-  { id: '020', label: 'blue_jay' },
-  { id: '021', label: 'boa_constrictor' },
-  { id: '022', label: 'bobcat' },
-  { id: '023', label: 'bullfrog' },
-  { id: '024', label: 'butterfly' },
-  { id: '025', label: 'canada_goose' },
-  { id: '026', label: 'capybara' },
-  { id: '027', label: 'cardinal' },
-  { id: '028', label: 'cassowary' },
-  { id: '029', label: 'cat' },
-  { id: '030', label: 'chameleon' },
-  { id: '031', label: 'cheetah' },
-  { id: '032', label: 'chicken' },
-  { id: '033', label: 'chimpanzee' },
-  { id: '034', label: 'chipmunk' },
-  { id: '035', label: 'clownfish' },
-  { id: '036', label: 'cobra' },
-  { id: '037', label: 'cockatoo' },
-  { id: '038', label: 'common_raven' },
-  { id: '039', label: 'cougar' },
-  { id: '040', label: 'cow' },
-  { id: '041', label: 'coyote' },
-  { id: '042', label: 'crab' },
-  { id: '043', label: 'crane' },
-  { id: '044', label: 'crocodile' },
-  { id: '045', label: 'crow' },
-  { id: '046', label: 'deer_mouse' },
-  { id: '047', label: 'dingo' },
-  { id: '048', label: 'dog' },
-  { id: '049', label: 'dolphin' },
-  { id: '050', label: 'dragonfly' },
-  { id: '051', label: 'echidna' },
-  { id: '052', label: 'egret' },
-  { id: '053', label: 'elephant' },
-  { id: '054', label: 'elephant_seal' },
-  { id: '055', label: 'emu' },
-  { id: '056', label: 'firefly' },
-  { id: '057', label: 'flamingo' },
-  { id: '058', label: 'fox_squirrel' },
-  { id: '059', label: 'frog' },
-  { id: '060', label: 'gecko' },
-  { id: '061', label: 'giant_centipede' },
-  { id: '062', label: 'giant_panda' },
-  { id: '063', label: 'giant_squid' },
-  { id: '064', label: 'gila_monster' },
-  { id: '065', label: 'giraffe' },
-  { id: '066', label: 'goat' },
-  { id: '067', label: 'gorilla' },
-  { id: '068', label: 'gray_squirrel' },
-  { id: '069', label: 'gray_wolf' },
-  { id: '070', label: 'great_horned_owl' },
-  { id: '071', label: 'great_white_shark' },
-  { id: '072', label: 'green_tree_frog' },
-  { id: '073', label: 'grizzly_bear' },
-  { id: '074', label: 'groundhog' },
-  { id: '075', label: 'hammerhead_shark' },
-  { id: '076', label: 'hawk' },
-  { id: '077', label: 'hercules_beetle' },
-  { id: '078', label: 'heron' },
-  { id: '079', label: 'hippo' },
-  { id: '080', label: 'honey_bee' },
-  { id: '081', label: 'horse' },
-  { id: '082', label: 'horseshoe_crab' },
-  { id: '083', label: 'house_sparrow' },
-  { id: '084', label: 'hummingbird' },
-  { id: '085', label: 'humpback_whale' },
-  { id: '086', label: 'hyena' },
-  { id: '087', label: 'iguana' },
-  { id: '088', label: 'jaguar' },
-  { id: '089', label: 'jellyfish' },
-  { id: '090', label: 'kangaroo' },
-  { id: '091', label: 'killdeer' },
-  { id: '092', label: 'koala' },
-  { id: '093', label: 'komodo_dragon' },
-  { id: '094', label: 'ladybug' },
-  { id: '095', label: 'lemur' },
-  { id: '096', label: 'leopard' },
-  { id: '097', label: 'lion' },
-  { id: '098', label: 'lobster' },
-  { id: '099', label: 'luna_moth' },
-  { id: '100', label: 'lynx' },
-  { id: '101', label: 'macaw' },
-  { id: '102', label: 'mallard' },
-  { id: '103', label: 'manatee' },
-  { id: '104', label: 'manta_ray' },
-  { id: '105', label: 'mantis_shrimp' },
-  { id: '106', label: 'meerkat' },
-  { id: '107', label: 'mockingbird' },
-  { id: '108', label: 'monarch_butterfly' },
-  { id: '109', label: 'monitor_lizard' },
-  { id: '110', label: 'moose' },
-  { id: '111', label: 'mountain_goat' },
-  { id: '112', label: 'mourning_dove' },
-  { id: '113', label: 'mule_deer' },
-  { id: '114', label: 'numbat' },
-  { id: '115', label: 'octopus' },
-  { id: '116', label: 'opossum' },
-  { id: '117', label: 'orangutan' },
-  { id: '118', label: 'orca' },
-  { id: '119', label: 'osprey' },
-  { id: '120', label: 'ostrich' },
-  { id: '121', label: 'otter' },
-  { id: '122', label: 'pangolin' },
-  { id: '123', label: 'parrot' },
-  { id: '124', label: 'peacock' },
-  { id: '125', label: 'pelican' },
-  { id: '126', label: 'penguin' },
-  { id: '127', label: 'peregrine_falcon' },
-  { id: '128', label: 'pig' },
-  { id: '129', label: 'pigeon' },
-  { id: '130', label: 'pileated_woodpecker' },
-  { id: '131', label: 'platypus' },
-  { id: '132', label: 'poison_dart_frog' },
-  { id: '133', label: 'polar_bear' },
-  { id: '134', label: 'porcupine' },
-  { id: '135', label: 'praying_mantis' },
-  { id: '136', label: 'puffin' },
-  { id: '137', label: 'purple_martin' },
-  { id: '138', label: 'rabbit' },
-  { id: '139', label: 'raccoon' },
-  { id: '140', label: 'rattlesnake' },
-  { id: '141', label: 'red_eared_slider' },
-  { id: '142', label: 'red_fox' },
-  { id: '143', label: 'red_panda' },
-  { id: '144', label: 'red_tailed_hawk' },
-  { id: '145', label: 'red_winged_blackbird' },
-  { id: '146', label: 'rhino' },
-  { id: '147', label: 'roseate_spoonbill' },
-  { id: '148', label: 'ruby_throated_hummingbird' },
-  { id: '149', label: 'salamander' },
-  { id: '150', label: 'sandhill_crane' },
-  { id: '151', label: 'scarlet_macaw' },
-  { id: '152', label: 'scorpion' },
-  { id: '153', label: 'sea_lion' },
-  { id: '154', label: 'sea_otter' },
-  { id: '155', label: 'sea_turtle' },
-  { id: '156', label: 'seagull' },
-  { id: '157', label: 'seahorse' },
-  { id: '158', label: 'seal' },
-  { id: '159', label: 'secretary_bird' },
-  { id: '160', label: 'shark' },
-  { id: '161', label: 'sheep' },
-  { id: '162', label: 'shoebill' },
-  { id: '163', label: 'skunk' },
-  { id: '164', label: 'sloth' },
-  { id: '165', label: 'sloth_bear' },
-  { id: '166', label: 'snake' },
-  { id: '167', label: 'snapping_turtle' },
-  { id: '168', label: 'snow_leopard' },
-  { id: '169', label: 'snowy_owl' },
-  { id: '170', label: 'sparrow' },
-  { id: '171', label: 'squirrel' },
-  { id: '172', label: 'starfish' },
-  { id: '173', label: 'starling' },
-  { id: '174', label: 'stingray' },
-  { id: '175', label: 'stork' },
-  { id: '176', label: 'swan' },
-  { id: '177', label: 'tapir' },
-  { id: '178', label: 'tarantula' },
-  { id: '179', label: 'tiger' },
-  { id: '180', label: 'tiger_salamander' },
-  { id: '181', label: 'tortoise' },
-  { id: '182', label: 'toucan' },
-  { id: '183', label: 'turkey' },
-  { id: '184', label: 'turkey_vulture' },
-  { id: '185', label: 'turtle' },
-  { id: '186', label: 'vulture' },
-  { id: '187', label: 'walking_stick' },
-  { id: '188', label: 'walrus' },
-  { id: '189', label: 'warthog' },
-  { id: '190', label: 'water_moccasin' },
-  { id: '191', label: 'whale_shark' },
-  { id: '192', label: 'white_tailed_deer' },
-  { id: '193', label: 'whooping_crane' },
-  { id: '194', label: 'wild_boar' },
-  { id: '195', label: 'wolf' },
-  { id: '196', label: 'wolverine' },
-  { id: '197', label: 'wombat' },
-  { id: '198', label: 'woodpecker' },
-  { id: '199', label: 'yellow_warbler' },
-  { id: '200', label: 'zebra' },
-];
-
 const formatLabel = (label: string) =>
   label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-
-interface SpeciesCardData {
-  id: string;
-  label: string;
-  discovered: boolean;
-  photoUri: string | null;
-}
 
 // --- Segmented Control ---
 const SegmentedControl: React.FC<{ active: 'collection' | 'sightings'; onChange: (v: 'collection' | 'sightings') => void }> = ({ active, onChange }) => (
@@ -254,44 +43,23 @@ const SegmentedControl: React.FC<{ active: 'collection' | 'sightings'; onChange:
   </View>
 );
 
-// --- Species Card ---
-const SpeciesCard: React.FC<{ item: SpeciesCardData; onPress: () => void }> = ({ item, onPress }) => {
-  const [photoExists, setPhotoExists] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (item.discovered && item.photoUri) {
-      FileSystem.getInfoAsync(item.photoUri).then(({ exists }) => setPhotoExists(exists));
-    } else {
-      setPhotoExists(false);
-    }
-  }, [item.photoUri, item.discovered]);
-
-  return (
-    <TouchableOpacity
-      style={[styles.card, item.discovered ? styles.cardDiscovered : styles.cardUndiscovered]}
-      onPress={item.discovered ? onPress : undefined}
-      activeOpacity={item.discovered ? 0.7 : 1}
-    >
-      {photoExists ? (
-        <Image source={{ uri: item.photoUri! }} style={styles.cardImage} />
-      ) : (
-        <View style={styles.silhouette}>
-          <Text style={styles.questionMark}>?</Text>
-        </View>
-      )}
-      <View style={styles.cardFooter}>
-        <Text style={styles.cardNumber}>#{item.id}</Text>
-        <Text style={styles.cardName}>{item.discovered ? formatLabel(item.label) : '???'}</Text>
-      </View>
-    </TouchableOpacity>
-  );
-};
+// --- Discovered Card ---
+const DiscoveredCard: React.FC<{ label: string; photoUri: string; number: string; onPress: () => void }> = ({ label, photoUri, number, onPress }) => (
+  <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
+    <Image source={{ uri: photoUri }} style={styles.cardImage} />
+    <View style={styles.cardFooter}>
+      <Text style={styles.cardNumber}>{number}</Text>
+      <Text style={styles.cardName} numberOfLines={1}>{formatLabel(label)}</Text>
+    </View>
+  </TouchableOpacity>
+);
 
 // --- Sighting Row ---
 const SightingRow: React.FC<{ item: Sighting; onEdit: () => void; onDelete: () => void }> = ({ item, onEdit, onDelete }) => {
   const [photoExists, setPhotoExists] = useState<boolean | null>(null);
 
   useEffect(() => {
+    if (item.photoUri.startsWith('http')) { setPhotoExists(true); return; }
     FileSystem.getInfoAsync(item.photoUri).then(({ exists }) => setPhotoExists(exists));
   }, [item.photoUri]);
 
@@ -337,17 +105,17 @@ const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: s
 // --- Main Screen ---
 const WildDexScreen: React.FC = () => {
   const [tab, setTab] = useState<'collection' | 'sightings'>('collection');
-  const [species, setSpecies] = useState<SpeciesCardData[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [collectionSpecies, setCollectionSpecies] = useState<{ label: string; photoUri: string; number: string }[]>([]);
   const [discoveredCount, setDiscoveredCount] = useState(0);
   const [sightings, setSightings] = useState<Sighting[]>([]);
-  const [selected, setSelected] = useState<SpeciesCardData | null>(null);
+  const [selected, setSelected] = useState<{ label: string; photoUri: string; number: string } | null>(null);
   const [animalInfo, setAnimalInfo] = useState<AnimalInfo | null>(null);
   const [rarity, setRarity] = useState<RarityInfo | null>(null);
   const [infoLoading, setInfoLoading] = useState(false);
   const [infoError, setInfoError] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<'info' | 'range' | 'pokemon'>('info');
   const viewShotRef = useRef<View>(null);
-  const [shareSheetVisible, setShareSheetVisible] = useState(false);
   const [capturedUri, setCapturedUri] = useState<string | null>(null);
   const [editingSighting, setEditingSighting] = useState<Sighting | null>(null);
   const [editSearch, setEditSearch] = useState('');
@@ -365,25 +133,20 @@ const WildDexScreen: React.FC = () => {
   };
 
   const loadData = async () => {
-    // Phase 1: local cache (instant) so count updates immediately
-    const localSightings = await getLocalSightings();
-    if (localSightings.length > 0) {
-      setSightings(localSightings);
-      const localLabels = new Set(localSightings.map((s) => s.label));
-      setDiscoveredCount(localLabels.size);
-    }
-
-    // Phase 2: Supabase (source of truth, may take a moment)
-    const [discovered, allSightings] = await Promise.all([getDiscoveredLabels(), getSightings()]);
-    const data = await Promise.all(
-      ALL_SPECIES.map(async (s) => {
-        const isDiscovered = discovered.has(s.label);
-        const photoUri = isDiscovered ? await getLatestPhotoForLabel(s.label) : null;
-        return { id: s.id, label: s.label, discovered: isDiscovered, photoUri };
-      })
-    );
-    setSpecies(data);
-    setDiscoveredCount(data.filter((s) => s.discovered).length);
+    const allSightings = await getSightings();
+    const seen = new Set<string>();
+    const uniqueSpecies = allSightings.filter(s => {
+      if (seen.has(s.label)) return false;
+      seen.add(s.label);
+      return true;
+    });
+    const collection = uniqueSpecies.map((s, i) => ({
+      label: s.label,
+      photoUri: s.photoUri,
+      number: `#${String(i + 1).padStart(3, '0')}`,
+    }));
+    setCollectionSpecies(collection);
+    setDiscoveredCount(uniqueSpecies.length);
     setSightings(allSightings);
   };
 
@@ -450,7 +213,7 @@ const WildDexScreen: React.FC = () => {
     setEditSuggestions([]);
   };
 
-  const openDetail = async (item: SpeciesCardData) => {
+  const openDetail = async (item: { label: string; photoUri: string }) => {
     setSelected(item);
     setDetailTab('info');
     setAnimalInfo(null);
@@ -473,7 +236,6 @@ const WildDexScreen: React.FC = () => {
     setAnimalInfo(null);
     setRarity(null);
     setInfoError(null);
-    setShareSheetVisible(false);
     setCapturedUri(null);
   };
 
@@ -482,78 +244,67 @@ const WildDexScreen: React.FC = () => {
     try {
       const uri = await captureRef(viewShotRef, { format: 'png', quality: 1 });
       setCapturedUri(uri);
-      setShareSheetVisible(true);
+      await Sharing.shareAsync(uri, { mimeType: 'image/png' });
     } catch (e: any) {
       Alert.alert('Share failed', e?.message ?? String(e));
     }
-  };
-
-  const shareViaSystem = async () => {
-    if (!capturedUri) return;
-    setShareSheetVisible(false);
-    await Sharing.shareAsync(capturedUri, { mimeType: 'image/png' });
-  };
-
-  const shareToInstagram = async () => {
-    if (!capturedUri) return;
-    setShareSheetVisible(false);
-    try {
-      // Instagram Stories requires the image to be in the photo library
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission required', 'Allow photo library access to share to Instagram.');
-        return;
-      }
-      const asset = await MediaLibrary.saveToLibraryAsync(capturedUri);
-      const assetUri = `ph://${asset.id}`;
-      const url = `instagram-stories://share?backgroundImage=${encodeURIComponent(assetUri)}`;
-      const canOpen = await Linking.canOpenURL(url);
-      if (canOpen) {
-        await Linking.openURL(url);
-      } else {
-        // Fallback to system share sheet
-        await Sharing.shareAsync(capturedUri, { mimeType: 'image/png' });
-      }
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
-    }
-  };
-
-  const saveToPhotos = async () => {
-    if (!capturedUri) return;
-    setShareSheetVisible(false);
-    const { status } = await MediaLibrary.requestPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission required', 'Allow photo library access to save.');
-      return;
-    }
-    await MediaLibrary.saveToLibraryAsync(capturedUri);
-    Alert.alert('Saved!', 'Sighting card saved to your Photos.');
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>WILDDEX</Text>
+        <Text style={styles.headerTitle}>WildDex</Text>
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>{discoveredCount}/{ALL_SPECIES.length}</Text>
+          <Text style={styles.badgeText}>{discoveredCount} species</Text>
         </View>
       </View>
 
-      <SegmentedControl active={tab} onChange={setTab} />
+      <SegmentedControl active={tab} onChange={(t) => { setTab(t); setSearchQuery(''); }} />
+
+      <View style={styles.searchBar}>
+        <Ionicons name="search" size={16} color={COLORS.darkGrey} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search animals..."
+          placeholderTextColor={COLORS.darkGrey}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          autoCorrect={false}
+          autoCapitalize="none"
+          returnKeyType="search"
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <Ionicons name="close-circle" size={16} color={COLORS.darkGrey} />
+          </TouchableOpacity>
+        )}
+      </View>
 
       {tab === 'collection' ? (
-        <FlatList
-          key="collection"
-          data={species}
-          keyExtractor={(item) => item.id}
-          numColumns={3}
-          contentContainerStyle={styles.grid}
-          renderItem={({ item }) => (
-            <SpeciesCard item={item} onPress={() => openDetail(item)} />
-          )}
-        />
+        collectionSpecies.length === 0 ? (
+          <View style={styles.empty}>
+            <Ionicons name="paw-outline" size={64} color={COLORS.darkGrey} />
+            <Text style={styles.emptyTitle}>No animals found yet</Text>
+            <Text style={styles.emptySub}>Start identifying animals to build your collection!</Text>
+          </View>
+        ) : (
+          <FlatList
+            key="collection"
+            data={collectionSpecies.filter(s => formatLabel(s.label).toLowerCase().includes(searchQuery.toLowerCase()))}
+            keyExtractor={(item) => item.label}
+            numColumns={3}
+            contentContainerStyle={styles.grid}
+            renderItem={({ item }) => (
+              <DiscoveredCard
+                label={item.label}
+                photoUri={item.photoUri}
+                number={item.number}
+                onPress={() => openDetail({ label: item.label, photoUri: item.photoUri, number: item.number })}
+              />
+            )}
+          />
+        )
       ) : sightings.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="eye-outline" size={64} color={COLORS.darkGrey} />
@@ -563,7 +314,7 @@ const WildDexScreen: React.FC = () => {
       ) : (
         <FlatList
           key="sightings"
-          data={sightings}
+          data={sightings.filter(s => s.label.replace(/_/g, ' ').toLowerCase().includes(searchQuery.toLowerCase()))}
           keyExtractor={(_, i) => String(i)}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => <SightingRow item={item} onEdit={() => { setEditingSighting(item); setEditSearch(item.location ?? ''); setEditSuggestions([]); }} onDelete={() => handleDelete(item.photoUri, item.timestamp)} />}
@@ -629,7 +380,7 @@ const WildDexScreen: React.FC = () => {
             <TouchableOpacity onPress={closeDetail} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color={COLORS.white} />
             </TouchableOpacity>
-            <Text style={styles.modalHeaderNum}>#{selected?.id}</Text>
+            <Text style={styles.modalHeaderNum}>{selected ? `${selected.number}  ${formatLabel(selected.label)}` : ''}</Text>
             <TouchableOpacity onPress={openShareSheet} style={styles.backButton}>
               <Ionicons name="share-outline" size={24} color={COLORS.white} />
             </TouchableOpacity>
@@ -645,7 +396,7 @@ const WildDexScreen: React.FC = () => {
               </View>
             )}
 
-            <Text style={styles.detailName}>{selected ? formatLabel(selected.label) : ''}</Text>
+            <Text style={styles.detailName}>{animalInfo?.commonName || (selected ? formatLabel(selected.label) : '')}</Text>
             {animalInfo && <Text style={styles.sciName}>{animalInfo.scientificName}</Text>}
             {rarity && (
               <View style={[styles.rarityBadge, { borderColor: rarity.color }]}>
@@ -732,42 +483,6 @@ const WildDexScreen: React.FC = () => {
             )}
           </ScrollView>
 
-          {/* Share action sheet — inside detail modal to avoid nested modal conflicts */}
-          {shareSheetVisible && (
-            <TouchableOpacity style={styles.shareOverlay} activeOpacity={1} onPress={() => setShareSheetVisible(false)}>
-              <View style={styles.shareSheet}>
-                <Text style={styles.shareTitle}>Share Sighting</Text>
-
-                <TouchableOpacity style={styles.shareOption} onPress={shareToInstagram}>
-                  <View style={[styles.shareIconBg, { backgroundColor: '#E1306C' }]}>
-                    <Ionicons name="logo-instagram" size={22} color="#fff" />
-                  </View>
-                  <Text style={styles.shareOptionText}>Instagram Stories</Text>
-                  <Ionicons name="chevron-forward" size={16} color={COLORS.darkGrey} />
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.shareOption} onPress={shareViaSystem}>
-                  <View style={[styles.shareIconBg, { backgroundColor: COLORS.primary }]}>
-                    <Ionicons name="share-outline" size={22} color="#fff" />
-                  </View>
-                  <Text style={styles.shareOptionText}>More (Twitter, Facebook…)</Text>
-                  <Ionicons name="chevron-forward" size={16} color={COLORS.darkGrey} />
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.shareOption} onPress={saveToPhotos}>
-                  <View style={[styles.shareIconBg, { backgroundColor: '#4CD964' }]}>
-                    <Ionicons name="download-outline" size={22} color="#fff" />
-                  </View>
-                  <Text style={styles.shareOptionText}>Save to Photos</Text>
-                  <Ionicons name="chevron-forward" size={16} color={COLORS.darkGrey} />
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.shareCancel} onPress={() => setShareSheetVisible(false)}>
-                  <Text style={styles.shareCancelText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          )}
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -787,7 +502,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: COLORS.primary,
   },
-  headerTitle: { fontSize: 26, fontWeight: '900', color: COLORS.yellow, letterSpacing: 3 },
+  headerTitle: { fontSize: 22, fontWeight: '700', color: COLORS.white, letterSpacing: 0.5 },
   badge: { backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
   badgeText: { color: COLORS.white, fontWeight: '700', fontSize: 14 },
 
@@ -806,15 +521,11 @@ const styles = StyleSheet.create({
 
   // Collection grid
   grid: { padding: 12 },
-  card: { flex: 1, margin: 6, borderRadius: 10, overflow: 'hidden', borderWidth: 1 },
-  cardDiscovered: { backgroundColor: COLORS.card, borderColor: COLORS.yellow },
-  cardUndiscovered: { backgroundColor: COLORS.undiscovered, borderColor: COLORS.darkGrey },
+  card: { width: (Dimensions.get('window').width - 60) / 3, margin: 6, borderRadius: 10, overflow: 'hidden', borderWidth: 1, backgroundColor: COLORS.card, borderColor: COLORS.cardBorder },
   cardImage: { width: '100%', aspectRatio: 1 },
-  silhouette: { width: '100%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#111' },
-  questionMark: { fontSize: 32, color: COLORS.darkGrey, fontWeight: '900' },
   cardFooter: { padding: 6, alignItems: 'center' },
-  cardNumber: { fontSize: 10, color: COLORS.grey, fontWeight: '600' },
-  cardName: { fontSize: 12, color: COLORS.white, fontWeight: '700', textTransform: 'capitalize' },
+  cardNumber: { fontSize: 9, color: COLORS.yellow, fontWeight: '700', letterSpacing: 0.5 },
+  cardName: { fontSize: 11, color: COLORS.white, fontWeight: '700', textTransform: 'capitalize' },
 
   // Sightings list
   list: { padding: 16 },
@@ -827,6 +538,8 @@ const styles = StyleSheet.create({
   rowLocation: { color: COLORS.grey, fontSize: 12, marginTop: 2 },
   rowDate: { color: COLORS.darkGrey, fontSize: 11, marginTop: 2 },
   separator: { height: 10 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.card, borderRadius: 10, marginHorizontal: 16, marginBottom: 8, paddingHorizontal: 12, paddingVertical: 9, gap: 8, borderWidth: 1, borderColor: COLORS.cardBorder },
+  searchInput: { flex: 1, color: COLORS.white, fontSize: 14, padding: 0 },
   editOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
   editSheet: { backgroundColor: COLORS.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 16 },
   editTitle: { fontSize: 20, fontWeight: '800', color: COLORS.white, textAlign: 'center' },
@@ -884,7 +597,7 @@ const styles = StyleSheet.create({
   shareCancelText: { color: COLORS.grey, fontSize: 15, fontWeight: '600' },
   detailPhoto: { width: '100%', height: 300, borderRadius: 16 },
   detailPhotoPlaceholder: { width: '100%', height: 300, borderRadius: 16, backgroundColor: COLORS.card, justifyContent: 'center', alignItems: 'center' },
-  detailName: { fontSize: 32, fontWeight: '900', color: COLORS.yellow, marginTop: 16, letterSpacing: 1, textTransform: 'capitalize' },
+  detailName: { fontSize: 24, fontWeight: '700', color: COLORS.white, marginTop: 12, letterSpacing: 0.3, textTransform: 'capitalize' },
   sciName: { fontSize: 14, color: COLORS.grey, fontStyle: 'italic', marginTop: 4, marginBottom: 16 },
   loadingBox: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 20 },
   loadingText: { color: COLORS.grey, fontSize: 14 },

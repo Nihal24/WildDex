@@ -2,6 +2,7 @@ export default {
   expo: {
     name: 'WildDex',
     slug: 'wilddex',
+    scheme: 'wilddex',
     version: '1.0.0',
     icon: './assets/icon.png',
     extra: {
@@ -21,6 +22,7 @@ export default {
       usesAppleSignIn: true,
       infoPlist: {
         NSLocationWhenInUseUsageDescription: 'WildDex uses your location to log where you spotted each animal.',
+        NSPhotoLibraryUsageDescription: 'WildDex needs photo access to set your profile picture.',
       },
     },
   },

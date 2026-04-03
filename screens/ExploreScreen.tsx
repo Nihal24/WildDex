@@ -97,7 +97,7 @@ const ExploreScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>EXPLORE</Text>
+        <Text style={styles.headerTitle}>Explore</Text>
         <View style={styles.badge}>
           <Ionicons name="location" size={13} color={COLORS.white} />
           <Text style={styles.badgeText}>{located.length} on map</Text>
@@ -148,7 +148,6 @@ const ExploreScreen: React.FC = () => {
                     <Text style={styles.floatingLocation}>{selectedSighting.location}</Text>
                   </View>
                 )}
-                <Text style={styles.floatingConf}>{(selectedSighting.confidence * 100).toFixed(0)}% confidence</Text>
               </View>
               <TouchableOpacity style={styles.floatingClose} onPress={() => setSelectedSighting(null)}>
                 <Ionicons name="close" size={18} color={COLORS.grey} />
@@ -205,7 +204,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: COLORS.primary,
   },
-  headerTitle: { fontSize: 26, fontWeight: '900', color: COLORS.yellow, letterSpacing: 3 },
+  headerTitle: { fontSize: 22, fontWeight: '700', color: COLORS.white, letterSpacing: 0.5 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
   badgeText: { color: COLORS.white, fontWeight: '700', fontSize: 14 },
   map: { flex: 1 },
@@ -288,6 +287,5 @@ const styles = StyleSheet.create({
   floatingDate: { color: COLORS.grey, fontSize: 12 },
   floatingLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 1 },
   floatingLocation: { color: COLORS.grey, fontSize: 12 },
-  floatingConf: { color: COLORS.darkGrey, fontSize: 11, marginTop: 2 },
   floatingClose: { padding: 4 },
 });

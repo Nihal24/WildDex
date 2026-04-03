@@ -13,6 +13,7 @@ export interface Sighting {
   location?: string;
   latitude?: number;
   longitude?: number;
+  caption?: string;
 }
 
 async function getCurrentUserId(): Promise<string | null> {
@@ -28,6 +29,23 @@ async function persistPhoto(uri: string): Promise<string> {
   return dest;
 }
 
+async function uploadPhotoToStorage(localUri: string, userId: string): Promise<string | null> {
+  try {
+    const filename = `${userId}/${Date.now()}.jpg`;
+    const formData = new FormData();
+    formData.append('file', { uri: localUri, name: 'photo.jpg', type: 'image/jpeg' } as any);
+    const { error } = await supabase.storage
+      .from('sighting-photos')
+      .upload(filename, formData, { contentType: 'image/jpeg', upsert: false });
+    if (error) { console.warn('Photo upload failed:', error.message); return null; }
+    const { data } = supabase.storage.from('sighting-photos').getPublicUrl(filename);
+    return data.publicUrl;
+  } catch (e) {
+    console.warn('Photo upload error:', e);
+    return null;
+  }
+}
+
 export async function saveSighting(sighting: Sighting): Promise<void> {
   const permanentUri = await persistPhoto(sighting.photoUri);
   const withPermanentUri = { ...sighting, photoUri: permanentUri };
@@ -40,15 +58,28 @@ export async function saveSighting(sighting: Sighting): Promise<void> {
   // Sync to Supabase with user_id
   const userId = await getCurrentUserId();
   if (userId) {
+    // Upload photo to Storage for public feed
+    const publicUrl = await uploadPhotoToStorage(permanentUri, userId);
+
+    // If we got a public URL, update the local cache entry so it shows immediately
+    if (publicUrl) {
+      const cached = await getLocalSightings();
+      const updated = cached.map((s) =>
+        s.photoUri === permanentUri ? { ...s, photoUri: publicUrl } : s
+      );
+      await AsyncStorage.setItem(SIGHTINGS_KEY, JSON.stringify(updated));
+    }
+
     const { error } = await supabase.from('sightings').insert({
       user_id: userId,
       label: sighting.label,
       confidence: sighting.confidence,
-      photo_url: permanentUri,
+      photo_url: publicUrl ?? permanentUri,
       timestamp: sighting.timestamp,
       location: sighting.location,
       latitude: sighting.latitude,
       longitude: sighting.longitude,
+      caption: sighting.caption ?? null,
     });
     if (error) console.warn('Supabase sighting sync failed:', error.message);
   }
@@ -65,7 +96,7 @@ export async function getSightings(): Promise<Sighting[]> {
   if (userId) {
     const { data, error } = await supabase
       .from('sightings')
-      .select('label, confidence, photo_url, timestamp, location, latitude, longitude')
+      .select('label, confidence, photo_url, timestamp, location, latitude, longitude, caption')
       .eq('user_id', userId)
       .order('timestamp', { ascending: false });
 
@@ -78,6 +109,7 @@ export async function getSightings(): Promise<Sighting[]> {
         location: row.location,
         latitude: row.latitude,
         longitude: row.longitude,
+        caption: row.caption ?? undefined,
       }));
       // Keep local cache in sync
       await AsyncStorage.setItem(SIGHTINGS_KEY, JSON.stringify(sightings));
@@ -215,4 +247,214 @@ export async function migrateLocalSightingsToSupabase(): Promise<void> {
 
   await AsyncStorage.setItem(MIGRATION_KEY, 'true');
   console.log(`Migrated ${rows.length} sightings to Supabase for user ${userId}`);
+}
+
+export interface FeedSighting {
+  label: string;
+  confidence: number;
+  photoUrl: string;
+  timestamp: number;
+  location?: string;
+  userId: string;
+  displayName: string;
+  caption?: string;
+}
+
+export interface LeaderboardEntry {
+  userId: string;
+  displayName: string;
+  speciesCount: number;
+  totalSightings: number;
+}
+
+export async function getFeedSightings(): Promise<FeedSighting[]> {
+  const { data, error } = await supabase
+    .from('sightings')
+    .select('label, confidence, photo_url, timestamp, location, user_id, caption, profiles(username)')
+    .like('photo_url', 'http%')
+    .order('timestamp', { ascending: false })
+    .limit(50);
+
+  if (error || !data) return [];
+
+  return data.map((row: any) => ({
+    label: row.label,
+    confidence: row.confidence,
+    photoUrl: row.photo_url,
+    timestamp: row.timestamp,
+    location: row.location,
+    userId: row.user_id,
+    displayName: row.profiles?.username ?? '',
+    caption: row.caption ?? undefined,
+  }));
+}
+
+export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
+  const { data, error } = await supabase.rpc('get_leaderboard');
+  if (error || !data) return [];
+  return data.map((row: any) => ({
+    userId: row.user_id,
+    displayName: row.username ?? '',
+    speciesCount: Number(row.species_count),
+    totalSightings: Number(row.total_sightings),
+  }));
+}
+
+export async function getMyDisplayName(): Promise<string> {
+  const userId = await getCurrentUserId();
+  if (!userId) return 'Explorer';
+  const { data } = await supabase.from('profiles').select('username').eq('id', userId).single();
+  return data?.username ?? '';
+}
+
+export async function updateUsername(name: string): Promise<void> {
+  const userId = await getCurrentUserId();
+  if (!userId) throw new Error('Not logged in');
+  const { error } = await supabase.from('profiles').upsert({ id: userId, username: name });
+  if (error) throw new Error(error.message);
+}
+
+export async function updateAvatarUrl(url: string): Promise<void> {
+  const userId = await getCurrentUserId();
+  if (!userId) throw new Error('Not logged in');
+  const { error } = await supabase.from('profiles').upsert({ id: userId, avatar_url: url });
+  if (error) throw new Error(error.message);
+}
+
+export async function getMyAvatarUrl(): Promise<string | null> {
+  const userId = await getCurrentUserId();
+  if (!userId) return null;
+  const { data } = await supabase.from('profiles').select('avatar_url').eq('id', userId).single();
+  return data?.avatar_url ?? null;
+}
+
+export async function followUser(targetId: string): Promise<void> {
+  const userId = await getCurrentUserId();
+  if (!userId) return;
+  await supabase.from('follows').insert({ follower_id: userId, following_id: targetId });
+}
+
+export async function unfollowUser(targetId: string): Promise<void> {
+  const userId = await getCurrentUserId();
+  if (!userId) return;
+  await supabase.from('follows').delete().eq('follower_id', userId).eq('following_id', targetId);
+}
+
+export async function isFollowing(targetId: string): Promise<boolean> {
+  const userId = await getCurrentUserId();
+  if (!userId) return false;
+  const { data } = await supabase.from('follows')
+    .select('following_id')
+    .eq('follower_id', userId)
+    .eq('following_id', targetId)
+    .single();
+  return !!data;
+}
+
+export async function getFollowingIds(): Promise<string[]> {
+  const userId = await getCurrentUserId();
+  if (!userId) return [];
+  const { data } = await supabase.from('follows').select('following_id').eq('follower_id', userId);
+  return (data ?? []).map((r: any) => r.following_id);
+}
+
+export async function getFollowingFeed(): Promise<FeedSighting[]> {
+  const followingIds = await getFollowingIds();
+  if (followingIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from('sightings')
+    .select('label, confidence, photo_url, timestamp, location, user_id, caption, profiles(username)')
+    .like('photo_url', 'http%')
+    .in('user_id', followingIds)
+    .order('timestamp', { ascending: false })
+    .limit(50);
+  if (error || !data) return [];
+  return data.map((row: any) => ({
+    label: row.label,
+    confidence: row.confidence,
+    photoUrl: row.photo_url,
+    timestamp: row.timestamp,
+    location: row.location,
+    userId: row.user_id,
+    displayName: row.profiles?.username ?? '',
+    caption: row.caption ?? undefined,
+  }));
+}
+
+export async function getUserProfile(userId: string): Promise<{ displayName: string; speciesCount: number; totalSightings: number }> {
+  const [profileRes, sightingsRes] = await Promise.all([
+    supabase.from('profiles').select('username').eq('id', userId).single(),
+    supabase.from('sightings').select('label').eq('user_id', userId),
+  ]);
+  const displayName = profileRes.data?.username ?? '';
+  const sightings = sightingsRes.data ?? [];
+  const speciesCount = new Set(sightings.map((s: any) => s.label)).size;
+  return { displayName, speciesCount, totalSightings: sightings.length };
+}
+
+export async function getUserFeedSightings(userId: string): Promise<FeedSighting[]> {
+  const { data, error } = await supabase
+    .from('sightings')
+    .select('label, confidence, photo_url, timestamp, location, user_id, caption, profiles(username)')
+    .like('photo_url', 'http%')
+    .eq('user_id', userId)
+    .order('timestamp', { ascending: false })
+    .limit(30);
+  if (error || !data) return [];
+  return data.map((row: any) => ({
+    label: row.label,
+    confidence: row.confidence,
+    photoUrl: row.photo_url,
+    timestamp: row.timestamp,
+    location: row.location,
+    userId: row.user_id,
+    displayName: row.profiles?.username ?? '',
+    caption: row.caption ?? undefined,
+  }));
+}
+
+export async function getMyFeedSightings(): Promise<FeedSighting[]> {
+  const userId = await getCurrentUserId();
+  if (!userId) return [];
+
+  const [profileRes, sightingsRes] = await Promise.all([
+    supabase.from('profiles').select('username').eq('id', userId).single(),
+    supabase.from('sightings')
+      .select('label, confidence, photo_url, timestamp, location, user_id, caption')
+      .eq('user_id', userId)
+      .order('timestamp', { ascending: false })
+      .limit(50),
+  ]);
+
+  const displayName = profileRes.data?.username ?? '';
+
+  if (!sightingsRes.error && sightingsRes.data) {
+    return sightingsRes.data.map((row: any) => ({
+      label: row.label,
+      confidence: row.confidence,
+      photoUrl: row.photo_url,
+      timestamp: row.timestamp,
+      location: row.location,
+      userId: row.user_id,
+      displayName,
+      caption: row.caption ?? undefined,
+    }));
+  }
+
+  // Offline fallback: use local sightings
+  const local = await getLocalSightings();
+  return local.map((s) => ({
+    label: s.label,
+    confidence: s.confidence,
+    photoUrl: s.photoUri,
+    timestamp: s.timestamp,
+    location: s.location,
+    userId,
+    displayName,
+    caption: s.caption,
+  }));
+}
+
+export async function getCurrentUserId_public(): Promise<string | null> {
+  return getCurrentUserId();
 }

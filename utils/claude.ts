@@ -29,23 +29,6 @@ export interface AnimalInfo {
   closestPokemon: ClosestPokemon[];
 }
 
-// Tool definition
-const tools: Anthropic.Tool[] = [
-  {
-    name: 'get_animal_info',
-    description: 'Fetches factual information about an animal from Wikipedia',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        animal_name: {
-          type: 'string',
-          description: 'The common name of the animal to look up',
-        },
-      },
-      required: ['animal_name'],
-    },
-  },
-];
 
 async function executeGetAnimalInfo(animalName: string): Promise<string> {
   const query = encodeURIComponent(animalName);
@@ -76,7 +59,9 @@ async function fetchPokemonSprite(name: string): Promise<string | null> {
 }
 
 function stripMarkdown(text: string): string {
-  return text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  // Extract the first {...} JSON object from the response, ignoring any surrounding prose
+  const match = text.match(/\{[\s\S]*\}/);
+  return match ? match[0] : text.trim();
 }
 
 export async function getAnimalProfile(animalName: string): Promise<AnimalInfo> {
@@ -93,69 +78,43 @@ export async function getAnimalProfile(animalName: string): Promise<AnimalInfo> 
   }
 
   console.log(`Cache miss: ${animalName} — calling Claude`);
-  const messages: Anthropic.MessageParam[] = [
-    {
-      role: 'user',
-      content: `Use the get_animal_info tool to look up "${animalName}", then return a JSON object with these exact fields:
-- commonName (string)
-- scientificName (string)
-- habitat (string, 1 sentence)
-- diet (string, 1 sentence)
-- funFact (string, 1 surprising, specific, little-known fact — NOT about appearance, habitat, or diet; ideally about behavior, physiology, or a record-breaking trait)
-- conservationStatus (string, e.g. "Least Concern")
-- summary (string, 2-3 sentences overview)
-- continents (array of continents where this animal is natively or commonly found today, including introduced or domesticated populations — use only these exact values: "Africa", "Asia", "Europe", "North America", "South America", "Oceania", "Antarctica". Important: "Antarctica" means the Antarctic continent — only use it for penguins, seals, and animals that actually live there. Arctic animals like polar bears are NOT in Antarctica.)
-- closestPokemon (array of exactly 3 objects, each with "name" (lowercase Pokémon name, valid PokéAPI slug) and "reason" (max 6 words why it matches)). Choose Pokémon that are clearly based on or visually similar to this real animal. Prefer Pokémon that were directly inspired by it (e.g. Torchic/Blaziken for chicken, Pidgey for pigeon). Use well-known Pokémon where possible.
 
-Return ONLY the JSON object, no markdown or extra text.`,
-    },
-  ];
+  // Fetch Wikipedia context first, then single Claude call (no tool use rounds)
+  const wikiContent = await executeGetAnimalInfo(animalName);
 
-  // Round 1
-  const response1 = await client.messages.create({
+  const response = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 1024,
-    tools,
-    messages,
+    system: `You are a wildlife encyclopedia API. Always respond with ONLY a valid JSON object — no markdown, no explanation, no text before or after the JSON.
+
+For closestPokemon: use only real Pokémon names (PokéAPI slugs). Pick Pokémon directly inspired by the same animal type first (fish→finneon/goldeen/magikarp, frog→froakie/politoed, shark→sharpedo, lion→pyroar). The reason must explain what animal the Pokémon is based on, not describe the real animal's behavior. If a Pokémon is not clearly inspired by the same animal type, pick a different one.`,
+    messages: [{
+      role: 'user',
+      content: `Animal: "${animalName}"
+Reference: ${wikiContent}
+
+Respond with ONLY this JSON (use most common species if ambiguous):
+{"commonName":"","scientificName":"","habitat":"","diet":"","funFact":"","conservationStatus":"","summary":"","continents":[],"closestPokemon":[{"name":"","reason":""},{"name":"","reason":""},{"name":"","reason":""}]}`,
+    }],
   });
 
-  let rawJson = '';
+  const text = response.content.find((b) => b.type === 'text') as Anthropic.TextBlock | undefined;
+  const rawJson = text?.text ?? '';
 
-  if (response1.stop_reason === 'tool_use') {
-    const toolUse = response1.content.find((b) => b.type === 'tool_use') as Anthropic.ToolUseBlock;
-    const input = toolUse.input as { animal_name: string };
-    const toolResult = await executeGetAnimalInfo(input.animal_name);
-
-    // Round 2
-    const response2 = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      tools,
-      messages: [
-        ...messages,
-        { role: 'assistant', content: response1.content },
-        {
-          role: 'user',
-          content: [{ type: 'tool_result', tool_use_id: toolUse.id, content: toolResult }],
-        },
-      ],
-    });
-
-    const text = response2.content.find((b) => b.type === 'text') as Anthropic.TextBlock;
-    rawJson = text.text;
-  } else {
-    const text = response1.content.find((b) => b.type === 'text') as Anthropic.TextBlock;
-    rawJson = text.text;
-  }
+  if (!rawJson) throw new Error('No response from Claude');
 
   const info = JSON.parse(stripMarkdown(rawJson)) as AnimalInfo;
 
-  // Fetch sprites for each Pokémon in parallel
+  // Fetch sprites — if a Pokémon name is invalid (no sprite), replace with a real one
+  const FALLBACK_POKEMON = ['eevee', 'snorlax', 'pikachu'];
   const withSprites = await Promise.all(
-    info.closestPokemon.map(async (p) => ({
-      ...p,
-      spriteUrl: await fetchPokemonSprite(p.name) ?? undefined,
-    }))
+    info.closestPokemon.map(async (p, i) => {
+      const spriteUrl = await fetchPokemonSprite(p.name);
+      if (spriteUrl) return { ...p, spriteUrl };
+      // Name was invalid — use fallback
+      const fallback = FALLBACK_POKEMON[i] ?? 'eevee';
+      return { name: fallback, reason: p.reason, spriteUrl: await fetchPokemonSprite(fallback) ?? undefined };
+    })
   );
   info.closestPokemon = withSprites;
 
