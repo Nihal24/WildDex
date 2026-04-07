@@ -85,11 +85,6 @@ const PokédexModal: React.FC = () => {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.subtitle}>
-          Pokémon most similar to the{' '}
-          <Text style={styles.subtitleAccent}>{displayName}</Text>
-        </Text>
-
         {loading ? (
           <View style={styles.loadingBox}>
             <ActivityIndicator color={COLORS.yellow} />
@@ -113,6 +108,11 @@ const PokédexModal: React.FC = () => {
                 </Text>
               </View>
             )}
+
+            <Text style={styles.subtitle}>
+              Pokémon most similar to the{' '}
+              <Text style={styles.subtitleAccent}>{displayName}</Text>
+            </Text>
 
             {/* Pokémon sprites */}
             {info?.closestPokemon?.length ? (
@@ -179,7 +179,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: 24,
+    marginTop: 16,
+    marginBottom: 16,
   },
   subtitleAccent: { color: COLORS.white, fontWeight: '700' },
   loadingBox: { paddingVertical: 60 },
