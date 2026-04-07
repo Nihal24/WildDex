@@ -53,7 +53,7 @@ serve(async (req) => {
               role: 'user',
               content: [
                 { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
-                { type: 'text', text: 'What animal is in this photo? Reply with ONLY the common name in lowercase (e.g. "clownfish", "bengal tiger", "lion"). If there is no animal, reply exactly: none' },
+                { type: 'text', text: 'Identify the real animal in this photo. Reply with ONLY the common name in lowercase (e.g. "clownfish", "bengal tiger", "lion", "human"). Rules: only real living animals or humans count — if the image contains a cartoon, drawing, toy, fictional creature, Pokémon, animated character, or no animal at all, reply exactly: none' },
               ],
             }],
           }),
