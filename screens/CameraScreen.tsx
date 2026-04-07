@@ -79,6 +79,7 @@ const CameraScreen: React.FC = () => {
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastY = useRef(new Animated.Value(-80)).current;
   const [toastLabel, setToastLabel] = useState('');
+  const locationToastOpacity = useRef(new Animated.Value(0)).current;
 
   const showSaveToast = (label: string, onShown?: () => void) => {
     setToastLabel(label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '));
@@ -91,11 +92,11 @@ const CameraScreen: React.FC = () => {
   };
 
   const showLocationToast = () => {
-    setToastLabel('📍 Location saved');
+    locationToastOpacity.setValue(0);
     Animated.sequence([
-      Animated.spring(toastY, { toValue: 0, useNativeDriver: true, bounciness: 6 }),
-      Animated.delay(1400),
-      Animated.timing(toastY, { toValue: -80, duration: 250, useNativeDriver: true }),
+      Animated.timing(locationToastOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.delay(900),
+      Animated.timing(locationToastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
     ]).start();
   };
 
@@ -504,6 +505,11 @@ const CameraScreen: React.FC = () => {
               )}
             </View>
 
+            <Animated.View style={[styles.locationToast, { opacity: locationToastOpacity }]} pointerEvents="none">
+              <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+              <Text style={styles.locationToastText}>Location saved!</Text>
+            </Animated.View>
+
           </View>
         </View>
         </KeyboardAvoidingView>
@@ -722,6 +728,20 @@ const styles = StyleSheet.create({
   },
   locationTitle: { fontSize: 20, fontWeight: '800', color: COLORS.white, textAlign: 'center' },
   locationSub: { fontSize: 13, color: COLORS.grey, textAlign: 'center', marginBottom: 4 },
+  locationToast: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#1a2e1a',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignSelf: 'center',
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#4CAF5040',
+  },
+  locationToastText: { color: '#4CAF50', fontSize: 13, fontWeight: '600' },
   locationOptionButton: {
     flexDirection: 'row',
     alignItems: 'center',
