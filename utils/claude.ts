@@ -17,6 +17,15 @@ export interface Taxonomy {
   species: string;
 }
 
+export interface AnimalStats {
+  hp: number;            // Size + lifespan (elephant > mouse)
+  attack: number;        // Predatory ability, bite force, claws, venom
+  defense: number;       // Natural armor, shell, thick skin, size
+  speed: number;         // Actual movement speed relative to other animals
+  special_attack: number; // Special abilities — echolocation, venom, bioluminescence, etc.
+  special_defense: number; // Adaptability, environmental resilience, immune system
+}
+
 export interface AnimalInfo {
   commonName: string;
   scientificName: string;
@@ -28,6 +37,7 @@ export interface AnimalInfo {
   continents: Continent[];
   closestPokemon: ClosestPokemon[];
   taxonomy: Taxonomy;
+  stats?: AnimalStats;
 }
 
 // In-memory prefetch cache — keyed by label, stores the in-flight or resolved promise

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,48 @@ import {
   ActivityIndicator,
   Image,
   ScrollView,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS } from '../constants/theme';
-import { getAnimalProfile, AnimalInfo } from '../utils/claude';
+import { getAnimalProfile, AnimalInfo, AnimalStats } from '../utils/claude';
+
+const STATS: { key: keyof AnimalStats; label: string; color: string }[] = [
+  { key: 'hp',             label: 'HP',     color: '#4ade80' },
+  { key: 'attack',         label: 'ATK',    color: '#f97316' },
+  { key: 'defense',        label: 'DEF',    color: '#60a5fa' },
+  { key: 'speed',          label: 'SPD',    color: '#facc15' },
+  { key: 'special_attack', label: 'SP.ATK', color: '#c084fc' },
+  { key: 'special_defense',label: 'SP.DEF', color: '#34d399' },
+];
+
+function StatBar({ label, value, color }: { label: string; value: number; color: string }) {
+  const anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: value / 100,
+      duration: 600,
+      useNativeDriver: false,
+    }).start();
+  }, [value]);
+
+  return (
+    <View style={styles.statRow}>
+      <Text style={styles.statLabel}>{label}</Text>
+      <View style={styles.statBarTrack}>
+        <Animated.View
+          style={[
+            styles.statBarFill,
+            { backgroundColor: color, width: anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) },
+          ]}
+        />
+      </View>
+      <Text style={[styles.statValue, { color }]}>{value}</Text>
+    </View>
+  );
+}
 
 const PokédexModal: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -57,27 +94,50 @@ const PokédexModal: React.FC = () => {
           <View style={styles.loadingBox}>
             <ActivityIndicator color={COLORS.yellow} />
           </View>
-        ) : info?.closestPokemon?.length ? (
-          <View style={styles.pokeCard}>
-            <View style={styles.pokeRow}>
-              {info.closestPokemon.map((p) => (
-                <View key={p.name} style={styles.pokeItem}>
-                  <View style={styles.spriteCircle}>
-                    {p.spriteUrl ? (
-                      <Image source={{ uri: p.spriteUrl }} style={styles.sprite} />
-                    ) : (
-                      <Text style={styles.spritePlaceholder}>?</Text>
-                    )}
-                  </View>
-                  <Text style={styles.pokeName}>
-                    {p.name.charAt(0).toUpperCase() + p.name.slice(1)}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
         ) : (
-          <Text style={styles.errorText}>No Pokédex data available.</Text>
+          <>
+            {/* Pokémon sprites */}
+            {info?.closestPokemon?.length ? (
+              <View style={styles.pokeCard}>
+                <View style={styles.pokeRow}>
+                  {info.closestPokemon.map((p) => (
+                    <View key={p.name} style={styles.pokeItem}>
+                      <View style={styles.spriteCircle}>
+                        {p.spriteUrl ? (
+                          <Image source={{ uri: p.spriteUrl }} style={styles.sprite} />
+                        ) : (
+                          <Text style={styles.spritePlaceholder}>?</Text>
+                        )}
+                      </View>
+                      <Text style={styles.pokeName}>
+                        {p.name.charAt(0).toUpperCase() + p.name.slice(1)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : (
+              <Text style={styles.errorText}>No Pokédex data available.</Text>
+            )}
+
+            {/* Stats */}
+            {info?.stats && (
+              <View style={styles.statsCard}>
+                <Text style={styles.statsTitle}>BASE STATS</Text>
+                {STATS.map(({ key, label: lbl, color }) => (
+                  <StatBar
+                    key={key}
+                    label={lbl}
+                    value={info.stats![key] ?? 0}
+                    color={color}
+                  />
+                ))}
+                <Text style={styles.statsFooter}>
+                  Scored 0–100 relative to all animals
+                </Text>
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
 
@@ -133,6 +193,7 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingHorizontal: 12,
     alignItems: 'center',
+    marginBottom: 16,
   },
   pokeRow: {
     flexDirection: 'row',
@@ -159,6 +220,59 @@ const styles = StyleSheet.create({
     color: COLORS.yellow,
     fontSize: 13,
     fontWeight: '700',
+    textAlign: 'center',
+  },
+  // Stats
+  statsCard: {
+    width: '100%',
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  statsTitle: {
+    color: COLORS.grey,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 2,
+    marginBottom: 16,
+  },
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  statLabel: {
+    color: COLORS.grey,
+    fontSize: 11,
+    fontWeight: '700',
+    width: 54,
+  },
+  statBarTrack: {
+    flex: 1,
+    height: 8,
+    backgroundColor: COLORS.background,
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginHorizontal: 8,
+  },
+  statBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  statValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    width: 30,
+    textAlign: 'right',
+  },
+  statsFooter: {
+    color: COLORS.darkGrey,
+    fontSize: 10,
+    marginTop: 6,
     textAlign: 'center',
   },
   wilddexBtn: {

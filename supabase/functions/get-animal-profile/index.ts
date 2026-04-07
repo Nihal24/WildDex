@@ -58,14 +58,22 @@ serve(async (req) => {
       max_tokens: 1024,
       system: `You are a wildlife encyclopedia API. Always respond with ONLY a valid JSON object — no markdown, no explanation, no text before or after the JSON.
 
-For closestPokemon: use only real Pokémon names (PokéAPI slugs). Pick Pokémon directly inspired by the same animal type first (fish→finneon/goldeen/magikarp, frog→froakie/politoed, shark→sharpedo, lion→pyroar). If a Pokémon is not clearly inspired by the same animal type, pick a different one.`,
+For closestPokemon: use only real Pokémon names (PokéAPI slugs). Pick Pokémon directly inspired by the same animal type first (fish→finneon/goldeen/magikarp, frog→froakie/politoed, shark→sharpedo, lion→pyroar). If a Pokémon is not clearly inspired by the same animal type, pick a different one.
+
+For stats: score each 0–100 relative to all animals.
+- hp: size + lifespan combined (elephant=95, mouse=10, tortoise=90)
+- attack: predatory ability, bite force, claws, venom (lion=88, cow=15, shark=90)
+- defense: natural armor, shell, thick skin, size (armadillo=85, tortoise=95, deer=20)
+- speed: top movement speed relative to other animals (cheetah=100, tortoise=5, falcon=95)
+- special_attack: unique offensive abilities — venom, electric, bioluminescence, echolocation used offensively (electric eel=95, cobra=90, rabbit=5)
+- special_defense: environmental adaptability, resilience, immune system (cockroach=95, tardigrade=100, panda=30)`,
       messages: [{
         role: 'user',
         content: `Animal: "${animalName}"
 Reference: ${wikiContent}
 
 Respond with ONLY this JSON (use most common species if ambiguous):
-{"commonName":"","scientificName":"","habitat":"","diet":"","funFact":"","conservationStatus":"","summary":"","continents":[],"closestPokemon":[{"name":""},{"name":""},{"name":""}],"taxonomy":{"kingdom":"","phylum":"","class":"","order":"","family":"","genus":"","species":""}}`,
+{"commonName":"","scientificName":"","habitat":"","diet":"","funFact":"","conservationStatus":"","summary":"","continents":[],"closestPokemon":[{"name":""},{"name":""},{"name":""}],"taxonomy":{"kingdom":"","phylum":"","class":"","order":"","family":"","genus":"","species":""},"stats":{"hp":0,"attack":0,"defense":0,"speed":0,"special_attack":0,"special_defense":0}}`,
       }],
     });
 
