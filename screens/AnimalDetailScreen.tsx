@@ -16,7 +16,7 @@ import { getAnimalProfile, AnimalInfo } from '../utils/claude';
 import { getLatestPhotoForLabel } from '../utils/storage';
 
 interface Props {
-  route: { params: { label: string; id: string } };
+  route: { params: { label: string; id?: string; photoUri?: string } };
   navigation: any;
 }
 
@@ -31,8 +31,8 @@ const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: s
 );
 
 const AnimalDetailScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { label, id } = route.params;
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const { label, id, photoUri: passedPhotoUri, fromCatch } = route.params;
+  const [photoUri, setPhotoUri] = useState<string | null>(passedPhotoUri ?? null);
   const [info, setInfo] = useState<AnimalInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +41,7 @@ const AnimalDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     async function load() {
       try {
         const [photo, profile] = await Promise.all([
-          getLatestPhotoForLabel(label),
+          passedPhotoUri ? Promise.resolve(passedPhotoUri) : getLatestPhotoForLabel(label),
           getAnimalProfile(label),
         ]);
         setPhotoUri(photo);
@@ -65,7 +65,7 @@ const AnimalDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={COLORS.white} />
         </TouchableOpacity>
-        <Text style={styles.headerNumber}>#{id}</Text>
+        {id ? <Text style={styles.headerNumber}>#{id}</Text> : <View />}
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -85,7 +85,6 @@ const AnimalDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         {loading && (
           <View style={styles.loadingBox}>
             <ActivityIndicator color={COLORS.yellow} />
-            <Text style={styles.loadingText}>Asking Claude...</Text>
           </View>
         )}
 
@@ -108,6 +107,17 @@ const AnimalDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         )}
       </ScrollView>
+
+      {fromCatch && (
+        <TouchableOpacity
+          style={styles.wilddexBtn}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('Main', { screen: 'WildDex' })}
+        >
+          <Ionicons name="paw" size={18} color={COLORS.white} />
+          <Text style={styles.wilddexBtnText}>View in my WildDex</Text>
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
 };
@@ -192,4 +202,17 @@ const styles = StyleSheet.create({
   },
   funFactLabel: { color: COLORS.yellow, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   funFactText: { color: COLORS.white, fontSize: 14, lineHeight: 20 },
+  wilddexBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.primary,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    marginTop: 8,
+    borderRadius: 14,
+    paddingVertical: 16,
+  },
+  wilddexBtnText: { color: COLORS.white, fontWeight: '800', fontSize: 16 },
 });

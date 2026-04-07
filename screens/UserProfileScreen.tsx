@@ -4,6 +4,8 @@ import {
   FlatList, Image, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/RootNavigator';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 import {
@@ -29,10 +31,10 @@ const timeAgo = (timestamp: number): string => {
 
 const UserProfileScreen: React.FC = () => {
   const route = useRoute<RouteProp<{ params: RouteParams }, 'params'>>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { userId } = route.params;
 
-  const [profile, setProfile] = useState<{ displayName: string; speciesCount: number; totalSightings: number } | null>(null);
+  const [profile, setProfile] = useState<{ displayName: string; speciesCount: number; totalSightings: number; followersCount: number; followingCount: number } | null>(null);
   const [sightings, setSightings] = useState<FeedSighting[]>([]);
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
@@ -85,19 +87,22 @@ const UserProfileScreen: React.FC = () => {
     <View>
       <View style={styles.profileHeader}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarLetter}>{profile?.displayName.charAt(0).toUpperCase()}</Text>
+          {profile?.avatarUrl
+            ? <Image source={{ uri: profile.avatarUrl }} style={{ width: 80, height: 80, borderRadius: 40 }} resizeMode="cover" />
+            : <Text style={styles.avatarLetter}>{profile?.displayName.charAt(0).toUpperCase()}</Text>
+          }
         </View>
-        <Text style={styles.displayName}>{profile?.displayName ? `@${profile.displayName}` : '@unknown'}</Text>
+        <Text style={styles.displayName}>{profile?.displayName || 'unknown'}</Text>
         <View style={styles.statsRow}>
-          <View style={styles.statBox}>
-            <Text style={styles.statNum}>{profile?.speciesCount}</Text>
-            <Text style={styles.statLabel}>Species</Text>
-          </View>
+          <TouchableOpacity style={styles.statBox} onPress={() => navigation.navigate('FollowList', { userId, type: 'followers' })}>
+            <Text style={styles.statNum}>{profile?.followersCount ?? 0}</Text>
+            <Text style={styles.statLabel}>Followers</Text>
+          </TouchableOpacity>
           <View style={styles.statDivider} />
-          <View style={styles.statBox}>
-            <Text style={styles.statNum}>{profile?.totalSightings}</Text>
-            <Text style={styles.statLabel}>Sightings</Text>
-          </View>
+          <TouchableOpacity style={styles.statBox} onPress={() => navigation.navigate('FollowList', { userId, type: 'following' })}>
+            <Text style={styles.statNum}>{profile?.followingCount ?? 0}</Text>
+            <Text style={styles.statLabel}>Following</Text>
+          </TouchableOpacity>
         </View>
         {!isOwnProfile && (
           <TouchableOpacity
@@ -130,16 +135,7 @@ const UserProfileScreen: React.FC = () => {
             );
           })}
         </View>
-        {nextBadge && (
-          <View style={styles.nextBadgeRow}>
-            <Ionicons name="arrow-up-circle-outline" size={14} color={COLORS.grey} />
-            <Text style={styles.nextBadgeText}>
-              Next: {nextBadge.label} at {nextBadge.threshold} species
-            </Text>
-          </View>
-        )}
       </View>
-
       <Text style={styles.sightingsLabel}>SIGHTINGS</Text>
     </View>
   );
@@ -151,40 +147,32 @@ const UserProfileScreen: React.FC = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={COLORS.white} />
         </TouchableOpacity>
-        <Text style={styles.navTitle}>{profile?.displayName ? `@${profile.displayName}` : '@unknown'}</Text>
+        <View style={{ width: 38 }} />
         <View style={{ width: 38 }} />
       </View>
 
-      {sightings.length === 0 ? (
-        <FlatList
-          data={[]}
-          renderItem={null}
-          ListHeaderComponent={<Header />}
-          ListEmptyComponent={
-            <View style={styles.center}>
-              <Text style={styles.emptyText}>No public sightings yet</Text>
+      <FlatList
+        data={sightings}
+        keyExtractor={(_, i) => String(i)}
+        ListHeaderComponent={<Header />}
+        numColumns={2}
+        columnWrapperStyle={styles.gridRow}
+        contentContainerStyle={styles.gridContent}
+        ListEmptyComponent={
+          <View style={styles.center}>
+            <Text style={styles.emptyText}>No sightings yet</Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <View style={styles.gridCard}>
+            <Image source={{ uri: item.photoUrl }} style={styles.gridPhoto} />
+            <View style={styles.gridInfo}>
+              <Text style={styles.gridAnimal} numberOfLines={1}>{formatLabel(item.label)}</Text>
+              <Text style={styles.gridTime}>{timeAgo(item.timestamp)}</Text>
             </View>
-          }
-        />
-      ) : (
-        <FlatList
-          data={sightings}
-          keyExtractor={(_, i) => String(i)}
-          ListHeaderComponent={<Header />}
-          numColumns={2}
-          columnWrapperStyle={styles.gridRow}
-          contentContainerStyle={styles.gridContent}
-          renderItem={({ item }) => (
-            <View style={styles.gridCard}>
-              <Image source={{ uri: item.photoUrl }} style={styles.gridPhoto} />
-              <View style={styles.gridInfo}>
-                <Text style={styles.gridAnimal} numberOfLines={1}>{formatLabel(item.label)}</Text>
-                <Text style={styles.gridTime}>{timeAgo(item.timestamp)}</Text>
-              </View>
-            </View>
-          )}
-        />
-      )}
+          </View>
+        )}
+      />
     </SafeAreaView>
   );
 };

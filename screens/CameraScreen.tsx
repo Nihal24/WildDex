@@ -11,6 +11,11 @@ import {
   Modal,
   TextInput,
   Alert,
+  Animated,
+  Linking,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
 } from 'react-native';
 import {
   CameraView,
@@ -22,10 +27,10 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import Constants from 'expo-constants';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../constants/theme';
-import { saveSighting } from '../utils/storage';
+import { saveSighting, getDefaultVisibility } from '../utils/storage';
 import * as Location from 'expo-location';
-
 const CONFIDENCE_THRESHOLD = 0.0;
 
 const identifyAnimal = async (
@@ -54,6 +59,7 @@ const identifyAnimal = async (
 };
 
 const CameraScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
@@ -64,11 +70,27 @@ const CameraScreen: React.FC = () => {
   const [saved, setSaved] = useState(false);
   const [pendingSighting, setPendingSighting] = useState<{ label: string; confidence: number; photoUri: string } | null>(null);
   const [caption, setCaption] = useState('');
+  const [visibility, setVisibility] = useState('public');
   const [locationSearch, setLocationSearch] = useState('');
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationSuggestions, setLocationSuggestions] = useState<{ city: string; region: string; country: string }[]>([]);
   const [suggestionCoords, setSuggestionCoords] = useState<{ latitude: number; longitude: number }[]>([]);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastY = useRef(new Animated.Value(-80)).current;
+  const [toastLabel, setToastLabel] = useState('');
+
+  const showSaveToast = (label: string, onShown?: () => void) => {
+    setToastLabel(label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '));
+    Animated.sequence([
+      Animated.spring(toastY, { toValue: 0, useNativeDriver: true, bounciness: 6 }),
+      Animated.delay(1800),
+      Animated.timing(toastY, { toValue: -80, duration: 250, useNativeDriver: true }),
+    ]).start();
+    // Navigate after toast has bounced in (~600ms)
+    if (onShown) setTimeout(onShown, 600);
+  };
+
+  React.useEffect(() => { getDefaultVisibility().then(setVisibility); }, []);
 
   const toggleCameraFacing = () => {
     setFacing((current) => (current === 'back' ? 'front' : 'back'));
@@ -117,8 +139,10 @@ const CameraScreen: React.FC = () => {
             latitude = loc.coords.latitude;
             longitude = loc.coords.longitude;
           }
-          await saveSighting({ ...finalResult, photoUri, timestamp: Date.now(), latitude, longitude });
-          setSaved(true); setTimeout(() => retake(), 1500);
+          await saveSighting({ ...finalResult, photoUri, timestamp: Date.now(), latitude, longitude, visibility });
+          retake();
+          navigation.navigate('Catch', { label: finalResult.label, photoUri });
+          setSaved(true);
         }
       }
     } catch (e) {
@@ -148,12 +172,15 @@ const CameraScreen: React.FC = () => {
         }
       } catch {}
     }
-    await saveSighting({ ...pendingSighting, timestamp: Date.now(), latitude, longitude, location, caption: caption.trim() || undefined });
+    const ps = pendingSighting;
+    await saveSighting({ ...ps, timestamp: Date.now(), latitude, longitude, location, caption: caption.trim() || undefined, visibility });
     setPendingSighting(null);
     setLocationSearch('');
     setCaption('');
     setLocationLoading(false);
-    setSaved(true); setTimeout(() => retake(), 1500);
+    setSaved(true);
+    retake();
+    navigation.navigate('Catch', { label: ps.label, photoUri: ps.photoUri });
   };
 
   const saveWithSearchedLocation = async () => {
@@ -167,11 +194,14 @@ const CameraScreen: React.FC = () => {
         return;
       }
       const { latitude, longitude } = results[0];
-      await saveSighting({ ...pendingSighting, timestamp: Date.now(), latitude, longitude, caption: caption.trim() || undefined });
+      const ps = pendingSighting;
+      await saveSighting({ ...ps, timestamp: Date.now(), latitude, longitude, caption: caption.trim() || undefined, visibility });
       setPendingSighting(null);
       setLocationSearch('');
       setCaption('');
-      setSaved(true); setTimeout(() => retake(), 1500);
+      setSaved(true);
+      retake();
+      navigation.navigate('Catch', { label: ps.label, photoUri: ps.photoUri });
     } catch {
       Alert.alert('Error', 'Could not geocode location.');
     } finally {
@@ -216,19 +246,25 @@ const CameraScreen: React.FC = () => {
     const location = [s.city, s.region, s.country].filter(Boolean).join(', ');
     setLocationSuggestions([]);
     setLocationSearch('');
-    await saveSighting({ ...pendingSighting, timestamp: Date.now(), latitude, longitude, location, caption: caption.trim() || undefined });
+    const ps = pendingSighting;
+    await saveSighting({ ...ps, timestamp: Date.now(), latitude, longitude, location, caption: caption.trim() || undefined, visibility });
     setPendingSighting(null);
     setCaption('');
-    setSaved(true); setTimeout(() => retake(), 1500);
+    setSaved(true);
+    retake();
+    navigation.navigate('Catch', { label: ps.label, photoUri: ps.photoUri });
   };
 
   const saveWithNoLocation = async () => {
     if (!pendingSighting) return;
-    await saveSighting({ ...pendingSighting, timestamp: Date.now(), caption: caption.trim() || undefined });
+    const ps = pendingSighting;
+    await saveSighting({ ...ps, timestamp: Date.now(), caption: caption.trim() || undefined, visibility });
     setPendingSighting(null);
     setCaption('');
     setLocationSearch('');
-    setSaved(true); setTimeout(() => retake(), 1500);
+    setSaved(true);
+    retake();
+    navigation.navigate('Catch', { label: ps.label, photoUri: ps.photoUri });
   };
 
   const takePhoto = async () => {
@@ -265,9 +301,18 @@ const CameraScreen: React.FC = () => {
   if (!permission.granted) {
     return (
       <SafeAreaView style={styles.permissionContainer}>
-        <Text style={styles.message}>Camera permission required</Text>
-        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-          <Text style={styles.permissionButtonText}>Grant Permission</Text>
+        <View style={styles.permissionIconCircle}>
+          <Ionicons name="camera-outline" size={56} color={COLORS.yellow} />
+        </View>
+        <Text style={styles.permissionTitle}>Let's spot some animals!</Text>
+        <TouchableOpacity
+          style={styles.permissionButton}
+          onPress={async () => {
+            const { granted, canAskAgain } = await requestPermission();
+            if (!granted && !canAskAgain) Linking.openSettings();
+          }}
+        >
+          <Text style={styles.permissionButtonText}>Enable Camera Access</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -276,9 +321,21 @@ const CameraScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
+      <Animated.View style={[styles.toast, { transform: [{ translateY: toastY }] }]} pointerEvents="none">
+        <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+        <Text style={styles.toastText}>{toastLabel} added to WildDex!</Text>
+      </Animated.View>
 
       {capturedPhoto ? (
-        <View style={styles.previewContainer}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <ScrollView
+            contentContainerStyle={styles.previewContainer}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
           <Image source={{ uri: capturedPhoto.uri }} style={styles.previewImage} />
 
           {isRunning && (
@@ -335,7 +392,8 @@ const CameraScreen: React.FC = () => {
                       value={caption}
                       onChangeText={setCaption}
                       maxLength={200}
-                      multiline
+                      returnKeyType="done"
+                      blurOnSubmit
                     />
                     <TouchableOpacity style={styles.saveButton} onPress={() => setPendingSighting({ ...pendingSighting, _showSheet: true } as any)}>
                       <Text style={styles.saveButtonText}>Save to WildDex →</Text>
@@ -350,7 +408,8 @@ const CameraScreen: React.FC = () => {
             <Ionicons name="arrow-back" size={18} color={COLORS.white} />
             <Text style={styles.retakeText}>Retake</Text>
           </TouchableOpacity>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       ) : (
         <View style={styles.cameraContainer}>
           <CameraView style={styles.camera} facing={facing} ref={cameraRef}>
@@ -369,8 +428,10 @@ const CameraScreen: React.FC = () => {
       )}
       {/* Location prompt for gallery uploads */}
       <Modal visible={!!(pendingSighting as any)?._showSheet} animationType="slide" transparent presentationStyle="overFullScreen">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <View style={styles.locationOverlay}>
           <View style={styles.locationSheet}>
+            <View style={styles.locationHandle} />
             <Text style={styles.locationTitle}>Where was this taken?</Text>
             <Text style={styles.locationSub}>Add a location to pin it on the Explore map</Text>
 
@@ -403,7 +464,7 @@ const CameraScreen: React.FC = () => {
                 )}
               </View>
               {locationSuggestions.length > 0 && (
-                <View style={styles.dropdown}>
+                <ScrollView style={styles.dropdown} keyboardShouldPersistTaps="handled">
                   {locationSuggestions.map((s, i) => {
                     const sub = [s.region, s.country].filter(Boolean).join(', ');
                     return (
@@ -416,15 +477,13 @@ const CameraScreen: React.FC = () => {
                       </TouchableOpacity>
                     );
                   })}
-                </View>
+                </ScrollView>
               )}
             </View>
 
-            <TouchableOpacity onPress={saveWithNoLocation} style={styles.locationSkip}>
-              <Text style={styles.locationSkipText}>Skip — save without location</Text>
-            </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -434,6 +493,26 @@ export default CameraScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  toast: {
+    position: 'absolute',
+    top: 12,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: COLORS.card,
+    borderRadius: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderWidth: 1,
+    borderColor: '#4CAF50' + '55',
+    zIndex: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  toastText: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
   camera: { flex: 1 },
   cameraContainer: { flex: 1 },
   flipButton: {
@@ -472,11 +551,12 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   previewContainer: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: COLORS.background,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 16,
+    paddingBottom: 32,
   },
   previewImage: {
     width: '100%',
@@ -562,31 +642,60 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  message: { color: COLORS.white, textAlign: 'center', marginBottom: 16 },
   permissionContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: COLORS.background,
+    paddingHorizontal: 40,
+    gap: 16,
+  },
+  permissionIconCircle: {
+    width: 120, height: 120, borderRadius: 60,
+    backgroundColor: COLORS.card,
+    borderWidth: 2,
+    borderColor: COLORS.yellow + '40',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  permissionTitle: {
+    fontSize: 24, fontWeight: '900', color: COLORS.white,
+    textAlign: 'center', letterSpacing: 0.3,
+  },
+  permissionSub: {
+    fontSize: 14, color: COLORS.grey,
+    textAlign: 'center', lineHeight: 22,
   },
   permissionButton: {
     backgroundColor: COLORS.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 25,
+    paddingHorizontal: 40,
+    paddingVertical: 16,
+    borderRadius: 30,
+    marginTop: 8,
   },
-  permissionButtonText: { color: COLORS.white, fontWeight: '700' },
+  permissionButtonText: { color: COLORS.white, fontWeight: '800', fontSize: 16 },
   locationOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-start',
     backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingTop: 60,
   },
   locationSheet: {
     backgroundColor: COLORS.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     padding: 24,
     gap: 12,
+    flex: 1,
+  },
+  locationHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.cardBorder,
+    alignSelf: 'center',
+    marginBottom: 8,
   },
   locationTitle: { fontSize: 20, fontWeight: '800', color: COLORS.white, textAlign: 'center' },
   locationSub: { fontSize: 13, color: COLORS.grey, textAlign: 'center', marginBottom: 4 },
@@ -634,8 +743,14 @@ const styles = StyleSheet.create({
   dropdownDivider: { borderTopWidth: 1, borderTopColor: COLORS.cardBorder },
   dropdownLine1: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
   dropdownLine2: { color: COLORS.grey, fontSize: 12, marginTop: 1 },
-  locationSkip: { alignItems: 'center', paddingVertical: 8 },
-  locationSkipText: { color: COLORS.darkGrey, fontSize: 13 },
+  locationSkip: {
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    borderRadius: 12,
+    paddingVertical: 14,
+  },
+  locationSkipText: { color: COLORS.grey, fontSize: 15, fontWeight: '600' },
   captionInput: {
     backgroundColor: COLORS.background,
     borderRadius: 12,

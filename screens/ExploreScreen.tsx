@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: COLORS.primary,
   },
-  headerTitle: { fontSize: 22, fontWeight: '700', color: COLORS.white, letterSpacing: 0.5 },
+  headerTitle: { fontSize: 18, fontWeight: '900', color: COLORS.yellow, letterSpacing: 3, textTransform: 'uppercase' },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
   badgeText: { color: COLORS.white, fontWeight: '700', fontSize: 14 },
   map: { flex: 1 },

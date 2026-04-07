@@ -1,74 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <!-- Background -->
-  <rect width="1024" height="1024" rx="220" fill="#1a1a1a"/>
+  <rect width="1024" height="1024" rx="200" fill="#0F0A06"/>
 
-  <!-- Left ear (dark) -->
-  <polygon points="280,340 210,130 390,270" fill="#2a2a2a"/>
-  <polygon points="295,330 240,165 370,275" fill="#1a1a1a"/>
+  <!-- INNER LEFT toe: large teardrop, close to center -->
+  <ellipse cx="398" cy="222" rx="92" ry="132" fill="#FFCB05" transform="rotate(-3, 398, 222)"/>
 
-  <!-- Right ear (dark) -->
-  <polygon points="744,340 814,130 634,270" fill="#2a2a2a"/>
-  <polygon points="729,330 784,165 654,275" fill="#1a1a1a"/>
+  <!-- INNER RIGHT toe: large teardrop, close to center, slightly higher -->
+  <ellipse cx="626" cy="206" rx="94" ry="134" fill="#FFCB05" transform="rotate(3, 626, 206)"/>
 
-  <!-- Head - dark top -->
-  <ellipse cx="512" cy="430" rx="260" ry="220" fill="#2c2c2c"/>
+  <!-- OUTER LEFT toe: smaller, angled outward -->
+  <ellipse cx="214" cy="468" rx="70" ry="108" fill="#FFCB05" transform="rotate(-28, 214, 468)"/>
 
-  <!-- White face mask -->
-  <ellipse cx="512" cy="520" rx="185" ry="210" fill="#f0ece0"/>
+  <!-- OUTER RIGHT toe: smaller, angled outward -->
+  <ellipse cx="810" cy="468" rx="70" ry="108" fill="#FFCB05" transform="rotate(28, 810, 468)"/>
 
-  <!-- Dark forehead stripe -->
-  <ellipse cx="512" cy="350" rx="110" ry="90" fill="#1e1e1e"/>
-
-  <!-- Left dark eye patch -->
-  <ellipse cx="400" cy="430" rx="75" ry="65" fill="#1e1e1e"/>
-  <!-- Right dark eye patch -->
-  <ellipse cx="624" cy="430" rx="75" ry="65" fill="#1e1e1e"/>
-
-  <!-- Left eye white -->
-  <ellipse cx="400" cy="430" rx="45" ry="42" fill="#e8d5a0"/>
-  <!-- Right eye white -->
-  <ellipse cx="624" cy="430" rx="45" ry="42" fill="#e8d5a0"/>
-
-  <!-- Left iris (amber) -->
-  <ellipse cx="400" cy="432" rx="30" ry="30" fill="#c8820a"/>
-  <!-- Right iris (amber) -->
-  <ellipse cx="624" cy="432" rx="30" ry="30" fill="#c8820a"/>
-
-  <!-- Left pupil -->
-  <ellipse cx="402" cy="432" rx="14" ry="16" fill="#111"/>
-  <!-- Right pupil -->
-  <ellipse cx="626" cy="432" rx="14" ry="16" fill="#111"/>
-
-  <!-- Eye shine left -->
-  <ellipse cx="410" cy="424" rx="6" ry="5" fill="white" opacity="0.8"/>
-  <!-- Eye shine right -->
-  <ellipse cx="634" cy="424" rx="6" ry="5" fill="white" opacity="0.8"/>
-
-  <!-- Muzzle -->
-  <ellipse cx="512" cy="590" rx="110" ry="95" fill="#e8e4d8"/>
-
-  <!-- Nose -->
-  <ellipse cx="512" cy="545" rx="48" ry="32" fill="#222"/>
-  <!-- Nose highlight -->
-  <ellipse cx="498" cy="536" rx="12" ry="7" fill="#555" opacity="0.6"/>
-
-  <!-- Mouth line -->
-  <path d="M512 577 Q480 598 460 608" stroke="#bbb" stroke-width="4" fill="none" stroke-linecap="round"/>
-  <path d="M512 577 Q544 598 564 608" stroke="#bbb" stroke-width="4" fill="none" stroke-linecap="round"/>
-
-  <!-- Tongue -->
-  <ellipse cx="512" cy="625" rx="42" ry="32" fill="#e05070"/>
-  <path d="M470 620 Q512 660 554 620" fill="#e05070"/>
-  <!-- Tongue center line -->
-  <path d="M512 608 Q512 650 512 655" stroke="#c03050" stroke-width="4" fill="none" stroke-linecap="round"/>
-
-  <!-- Chest white fur -->
-  <ellipse cx="512" cy="760" rx="130" ry="100" fill="#f0ece0"/>
-
-  <!-- Body dark -->
-  <ellipse cx="512" cy="820" rx="200" ry="120" fill="#2c2c2c"/>
-
-  <!-- Tan markings above eyes -->
-  <ellipse cx="390" cy="390" rx="22" ry="14" fill="#c8920a" opacity="0.7"/>
-  <ellipse cx="622" cy="390" rx="22" ry="14" fill="#c8920a" opacity="0.7"/>
+  <!-- MAIN PAD: wide, with two bumps at top, rounded circular bottom -->
+  <path d="
+    M 512 894
+    C 372 894 184 810 184 668
+    C 184 544 250 480 338 460
+    C 368 452 395 446 424 455
+    C 452 464 470 482 512 497
+    C 554 482 572 464 600 455
+    C 629 446 656 452 686 460
+    C 774 480 840 544 840 668
+    C 840 810 652 894 512 894 Z
+  " fill="#FFCB05"/>
 </svg>

@@ -17,16 +17,16 @@ import {
   Dimensions,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
-import { captureRef } from 'react-native-view-shot';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
-import { getSightings, Sighting, updateSightingLocation, deleteSighting } from '../utils/storage';
+import { getSightings, getLocalSightings, Sighting, updateSightingLocation, deleteSighting } from '../utils/storage';
 import { getAnimalProfile, AnimalInfo } from '../utils/claude';
 import { getRarityFromConservationStatus, RarityInfo } from '../utils/rarity';
 import { WorldMap } from '../components/WorldMap';
 import { Continent } from '../utils/claude';
+import { getEarnedBadges, Badge } from '../utils/badges';
 
 const formatLabel = (label: string) =>
   label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -44,15 +44,38 @@ const SegmentedControl: React.FC<{ active: 'collection' | 'sightings'; onChange:
 );
 
 // --- Discovered Card ---
-const DiscoveredCard: React.FC<{ label: string; photoUri: string; number: string; onPress: () => void }> = ({ label, photoUri, number, onPress }) => (
-  <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
-    <Image source={{ uri: photoUri }} style={styles.cardImage} />
-    <View style={styles.cardFooter}>
-      <Text style={styles.cardNumber}>{number}</Text>
-      <Text style={styles.cardName} numberOfLines={1}>{formatLabel(label)}</Text>
-    </View>
-  </TouchableOpacity>
-);
+const DiscoveredCard: React.FC<{ label: string; photoUri: string; number: string; rarityColor?: string; glow?: boolean; onPress: () => void }> = ({ label, photoUri, number, rarityColor, glow, onPress }) => {
+  const glowAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!glow) return;
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, { toValue: 1, duration: 600, useNativeDriver: false }),
+        Animated.timing(glowAnim, { toValue: 0, duration: 600, useNativeDriver: false }),
+      ]),
+      { iterations: 5 }
+    ).start();
+  }, [glow]);
+
+  const borderColor = glowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [COLORS.cardBorder, COLORS.yellow],
+  });
+
+  return (
+    <TouchableOpacity activeOpacity={0.75} onPress={onPress}>
+      <Animated.View style={[styles.card, glow && { borderColor, borderWidth: 2 }]}>
+        <Image source={{ uri: photoUri }} style={styles.cardImage} />
+        {rarityColor && <View style={[styles.rarityDot, { backgroundColor: rarityColor }]} />}
+        <View style={styles.cardFooter}>
+          <Text style={styles.cardNumber}>{number}</Text>
+          <Text style={styles.cardName} numberOfLines={1}>{formatLabel(label)}</Text>
+        </View>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
 
 // --- Sighting Row ---
 const SightingRow: React.FC<{ item: Sighting; onEdit: () => void; onDelete: () => void }> = ({ item, onEdit, onDelete }) => {
@@ -103,10 +126,27 @@ const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: s
 );
 
 // --- Main Screen ---
-const WildDexScreen: React.FC = () => {
+const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, navigation }) => {
+  const newLabel = route?.params?.newLabel as string | undefined;
+  const [newBadge, setNewBadge] = useState<Badge | null>(null);
+  const badgeScaleAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!newLabel) return;
+    const timer = setTimeout(() => {
+      navigation?.setParams({ newLabel: undefined });
+    }, 7200);
+    return () => clearTimeout(timer);
+  }, [newLabel]);
+
+  useEffect(() => {
+    if (!newBadge) return;
+    Animated.spring(badgeScaleAnim, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true }).start();
+  }, [newBadge]);
   const [tab, setTab] = useState<'collection' | 'sightings'>('collection');
   const [searchQuery, setSearchQuery] = useState('');
   const [collectionSpecies, setCollectionSpecies] = useState<{ label: string; photoUri: string; number: string }[]>([]);
+  const [rarityMap, setRarityMap] = useState<Map<string, string>>(new Map());
   const [discoveredCount, setDiscoveredCount] = useState(0);
   const [sightings, setSightings] = useState<Sighting[]>([]);
   const [selected, setSelected] = useState<{ label: string; photoUri: string; number: string } | null>(null);
@@ -115,8 +155,6 @@ const WildDexScreen: React.FC = () => {
   const [infoLoading, setInfoLoading] = useState(false);
   const [infoError, setInfoError] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<'info' | 'range' | 'pokemon'>('info');
-  const viewShotRef = useRef<View>(null);
-  const [capturedUri, setCapturedUri] = useState<string | null>(null);
   const [editingSighting, setEditingSighting] = useState<Sighting | null>(null);
   const [editSearch, setEditSearch] = useState('');
   const [editSuggestions, setEditSuggestions] = useState<{ city: string; region: string; country: string }[]>([]);
@@ -132,25 +170,67 @@ const WildDexScreen: React.FC = () => {
     ]).start();
   };
 
-  const loadData = async () => {
+  const loadData = async (checkBadge = false) => {
     const allSightings = await getSightings();
     const seen = new Set<string>();
-    const uniqueSpecies = allSightings.filter(s => {
-      if (seen.has(s.label)) return false;
-      seen.add(s.label);
+    const uniqueSpecies = [...allSightings].sort((a, b) => a.timestamp - b.timestamp).filter(s => {
+      const key = s.label.toLowerCase().trim();
+      if (seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
+    const newCount = uniqueSpecies.length;
     const collection = uniqueSpecies.map((s, i) => ({
       label: s.label,
       photoUri: s.photoUri,
       number: `#${String(i + 1).padStart(3, '0')}`,
     }));
     setCollectionSpecies(collection);
-    setDiscoveredCount(uniqueSpecies.length);
+    setDiscoveredCount(newCount);
     setSightings(allSightings);
+
+    if (checkBadge) {
+      // Use local sightings for badge count — always up to date immediately after a catch
+      // (Supabase may not have received the insert yet when this runs)
+      const localSightings = await getLocalSightings();
+      const localSeen = new Set<string>();
+      const localCount = localSightings.filter(s => {
+        const key = s.label.toLowerCase().trim();
+        if (localSeen.has(key)) return false;
+        localSeen.add(key);
+        return true;
+      }).length;
+      const badgeCount = Math.max(newCount, localCount);
+
+      const shownRaw = await AsyncStorage.getItem('wilddex_shown_badges');
+      const shown: string[] = shownRaw ? JSON.parse(shownRaw) : [];
+      const earned = getEarnedBadges(badgeCount).find(b => !shown.includes(b.id));
+      if (earned) {
+        badgeScaleAnim.setValue(0);
+        setNewBadge(earned);
+        await AsyncStorage.setItem('wilddex_shown_badges', JSON.stringify([...shown, earned.id]));
+      }
+    }
+
+    // Fetch rarity from cached profiles
+    const { supabase } = await import('../utils/supabase');
+    const labels = uniqueSpecies.map(s => s.label);
+    if (labels.length > 0) {
+      const { data } = await supabase.from('animal_cache').select('label, data').in('label', labels);
+      if (data) {
+        const map = new Map<string, string>();
+        for (const row of data) {
+          const status = (row.data as any)?.conservationStatus ?? '';
+          if (status) map.set(row.label, getRarityFromConservationStatus(status).color);
+        }
+        setRarityMap(map);
+      }
+    }
   };
 
-  useFocusEffect(useCallback(() => { loadData(); }, []));
+  useFocusEffect(useCallback(() => {
+    loadData(!!newLabel);
+  }, [newLabel]));
 
   const onEditSearchChange = (text: string) => {
     setEditSearch(text);
@@ -236,18 +316,6 @@ const WildDexScreen: React.FC = () => {
     setAnimalInfo(null);
     setRarity(null);
     setInfoError(null);
-    setCapturedUri(null);
-  };
-
-  const openShareSheet = async () => {
-    if (!viewShotRef.current) return;
-    try {
-      const uri = await captureRef(viewShotRef, { format: 'png', quality: 1 });
-      setCapturedUri(uri);
-      await Sharing.shareAsync(uri, { mimeType: 'image/png' });
-    } catch (e: any) {
-      Alert.alert('Share failed', e?.message ?? String(e));
-    }
   };
 
   return (
@@ -300,6 +368,8 @@ const WildDexScreen: React.FC = () => {
                 label={item.label}
                 photoUri={item.photoUri}
                 number={item.number}
+                rarityColor={rarityMap.get(item.label)}
+                glow={item.label === newLabel}
                 onPress={() => openDetail({ label: item.label, photoUri: item.photoUri, number: item.number })}
               />
             )}
@@ -373,6 +443,25 @@ const WildDexScreen: React.FC = () => {
         <Text style={styles.toastText}>Location updated</Text>
       </Animated.View>
 
+      {/* Badge Earned Modal */}
+      <Modal visible={!!newBadge} transparent animationType="fade">
+        <View style={styles.badgeOverlay}>
+          <Animated.View style={[styles.badgeCard, { transform: [{ scale: badgeScaleAnim }] }]}>
+            <Text style={styles.badgeEarnedLabel}>BADGE EARNED</Text>
+            <Text style={styles.badgeEmoji}>{newBadge?.emoji}</Text>
+            <Text style={styles.badgeName}>{newBadge?.label}</Text>
+            <Text style={styles.badgeDesc}>{newBadge?.description} discovered</Text>
+            <TouchableOpacity
+              style={[styles.badgeBtn, { backgroundColor: newBadge?.color }]}
+              onPress={() => setNewBadge(null)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.badgeBtnText}>Awesome!</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </Modal>
+
       {/* Detail Modal */}
       <Modal visible={!!selected} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.modalContainer}>
@@ -381,13 +470,11 @@ const WildDexScreen: React.FC = () => {
               <Ionicons name="arrow-back" size={24} color={COLORS.white} />
             </TouchableOpacity>
             <Text style={styles.modalHeaderNum}>{selected ? `${selected.number}  ${formatLabel(selected.label)}` : ''}</Text>
-            <TouchableOpacity onPress={openShareSheet} style={styles.backButton}>
-              <Ionicons name="share-outline" size={24} color={COLORS.white} />
-            </TouchableOpacity>
+            <View style={{ width: 32 }} />
           </View>
 
           <ScrollView contentContainerStyle={styles.modalScroll}>
-            <View ref={viewShotRef} style={styles.shareCard} collapsable={false}>
+            <View style={styles.shareCard}>
             {selected?.photoUri ? (
               <Image source={{ uri: selected.photoUri }} style={styles.detailPhoto} />
             ) : (
@@ -472,7 +559,6 @@ const WildDexScreen: React.FC = () => {
                           </View>
                         )}
                         <Text style={styles.pokeName}>{p.name.charAt(0).toUpperCase() + p.name.slice(1)}</Text>
-                        <Text style={styles.pokeReason}>{p.reason}</Text>
                       </View>
                     ))}
                   </View>
@@ -502,7 +588,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: COLORS.primary,
   },
-  headerTitle: { fontSize: 22, fontWeight: '700', color: COLORS.white, letterSpacing: 0.5 },
+  headerTitle: { fontSize: 18, fontWeight: '900', color: COLORS.yellow, letterSpacing: 3, textTransform: 'uppercase' },
   badge: { backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
   badgeText: { color: COLORS.white, fontWeight: '700', fontSize: 14 },
 
@@ -523,6 +609,7 @@ const styles = StyleSheet.create({
   grid: { padding: 12 },
   card: { width: (Dimensions.get('window').width - 60) / 3, margin: 6, borderRadius: 10, overflow: 'hidden', borderWidth: 1, backgroundColor: COLORS.card, borderColor: COLORS.cardBorder },
   cardImage: { width: '100%', aspectRatio: 1 },
+  rarityDot: { position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4 },
   cardFooter: { padding: 6, alignItems: 'center' },
   cardNumber: { fontSize: 9, color: COLORS.yellow, fontWeight: '700', letterSpacing: 0.5 },
   cardName: { fontSize: 11, color: COLORS.white, fontWeight: '700', textTransform: 'capitalize' },
@@ -539,7 +626,7 @@ const styles = StyleSheet.create({
   rowDate: { color: COLORS.darkGrey, fontSize: 11, marginTop: 2 },
   separator: { height: 10 },
   searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.card, borderRadius: 10, marginHorizontal: 16, marginBottom: 8, paddingHorizontal: 12, paddingVertical: 9, gap: 8, borderWidth: 1, borderColor: COLORS.cardBorder },
-  searchInput: { flex: 1, color: COLORS.white, fontSize: 14, padding: 0 },
+  searchInput: { flex: 1, color: COLORS.white, fontSize: 14, padding: 0, letterSpacing: 0 },
   editOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
   editSheet: { backgroundColor: COLORS.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 16 },
   editTitle: { fontSize: 20, fontWeight: '800', color: COLORS.white, textAlign: 'center' },
@@ -586,15 +673,6 @@ const styles = StyleSheet.create({
   modalHeaderNum: { color: COLORS.grey, fontSize: 16, fontWeight: '600' },
   modalScroll: { padding: 20, alignItems: 'center' },
   shareCard: { width: '100%', alignItems: 'center', backgroundColor: COLORS.background, paddingBottom: 12 },
-  shareWatermark: { fontSize: 11, color: COLORS.darkGrey, marginTop: 8, letterSpacing: 0.5 },
-  shareOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100 },
-  shareSheet: { backgroundColor: COLORS.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 8 },
-  shareTitle: { fontSize: 16, fontWeight: '800', color: COLORS.white, textAlign: 'center', marginBottom: 8 },
-  shareOption: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, paddingHorizontal: 4 },
-  shareIconBg: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  shareOptionText: { flex: 1, color: COLORS.white, fontSize: 15, fontWeight: '600' },
-  shareCancel: { marginTop: 8, paddingVertical: 14, alignItems: 'center', backgroundColor: COLORS.background, borderRadius: 12 },
-  shareCancelText: { color: COLORS.grey, fontSize: 15, fontWeight: '600' },
   detailPhoto: { width: '100%', height: 300, borderRadius: 16 },
   detailPhotoPlaceholder: { width: '100%', height: 300, borderRadius: 16, backgroundColor: COLORS.card, justifyContent: 'center', alignItems: 'center' },
   detailName: { fontSize: 24, fontWeight: '700', color: COLORS.white, marginTop: 12, letterSpacing: 0.3, textTransform: 'capitalize' },
@@ -635,5 +713,49 @@ const styles = StyleSheet.create({
   pokeSritePlaceholder: { width: 80, height: 80, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background, borderRadius: 8 },
   pokePlaceholderText: { color: COLORS.darkGrey, fontSize: 24, fontWeight: '900' },
   pokeName: { color: COLORS.yellow, fontSize: 12, fontWeight: '700', marginTop: 4, textAlign: 'center' },
-  pokeReason: { color: COLORS.grey, fontSize: 10, textAlign: 'center', marginTop: 2 },
+  badgeOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  badgeCard: {
+    width: '100%',
+    backgroundColor: COLORS.card,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    alignItems: 'center',
+    padding: 32,
+    gap: 8,
+  },
+  badgeEarnedLabel: {
+    color: COLORS.yellow,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  badgeEmoji: { fontSize: 72 },
+  badgeName: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: COLORS.white,
+    letterSpacing: 0.5,
+    marginTop: 8,
+  },
+  badgeDesc: {
+    fontSize: 14,
+    color: COLORS.grey,
+    marginBottom: 16,
+  },
+  badgeBtn: {
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 48,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  badgeBtnText: { color: COLORS.white, fontWeight: '800', fontSize: 16 },
 });
