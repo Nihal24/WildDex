@@ -142,11 +142,20 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ startAtUsername, onUsernameSet 
     }
     setLoading(true);
     try {
-      const { data: existing } = await supabase.from('profiles').select('id').eq('username', clean).maybeSingle();
-      if (existing) { setError('That username is taken — try another.'); return; }
-
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) await supabase.from('profiles').upsert({ id: user.id, username: clean });
+      if (user) {
+        const { error: upsertError } = await supabase
+          .from('profiles')
+          .upsert({ id: user.id, username: clean }, { onConflict: 'username' });
+        if (upsertError) {
+          if (upsertError.code === '23505') {
+            setError('That username is taken — try another.');
+          } else {
+            setError(upsertError.message);
+          }
+          return;
+        }
+      }
       if (onUsernameSet) onUsernameSet();
       // Otherwise auth state change triggers navigation
     } catch (e: any) {

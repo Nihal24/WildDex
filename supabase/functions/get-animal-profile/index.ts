@@ -43,8 +43,13 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // Check cache
-    const { data: cached } = await supabase.from('animal_cache').select('data').eq('label', animalName).single();
+    // Check cache (skip expired entries)
+    const { data: cached } = await supabase
+      .from('animal_cache')
+      .select('data')
+      .eq('label', animalName)
+      .gt('expires_at', new Date().toISOString())
+      .single();
     if (cached) {
       return new Response(JSON.stringify(cached.data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
@@ -94,8 +99,11 @@ Respond with ONLY this JSON (use most common species if ambiguous):
       }),
     );
 
-    // Cache result
-    await supabase.from('animal_cache').insert({ label: animalName, data: info });
+    // Cache result with 90-day TTL
+    await supabase.from('animal_cache').upsert(
+      { label: animalName, data: info, expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString() },
+      { onConflict: 'label' },
+    );
 
     return new Response(JSON.stringify(info), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
