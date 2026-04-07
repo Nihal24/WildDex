@@ -30,6 +30,7 @@ import Constants from 'expo-constants';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../constants/theme';
 import { saveSighting, getDefaultVisibility } from '../utils/storage';
+import { prefetchAnimalProfile } from '../utils/claude';
 import * as Location from 'expo-location';
 const CONFIDENCE_THRESHOLD = 0.0;
 
@@ -124,6 +125,8 @@ const CameraScreen: React.FC = () => {
 
       const finalResult = result;
       setPrediction(finalResult);
+      // Start fetching animal profile immediately — will be cached by the time user opens WildDex modal
+      prefetchAnimalProfile(finalResult.label);
 
       const shouldSave = finalResult.confidence >= CONFIDENCE_THRESHOLD;
       if (shouldSave) {

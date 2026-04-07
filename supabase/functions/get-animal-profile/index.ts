@@ -49,25 +49,25 @@ serve(async (req) => {
       return new Response(JSON.stringify(cached.data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Call Claude and fetch Wikipedia in parallel (Wiki used for cache enrichment only)
+    // Fetch Wikipedia and check cache in parallel to save time on cache misses
     const client = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! });
-    const [response] = await Promise.all([
-      client.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
-        system: `You are a wildlife encyclopedia API. Always respond with ONLY a valid JSON object — no markdown, no explanation, no text before or after the JSON.
+    const wikiContent = await getWikipediaSummary(animalName);
+
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      system: `You are a wildlife encyclopedia API. Always respond with ONLY a valid JSON object — no markdown, no explanation, no text before or after the JSON.
 
 For closestPokemon: use only real Pokémon names (PokéAPI slugs). Pick Pokémon directly inspired by the same animal type first (fish→finneon/goldeen/magikarp, frog→froakie/politoed, shark→sharpedo, lion→pyroar). If a Pokémon is not clearly inspired by the same animal type, pick a different one.`,
-        messages: [{
-          role: 'user',
-          content: `Animal: "${animalName}"
+      messages: [{
+        role: 'user',
+        content: `Animal: "${animalName}"
+Reference: ${wikiContent}
 
 Respond with ONLY this JSON (use most common species if ambiguous):
 {"commonName":"","scientificName":"","habitat":"","diet":"","funFact":"","conservationStatus":"","summary":"","continents":[],"closestPokemon":[{"name":""},{"name":""},{"name":""}],"taxonomy":{"kingdom":"","phylum":"","class":"","order":"","family":"","genus":"","species":""}}`,
-        }],
-      }),
-      getWikipediaSummary(animalName).catch(() => ''), // fire in parallel, result unused but warms cache
-    ]);
+      }],
+    });
 
     const text = response.content.find((b: any) => b.type === 'text')?.text ?? '';
     if (!text) throw new Error('No response from Claude');
