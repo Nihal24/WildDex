@@ -96,6 +96,24 @@ const PokédexModal: React.FC = () => {
           </View>
         ) : (
           <>
+            {/* Stats */}
+            {info?.stats && (
+              <View style={styles.statsCard}>
+                <Text style={styles.statsTitle}>BASE STATS</Text>
+                {STATS.map(({ key, label: lbl, color }) => (
+                  <StatBar
+                    key={key}
+                    label={lbl}
+                    value={info.stats![key] ?? 0}
+                    color={color}
+                  />
+                ))}
+                <Text style={styles.statsFooter}>
+                  Scored 0–100 relative to all animals
+                </Text>
+              </View>
+            )}
+
             {/* Pokémon sprites */}
             {info?.closestPokemon?.length ? (
               <View style={styles.pokeCard}>
@@ -118,24 +136,6 @@ const PokédexModal: React.FC = () => {
               </View>
             ) : (
               <Text style={styles.errorText}>No Pokédex data available.</Text>
-            )}
-
-            {/* Stats */}
-            {info?.stats && (
-              <View style={styles.statsCard}>
-                <Text style={styles.statsTitle}>BASE STATS</Text>
-                {STATS.map(({ key, label: lbl, color }) => (
-                  <StatBar
-                    key={key}
-                    label={lbl}
-                    value={info.stats![key] ?? 0}
-                    color={color}
-                  />
-                ))}
-                <Text style={styles.statsFooter}>
-                  Scored 0–100 relative to all animals
-                </Text>
-              </View>
             )}
           </>
         )}

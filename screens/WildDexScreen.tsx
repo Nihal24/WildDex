@@ -583,8 +583,17 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
                 </View>
 
                 <View style={[styles.infoCard, detailTab !== 'pokemon' && { display: 'none' }]}>
+                  {animalInfo.stats && (
+                    <View style={styles.statsSection}>
+                      <Text style={styles.statsSectionTitle}>BASE STATS</Text>
+                      {STAT_CONFIG.map(({ key, label, color }) => (
+                        <StatBar key={key} label={label} value={animalInfo.stats![key] ?? 0} color={color} />
+                      ))}
+                      <Text style={styles.statsFooter}>Scored 0–100 relative to all animals</Text>
+                    </View>
+                  )}
                   {animalInfo.closestPokemon?.length > 0 ? (
-                    <View style={styles.pokeRow}>
+                    <View style={[styles.pokeRow, animalInfo.stats && { marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: COLORS.cardBorder }]}>
                       {animalInfo.closestPokemon.map((p) => (
                         <View key={p.name} style={styles.pokeItem}>
                           {p.spriteUrl ? (
@@ -600,15 +609,6 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
                     </View>
                   ) : (
                     <Text style={styles.pokeEmptyText}>No Pokédex data yet</Text>
-                  )}
-                  {animalInfo.stats && (
-                    <View style={styles.statsSection}>
-                      <Text style={styles.statsSectionTitle}>BASE STATS</Text>
-                      {STAT_CONFIG.map(({ key, label, color }) => (
-                        <StatBar key={key} label={label} value={animalInfo.stats![key] ?? 0} color={color} />
-                      ))}
-                      <Text style={styles.statsFooter}>Scored 0–100 relative to all animals</Text>
-                    </View>
                   )}
                 </View>
               </>
