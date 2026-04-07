@@ -271,10 +271,12 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   statsFooter: {
-    color: COLORS.darkGrey,
-    fontSize: 10,
-    marginTop: 6,
+    color: COLORS.grey,
+    fontSize: 11,
+    marginTop: 10,
     textAlign: 'center',
+    fontStyle: 'italic',
+    letterSpacing: 0.3,
   },
   wilddexBtn: {
     flexDirection: 'row',

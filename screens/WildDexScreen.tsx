@@ -766,7 +766,7 @@ const styles = StyleSheet.create({
   statBarTrack: { flex: 1, height: 8, backgroundColor: COLORS.background, borderRadius: 4, overflow: 'hidden', marginHorizontal: 8 },
   statBarFill: { height: '100%', borderRadius: 4 },
   statValue: { fontSize: 12, fontWeight: '700', width: 30, textAlign: 'right' },
-  statsFooter: { color: COLORS.darkGrey, fontSize: 10, marginTop: 6, textAlign: 'center' },
+  statsFooter: { color: COLORS.grey, fontSize: 11, marginTop: 10, textAlign: 'center', fontStyle: 'italic', letterSpacing: 0.3 },
   badgeOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.75)',
