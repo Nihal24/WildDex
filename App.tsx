@@ -9,7 +9,7 @@ import RootNavigator from './navigation/RootNavigator';
 import AuthScreen from './screens/AuthScreen';
 import OnboardingScreen, { ONBOARDING_KEY } from './screens/OnboardingScreen';
 import { supabase } from './utils/supabase';
-import { migrateLocalSightingsToSupabase } from './utils/storage';
+import { migrateLocalSightingsToSupabase, clearUserIdCache } from './utils/storage';
 import { initNotifications } from './utils/notifications';
 import { COLORS } from './constants/theme';
 
@@ -54,6 +54,7 @@ const App: React.FC = () => {
         setHasUsername(!!data?.username);
       });
     } else {
+      clearUserIdCache();
       setOnboardingDone(null);
       setHasUsername(null);
     }

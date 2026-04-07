@@ -17,10 +17,14 @@ export interface Sighting {
   visibility?: string;
 }
 
+let _cachedUserId: string | null | undefined = undefined;
 async function getCurrentUserId(): Promise<string | null> {
+  if (_cachedUserId !== undefined) return _cachedUserId;
   const { data: { user } } = await supabase.auth.getUser();
-  return user?.id ?? null;
+  _cachedUserId = user?.id ?? null;
+  return _cachedUserId;
 }
+export function clearUserIdCache(): void { _cachedUserId = undefined; }
 
 async function persistPhoto(uri: string): Promise<string> {
   await FileSystem.makeDirectoryAsync(PHOTOS_DIR, { intermediates: true });

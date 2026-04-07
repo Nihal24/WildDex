@@ -491,28 +491,29 @@ const FeedScreen: React.FC = () => {
   };
 
   const load = useCallback(async () => {
-    const [feedData, lbData, followIds, userId, myData] = await Promise.all([
+    const [feedData, lbData, followIds, userId, myData, unread] = await Promise.all([
       getFeedSightings(),
       getLeaderboard(),
       getFollowingIds(),
       getCurrentUserId_public(),
       getMyFeedSightings(),
+      getUnreadNotificationCount(),
     ]);
+
+    // Fire these immediately now that we have feedData and followIds
+    const [likedIds, followingFeedData] = await Promise.all([
+      feedData.length > 0 ? getLikedSightingIds(feedData.map((s) => s.sightingId).filter(Boolean)) : Promise.resolve(new Set<string>()),
+      followIds.length > 0 ? getFollowingFeed() : Promise.resolve([]),
+    ]);
+
     setFeed(feedData);
     setLeaderboard(lbData);
     setFollowingIds(new Set(followIds));
     setMyId(userId);
     setMyFeed(myData);
-    getUnreadNotificationCount().then(setUnreadCount);
-
-    const allIds = feedData.map((s) => s.sightingId).filter(Boolean);
-    if (allIds.length > 0) setLikedIds(await getLikedSightingIds(allIds));
-
-    if (followIds.length > 0) {
-      const ff = await getFollowingFeed();
-      setFollowingFeed(ff);
-    }
-
+    setUnreadCount(unread);
+    setLikedIds(likedIds);
+    setFollowingFeed(followingFeedData);
     setLoading(false);
     setRefreshing(false);
   }, []);

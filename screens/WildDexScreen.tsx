@@ -147,6 +147,7 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
   const [searchQuery, setSearchQuery] = useState('');
   const [collectionSpecies, setCollectionSpecies] = useState<{ label: string; photoUri: string; number: string }[]>([]);
   const [rarityMap, setRarityMap] = useState<Map<string, string>>(new Map());
+  const rarityCache = useRef<Map<string, string>>(new Map());
   const [discoveredCount, setDiscoveredCount] = useState(0);
   const [sightings, setSightings] = useState<Sighting[]>([]);
   const [selected, setSelected] = useState<{ label: string; photoUri: string; number: string } | null>(null);
@@ -212,19 +213,26 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
       }
     }
 
-    // Fetch rarity from cached profiles
+    // Fetch rarity — only for labels not already cached
     const { supabase } = await import('../utils/supabase');
     const labels = uniqueSpecies.map(s => s.label);
-    if (labels.length > 0) {
-      const { data } = await supabase.from('animal_cache').select('label, data').in('label', labels);
+    const newLabels = labels.filter(l => !rarityCache.current.has(l));
+    if (newLabels.length > 0) {
+      const { data } = await supabase.from('animal_cache').select('label, data').in('label', newLabels);
       if (data) {
-        const map = new Map<string, string>();
         for (const row of data) {
           const status = (row.data as any)?.conservationStatus ?? '';
-          if (status) map.set(row.label, getRarityFromConservationStatus(status).color);
+          if (status) rarityCache.current.set(row.label, getRarityFromConservationStatus(status).color);
         }
-        setRarityMap(map);
       }
+    }
+    if (labels.length > 0) {
+      const map = new Map<string, string>();
+      for (const l of labels) {
+        const color = rarityCache.current.get(l);
+        if (color) map.set(l, color);
+      }
+      setRarityMap(map);
     }
   };
 
@@ -293,22 +301,21 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
     setEditSuggestions([]);
   };
 
-  const openDetail = async (item: { label: string; photoUri: string }) => {
+  const openDetail = (item: { label: string; photoUri: string }) => {
     setSelected(item);
     setDetailTab('info');
     setAnimalInfo(null);
     setRarity(null);
     setInfoError(null);
     setInfoLoading(true);
-    try {
-      const info = await getAnimalProfile(item.label);
-      setAnimalInfo(info);
-      setRarity(getRarityFromConservationStatus(info.conservationStatus));
-    } catch (e: any) {
-      setInfoError(`Error: ${e?.message || 'Unknown error'}`);
-    } finally {
-      setInfoLoading(false);
-    }
+    // Don't await — modal opens immediately, info loads in background
+    getAnimalProfile(item.label)
+      .then((info) => {
+        setAnimalInfo(info);
+        setRarity(getRarityFromConservationStatus(info.conservationStatus));
+      })
+      .catch((e: any) => setInfoError(`Error: ${e?.message || 'Unknown error'}`))
+      .finally(() => setInfoLoading(false));
   };
 
   const closeDetail = () => {

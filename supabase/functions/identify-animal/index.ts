@@ -35,17 +35,14 @@ serve(async (req) => {
     const base64 = btoa(binary);
     const mimeType = (imageFile.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
 
-    // ── 1. Claude Haiku (primary) ───────────────────────────────────────────
+    // ── Run Claude and iNat in parallel ────────────────────────────────────
     const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
-    if (anthropicKey) {
-      try {
-        const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+    const inatToken = Deno.env.get('INAT_API_TOKEN');
+
+    const claudePromise = anthropicKey
+      ? fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': anthropicKey,
-            'anthropic-version': '2023-06-01',
-          },
+          headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
           body: JSON.stringify({
             model: 'claude-haiku-4-5-20251001',
             max_tokens: 50,
@@ -57,40 +54,19 @@ serve(async (req) => {
               ],
             }],
           }),
+        }).then(r => r.ok ? r.json() : null).catch(() => null)
+      : Promise.resolve(null);
+
+    const inatPromise = (async () => {
+      try {
+        const inatForm = new FormData();
+        inatForm.append('image', imageFile);
+        const inatRes = await fetch(INAT_API_URL, {
+          method: 'POST',
+          headers: inatToken ? { Authorization: `Bearer ${inatToken}` } : {},
+          body: inatForm,
         });
-
-        if (claudeRes.ok) {
-          const claudeData = await claudeRes.json();
-          const name = claudeData.content?.[0]?.text?.trim().toLowerCase().replace(/\.$/, '');
-          if (name && name !== 'none') {
-            return new Response(
-              JSON.stringify({ label: name.replace(/[\s-]+/g, '_'), confidence: 0.9, source: 'claude' }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-            );
-          }
-          if (name === 'none') {
-            return new Response(JSON.stringify({ error: 'not_animal' }), {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-        }
-      } catch (e) {
-        console.error('Claude error:', e);
-      }
-    }
-
-    // ── 2. iNaturalist fallback ─────────────────────────────────────────────
-    const inatToken = Deno.env.get('INAT_API_TOKEN');
-    try {
-      const inatForm = new FormData();
-      inatForm.append('image', imageFile);
-      const inatRes = await fetch(INAT_API_URL, {
-        method: 'POST',
-        headers: inatToken ? { Authorization: `Bearer ${inatToken}` } : {},
-        body: inatForm,
-      });
-
-      if (inatRes.ok) {
+        if (!inatRes.ok) return null;
         const data = await inatRes.json();
         const hit = (data.results ?? []).find((r: any) => {
           const iconic = r.taxon?.iconic_taxon_name;
@@ -99,16 +75,31 @@ serve(async (req) => {
         const score = hit?.vision_score ?? hit?.combined_score ?? 0;
         if (hit && score >= INAT_MIN_SCORE) {
           const name = hit.taxon?.preferred_common_name || hit.taxon?.name;
-          if (name) {
-            return new Response(
-              JSON.stringify({ label: name.toLowerCase().replace(/[\s-]+/g, '_'), confidence: Math.min(score / 100, 1), source: 'inat' }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-            );
-          }
+          if (name) return { label: name.toLowerCase().replace(/[\s-]+/g, '_'), confidence: Math.min(score / 100, 1), source: 'inat' };
         }
-      }
-    } catch (e) {
-      console.error('iNat error:', e);
+        return null;
+      } catch { return null; }
+    })();
+
+    const [claudeData, inatResult] = await Promise.all([claudePromise, inatPromise]);
+
+    // Prefer Claude — if it confidently identified something, use it
+    const claudeName = claudeData?.content?.[0]?.text?.trim().toLowerCase().replace(/\.$/, '');
+    if (claudeName && claudeName !== 'none') {
+      return new Response(
+        JSON.stringify({ label: claudeName.replace(/[\s-]+/g, '_'), confidence: 0.9, source: 'claude' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+    // Claude explicitly said not an animal — trust it
+    if (claudeName === 'none') {
+      return new Response(JSON.stringify({ error: 'not_animal' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    // Claude failed/errored — fall back to iNat
+    if (inatResult) {
+      return new Response(JSON.stringify(inatResult), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     return new Response(JSON.stringify({ error: 'not_animal' }), {
