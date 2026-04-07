@@ -308,21 +308,8 @@ function mapSighting(row: any): FeedSighting {
   };
 }
 
-const FEED_SELECT = 'id, label, confidence, photo_url, timestamp, location, user_id, caption, visibility, profiles(username, avatar_url)';
-
-async function enrichWithCounts(sightings: FeedSighting[]): Promise<FeedSighting[]> {
-  const ids = sightings.map((s) => s.sightingId).filter(Boolean);
-  if (ids.length === 0) return sightings;
-  const [likesRes, commentsRes] = await Promise.all([
-    supabase.from('likes').select('sighting_id').in('sighting_id', ids),
-    supabase.from('comments').select('sighting_id').in('sighting_id', ids),
-  ]);
-  const likeMap: Record<string, number> = {};
-  const commentMap: Record<string, number> = {};
-  for (const r of (likesRes.data ?? [])) likeMap[r.sighting_id] = (likeMap[r.sighting_id] ?? 0) + 1;
-  for (const r of (commentsRes.data ?? [])) commentMap[r.sighting_id] = (commentMap[r.sighting_id] ?? 0) + 1;
-  return sightings.map((s) => ({ ...s, likeCount: likeMap[s.sightingId] ?? 0, commentCount: commentMap[s.sightingId] ?? 0 }));
-}
+// Embed like/comment counts directly in the query — no separate enrichment needed
+const FEED_SELECT = 'id, label, confidence, photo_url, timestamp, location, user_id, caption, visibility, profiles(username, avatar_url), likes(count), comments(count)';
 
 export async function getFeedSightings(): Promise<FeedSighting[]> {
   const { data, error } = await supabase
@@ -334,7 +321,7 @@ export async function getFeedSightings(): Promise<FeedSighting[]> {
     .limit(50);
 
   if (error || !data) return [];
-  return enrichWithCounts(data.map(mapSighting));
+  return data.map(mapSighting);
 }
 
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
@@ -423,7 +410,7 @@ export async function getFollowingFeed(): Promise<FeedSighting[]> {
     .order('timestamp', { ascending: false })
     .limit(50);
   if (error || !data) return [];
-  return enrichWithCounts(data.map(mapSighting));
+  return data.map(mapSighting);
 }
 
 export async function getUserProfile(userId: string): Promise<{ displayName: string; avatarUrl?: string; speciesCount: number; totalSightings: number; followersCount: number; followingCount: number }> {
@@ -493,7 +480,7 @@ export async function getUserFeedSightings(userId: string): Promise<FeedSighting
     .order('timestamp', { ascending: false })
     .limit(30);
   if (error || !data) return [];
-  return enrichWithCounts(data.map(mapSighting));
+  return data.map(mapSighting);
 }
 
 export async function getMyFeedSightings(): Promise<FeedSighting[]> {

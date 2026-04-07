@@ -87,8 +87,16 @@ const CameraScreen: React.FC = () => {
       Animated.delay(1800),
       Animated.timing(toastY, { toValue: -80, duration: 250, useNativeDriver: true }),
     ]).start();
-    // Navigate after toast has bounced in (~600ms)
     if (onShown) setTimeout(onShown, 600);
+  };
+
+  const showLocationToast = () => {
+    setToastLabel('📍 Location saved');
+    Animated.sequence([
+      Animated.spring(toastY, { toValue: 0, useNativeDriver: true, bounciness: 6 }),
+      Animated.delay(1400),
+      Animated.timing(toastY, { toValue: -80, duration: 250, useNativeDriver: true }),
+    ]).start();
   };
 
   React.useEffect(() => { getDefaultVisibility().then(setVisibility); }, []);
@@ -133,19 +141,25 @@ const CameraScreen: React.FC = () => {
         if (fromGallery) {
           setPendingSighting({ ...finalResult, photoUri });
         } else {
-          // Camera shot — auto-capture location
-          let latitude: number | undefined;
-          let longitude: number | undefined;
-          const { status } = await Location.requestForegroundPermissionsAsync();
-          if (status === 'granted') {
-            const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-            latitude = loc.coords.latitude;
-            longitude = loc.coords.longitude;
-          }
-          await saveSighting({ ...finalResult, photoUri, timestamp: Date.now(), latitude, longitude, visibility });
+          // Camera shot — navigate immediately, fetch location in background
+          const timestamp = Date.now();
           retake();
           navigation.navigate('Catch', { label: finalResult.label, photoUri });
           setSaved(true);
+          // Save with location in background — don't block navigation
+          (async () => {
+            let latitude: number | undefined;
+            let longitude: number | undefined;
+            try {
+              const { status } = await Location.requestForegroundPermissionsAsync();
+              if (status === 'granted') {
+                const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                latitude = loc.coords.latitude;
+                longitude = loc.coords.longitude;
+              }
+            } catch {}
+            await saveSighting({ ...finalResult, photoUri, timestamp, latitude, longitude, visibility });
+          })();
         }
       }
     } catch (e) {
@@ -172,18 +186,21 @@ const CameraScreen: React.FC = () => {
           const city = place.city || place.subregion || place.region || '';
           const country = place.country || '';
           location = [city, country].filter(Boolean).join(', ');
+          if (location) setLocationSearch(location);
         }
       } catch {}
     }
     const ps = pendingSighting;
     await saveSighting({ ...ps, timestamp: Date.now(), latitude, longitude, location, caption: caption.trim() || undefined, visibility });
     setPendingSighting(null);
-    setLocationSearch('');
     setCaption('');
     setLocationLoading(false);
     setSaved(true);
-    retake();
-    navigation.navigate('Catch', { label: ps.label, photoUri: ps.photoUri });
+    showLocationToast();
+    setTimeout(() => {
+      retake();
+      navigation.navigate('Catch', { label: ps.label, photoUri: ps.photoUri });
+    }, 800);
   };
 
   const saveWithSearchedLocation = async () => {
@@ -248,14 +265,17 @@ const CameraScreen: React.FC = () => {
     const s = locationSuggestions[index];
     const location = [s.city, s.region, s.country].filter(Boolean).join(', ');
     setLocationSuggestions([]);
-    setLocationSearch('');
+    setLocationSearch(location); // show chosen location in the input
     const ps = pendingSighting;
     await saveSighting({ ...ps, timestamp: Date.now(), latitude, longitude, location, caption: caption.trim() || undefined, visibility });
     setPendingSighting(null);
     setCaption('');
     setSaved(true);
-    retake();
-    navigation.navigate('Catch', { label: ps.label, photoUri: ps.photoUri });
+    showLocationToast();
+    setTimeout(() => {
+      retake();
+      navigation.navigate('Catch', { label: ps.label, photoUri: ps.photoUri });
+    }, 800);
   };
 
   const saveWithNoLocation = async () => {

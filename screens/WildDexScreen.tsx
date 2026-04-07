@@ -162,6 +162,8 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
   const [editCoords, setEditCoords] = useState<{ latitude: number; longitude: number }[]>([]);
   const editTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastOpacity = useRef(new Animated.Value(0)).current;
+  const modalScrollRef = useRef<ScrollView>(null);
+  const tabRowY = useRef(0);
 
   const showToast = () => {
     Animated.sequence([
@@ -480,7 +482,7 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
             <View style={{ width: 32 }} />
           </View>
 
-          <ScrollView contentContainerStyle={styles.modalScroll}>
+          <ScrollView ref={modalScrollRef} contentContainerStyle={styles.modalScroll}>
             <View style={styles.shareCard}>
             {selected?.photoUri ? (
               <Image source={{ uri: selected.photoUri }} style={styles.detailPhoto} />
@@ -501,22 +503,25 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
             </View>
 
             {/* Info / Range / Pokédex tab switcher */}
-            <View style={styles.detailTabRow}>
+            <View
+              style={styles.detailTabRow}
+              onLayout={(e) => { tabRowY.current = e.nativeEvent.layout.y; }}
+            >
               <TouchableOpacity
                 style={[styles.detailTabBtn, detailTab === 'info' && styles.detailTabActive]}
-                onPress={() => setDetailTab('info')}
+                onPress={() => { setDetailTab('info'); modalScrollRef.current?.scrollTo({ y: tabRowY.current, animated: true }); }}
               >
                 <Text style={[styles.detailTabText, detailTab === 'info' && styles.detailTabTextActive]}>Info</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.detailTabBtn, detailTab === 'range' && styles.detailTabActive]}
-                onPress={() => setDetailTab('range')}
+                onPress={() => { setDetailTab('range'); modalScrollRef.current?.scrollTo({ y: tabRowY.current, animated: true }); }}
               >
                 <Text style={[styles.detailTabText, detailTab === 'range' && styles.detailTabTextActive]}>Range</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.detailTabBtn, detailTab === 'pokemon' && styles.detailTabActive]}
-                onPress={() => setDetailTab('pokemon')}
+                onPress={() => { setDetailTab('pokemon'); modalScrollRef.current?.scrollTo({ y: tabRowY.current, animated: true }); }}
               >
                 <Text style={[styles.detailTabText, detailTab === 'pokemon' && styles.detailTabTextActive]}>Pokédex</Text>
               </TouchableOpacity>
@@ -531,48 +536,47 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
 
             {infoError && <Text style={styles.errorText}>{infoError}</Text>}
 
-            {animalInfo && detailTab === 'info' && (
-              <View style={styles.infoCard}>
-                <Text style={styles.summaryText}>{animalInfo.summary}</Text>
-                <View style={styles.divider} />
-                <InfoRow icon="leaf-outline" label="Habitat" value={animalInfo.habitat} />
-                <InfoRow icon="restaurant-outline" label="Diet" value={animalInfo.diet} />
-                <InfoRow icon="shield-checkmark-outline" label="Conservation" value={animalInfo.conservationStatus} />
-                <View style={styles.funFactBox}>
-                  <Text style={styles.funFactLabel}>Fun Fact</Text>
-                  <Text style={styles.funFactText}>{animalInfo.funFact}</Text>
-                </View>
-              </View>
-            )}
-
-            {animalInfo && detailTab === 'range' && (
-              <View style={styles.rangeCard}>
-                <Text style={styles.rangeTitle}>NATIVE RANGE</Text>
-                <WorldMap highlightedContinents={(animalInfo.continents ?? []) as Continent[]} />
-              </View>
-            )}
-
-            {animalInfo && detailTab === 'pokemon' && (
-              <View style={styles.infoCard}>
-                {animalInfo.closestPokemon?.length > 0 ? (
-                  <View style={styles.pokeRow}>
-                    {animalInfo.closestPokemon.map((p) => (
-                      <View key={p.name} style={styles.pokeItem}>
-                        {p.spriteUrl ? (
-                          <Image source={{ uri: p.spriteUrl }} style={styles.pokeSprite} />
-                        ) : (
-                          <View style={styles.pokeSritePlaceholder}>
-                            <Text style={styles.pokePlaceholderText}>?</Text>
-                          </View>
-                        )}
-                        <Text style={styles.pokeName}>{p.name.charAt(0).toUpperCase() + p.name.slice(1)}</Text>
-                      </View>
-                    ))}
+            {/* All tab content rendered simultaneously for instant switching — hidden when inactive */}
+            {animalInfo && (
+              <>
+                <View style={[styles.infoCard, detailTab !== 'info' && { display: 'none' }]}>
+                  <Text style={styles.summaryText}>{animalInfo.summary}</Text>
+                  <View style={styles.divider} />
+                  <InfoRow icon="leaf-outline" label="Habitat" value={animalInfo.habitat} />
+                  <InfoRow icon="restaurant-outline" label="Diet" value={animalInfo.diet} />
+                  <InfoRow icon="shield-checkmark-outline" label="Conservation" value={animalInfo.conservationStatus} />
+                  <View style={styles.funFactBox}>
+                    <Text style={styles.funFactLabel}>Fun Fact</Text>
+                    <Text style={styles.funFactText}>{animalInfo.funFact}</Text>
                   </View>
-                ) : (
-                  <Text style={styles.pokeEmptyText}>No Pokédex data yet</Text>
-                )}
-              </View>
+                </View>
+
+                <View style={[styles.rangeCard, detailTab !== 'range' && { display: 'none' }]}>
+                  <Text style={styles.rangeTitle}>NATIVE RANGE</Text>
+                  <WorldMap highlightedContinents={(animalInfo.continents ?? []) as Continent[]} />
+                </View>
+
+                <View style={[styles.infoCard, detailTab !== 'pokemon' && { display: 'none' }]}>
+                  {animalInfo.closestPokemon?.length > 0 ? (
+                    <View style={styles.pokeRow}>
+                      {animalInfo.closestPokemon.map((p) => (
+                        <View key={p.name} style={styles.pokeItem}>
+                          {p.spriteUrl ? (
+                            <Image source={{ uri: p.spriteUrl }} style={styles.pokeSprite} />
+                          ) : (
+                            <View style={styles.pokeSritePlaceholder}>
+                              <Text style={styles.pokePlaceholderText}>?</Text>
+                            </View>
+                          )}
+                          <Text style={styles.pokeName}>{p.name.charAt(0).toUpperCase() + p.name.slice(1)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.pokeEmptyText}>No Pokédex data yet</Text>
+                  )}
+                </View>
+              </>
             )}
           </ScrollView>
 
