@@ -22,7 +22,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 import { getSightings, getLocalSightings, Sighting, updateSightingLocation, deleteSighting } from '../utils/storage';
-import { getAnimalProfile, AnimalInfo } from '../utils/claude';
+import { getAnimalProfile, AnimalInfo, AnimalStats } from '../utils/claude';
 import { getRarityFromConservationStatus, RarityInfo } from '../utils/rarity';
 import { WorldMap } from '../components/WorldMap';
 import { Continent } from '../utils/claude';
@@ -124,6 +124,32 @@ const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: s
     </View>
   </View>
 );
+
+// --- Pokémon Stat Bar ---
+const STAT_CONFIG: { key: keyof AnimalStats; label: string; color: string }[] = [
+  { key: 'hp',             label: 'HP',     color: '#4ade80' },
+  { key: 'attack',         label: 'ATK',    color: '#f97316' },
+  { key: 'defense',        label: 'DEF',    color: '#60a5fa' },
+  { key: 'speed',          label: 'SPD',    color: '#facc15' },
+  { key: 'special_attack', label: 'SP.ATK', color: '#c084fc' },
+  { key: 'special_defense',label: 'SP.DEF', color: '#34d399' },
+];
+
+const StatBar: React.FC<{ label: string; value: number; color: string }> = ({ label, value, color }) => {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(anim, { toValue: value / 100, duration: 600, useNativeDriver: false }).start();
+  }, [value]);
+  return (
+    <View style={styles.statRow}>
+      <Text style={styles.statLabel}>{label}</Text>
+      <View style={styles.statBarTrack}>
+        <Animated.View style={[styles.statBarFill, { backgroundColor: color, width: anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) }]} />
+      </View>
+      <Text style={[styles.statValue, { color }]}>{value}</Text>
+    </View>
+  );
+};
 
 // --- Main Screen ---
 const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, navigation }) => {
@@ -575,6 +601,15 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
                   ) : (
                     <Text style={styles.pokeEmptyText}>No Pokédex data yet</Text>
                   )}
+                  {animalInfo.stats && (
+                    <View style={styles.statsSection}>
+                      <Text style={styles.statsSectionTitle}>BASE STATS</Text>
+                      {STAT_CONFIG.map(({ key, label, color }) => (
+                        <StatBar key={key} label={label} value={animalInfo.stats![key] ?? 0} color={color} />
+                      ))}
+                      <Text style={styles.statsFooter}>Scored 0–100 relative to all animals</Text>
+                    </View>
+                  )}
                 </View>
               </>
             )}
@@ -724,6 +759,14 @@ const styles = StyleSheet.create({
   pokeSritePlaceholder: { width: 80, height: 80, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background, borderRadius: 8 },
   pokePlaceholderText: { color: COLORS.darkGrey, fontSize: 24, fontWeight: '900' },
   pokeName: { color: COLORS.yellow, fontSize: 12, fontWeight: '700', marginTop: 4, textAlign: 'center' },
+  statsSection: { marginTop: 20, borderTopWidth: 1, borderTopColor: COLORS.cardBorder, paddingTop: 16 },
+  statsSectionTitle: { color: COLORS.grey, fontSize: 11, fontWeight: '900', letterSpacing: 2, marginBottom: 14 },
+  statRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  statLabel: { color: COLORS.grey, fontSize: 11, fontWeight: '700', width: 54 },
+  statBarTrack: { flex: 1, height: 8, backgroundColor: COLORS.background, borderRadius: 4, overflow: 'hidden', marginHorizontal: 8 },
+  statBarFill: { height: '100%', borderRadius: 4 },
+  statValue: { fontSize: 12, fontWeight: '700', width: 30, textAlign: 'right' },
+  statsFooter: { color: COLORS.darkGrey, fontSize: 10, marginTop: 6, textAlign: 'center' },
   badgeOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.75)',
