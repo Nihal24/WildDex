@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, StatusBar,
   FlatList, Image, TouchableOpacity, ActivityIndicator,
@@ -34,7 +34,7 @@ const UserProfileScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { userId } = route.params;
 
-  const [profile, setProfile] = useState<{ displayName: string; speciesCount: number; totalSightings: number; followersCount: number; followingCount: number } | null>(null);
+  const [profile, setProfile] = useState<{ displayName: string; avatarUrl?: string; speciesCount: number; totalSightings: number; followersCount: number; followingCount: number } | null>(null);
   const [sightings, setSightings] = useState<FeedSighting[]>([]);
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
@@ -83,7 +83,7 @@ const UserProfileScreen: React.FC = () => {
     );
   }
 
-  const Header = () => (
+  const listHeader = useMemo(() => (
     <View>
       <View style={styles.profileHeader}>
         <View style={styles.avatar}>
@@ -138,7 +138,7 @@ const UserProfileScreen: React.FC = () => {
       </View>
       <Text style={styles.sightingsLabel}>SIGHTINGS</Text>
     </View>
-  );
+  ), [profile, following, followLoading, isOwnProfile, userId, navigation]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -154,7 +154,7 @@ const UserProfileScreen: React.FC = () => {
       <FlatList
         data={sightings}
         keyExtractor={(_, i) => String(i)}
-        ListHeaderComponent={<Header />}
+        ListHeaderComponent={listHeader}
         numColumns={2}
         columnWrapperStyle={styles.gridRow}
         contentContainerStyle={styles.gridContent}

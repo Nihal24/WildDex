@@ -107,7 +107,7 @@ const SettingsScreen: React.FC = () => {
         {/* Account */}
         <Text style={styles.sectionLabel}>ACCOUNT</Text>
         <View style={styles.card}>
-          <TouchableOpacity style={styles.row} onPress={() => { setUsernameInput(username); setEditingUsername(true); setEditingPassword(false); }}>
+          <TouchableOpacity style={styles.row} onPress={() => { setUsernameInput(username); setEditingUsername(true); }}>
             <Ionicons name="person-outline" size={19} color={COLORS.grey} />
             <Text style={styles.rowText}>Username</Text>
             <Text style={styles.rowValue}>{username || 'Not set'}</Text>

@@ -349,8 +349,11 @@ export async function getMyDisplayName(): Promise<string> {
 export async function updateUsername(name: string): Promise<void> {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error('Not logged in');
-  const { error } = await supabase.from('profiles').upsert({ id: userId, username: name });
-  if (error) throw new Error(error.message);
+  const { error } = await supabase.from('profiles').upsert({ id: userId, username: name }, { onConflict: 'username' });
+  if (error) {
+    if (error.code === '23505') throw new Error('That username is taken — try another.');
+    throw new Error(error.message);
+  }
 }
 
 export async function updateAvatarUrl(url: string): Promise<void> {

@@ -119,9 +119,9 @@ const ExploreScreen: React.FC = () => {
             showsUserLocation
             userInterfaceStyle="dark"
           >
-            {located.map((s, i) => (
+            {located.map((s) => (
               <Marker
-                key={i}
+                key={`${s.timestamp}-${s.label}`}
                 coordinate={{ latitude: s.latitude!, longitude: s.longitude! }}
                 anchor={{ x: 0.5, y: 1 }}
                 onPress={(e) => { e.stopPropagation(); setSelectedSighting(s); }}
