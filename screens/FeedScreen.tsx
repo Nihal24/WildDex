@@ -1,7 +1,8 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, StatusBar,
   FlatList, Image, TouchableOpacity, ActivityIndicator, RefreshControl, Share,
+  Modal, KeyboardAvoidingView, Platform, TextInput, Keyboard, TouchableWithoutFeedback,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -9,8 +10,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 import {
   getFeedSightings, getFollowingFeed, getMyFeedSightings, getLeaderboard,
-  followUser, unfollowUser, getFollowingIds,
-  getCurrentUserId_public, FeedSighting, LeaderboardEntry,
+  followUser, unfollowUser, getFollowingIds, getLikedSightingIds,
+  likeSighting, unlikeSighting, getComments, addComment, deleteComment,
+  getCurrentUserId_public, FeedSighting, LeaderboardEntry, Comment,
+  getUnreadNotificationCount, updateSightingVisibility, updateSightingCaption,
 } from '../utils/storage';
 import { RootStackParamList } from '../navigation/RootNavigator';
 
@@ -27,82 +30,414 @@ const timeAgo = (timestamp: number): string => {
   return days < 7 ? `${days}d ago` : new Date(timestamp).toLocaleDateString();
 };
 
-const Avatar = ({ name, size = 36 }: { name: string; size?: number }) => (
-  <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}>
-    <Text style={[styles.avatarLetter, { fontSize: size * 0.4 }]}>
-      {name.charAt(0).toUpperCase()}
-    </Text>
+const Avatar = ({ name, photoUri, size = 36 }: { name: string; photoUri?: string; size?: number }) => (
+  <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }]}>
+    {photoUri
+      ? <Image source={{ uri: photoUri }} style={{ width: size, height: size, borderRadius: size / 2 }} resizeMode="cover" />
+      : <Text style={[styles.avatarLetter, { fontSize: size * 0.4 }]}>{name.charAt(0).toUpperCase()}</Text>
+    }
   </View>
 );
+
+const CommentsModal = ({
+  sightingId,
+  myId,
+  visible,
+  onClose,
+  onCommentCountChange,
+}: {
+  sightingId: string;
+  myId: string | null;
+  visible: boolean;
+  onClose: () => void;
+  onCommentCountChange: (delta: number) => void;
+}) => {
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [text, setText] = useState('');
+  const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!sightingId) return;
+    setLoading(true);
+    const data = await getComments(sightingId);
+    setComments(data);
+    setLoading(false);
+  }, [sightingId]);
+
+  useEffect(() => { if (visible && sightingId) load(); }, [visible, sightingId, load]);
+
+  const submit = async () => {
+    if (!text.trim()) return;
+    setSubmitting(true);
+    await addComment(sightingId, text.trim(), replyTo?.id);
+    onCommentCountChange(1);
+    setText('');
+    setReplyTo(null);
+    await load();
+    setSubmitting(false);
+  };
+
+  const remove = async (commentId: string) => {
+    await deleteComment(commentId);
+    onCommentCountChange(-1);
+    setComments((prev) => prev.filter((c) => c.id !== commentId));
+  };
+
+  const renderComment = (c: Comment, isReply = false) => (
+    <View key={c.id}>
+      <View style={[styles.commentRow, isReply && styles.commentReplyRow]}>
+        <Avatar name={c.displayName} photoUri={c.avatarUrl} size={isReply ? 26 : 32} />
+        <View style={styles.commentBubble}>
+          <Text style={styles.commentUser}>@{c.displayName || 'unknown'}</Text>
+          <Text style={styles.commentText}>{c.text}</Text>
+          <TouchableOpacity onPress={() => setReplyTo({ id: c.id, name: c.displayName })} style={styles.replyBtn}>
+            <Text style={styles.replyBtnText}>Reply</Text>
+          </TouchableOpacity>
+        </View>
+        {c.userId === myId && (
+          <TouchableOpacity onPress={() => remove(c.id)} style={styles.deleteBtn}>
+            <Ionicons name="trash-outline" size={14} color={COLORS.grey} />
+          </TouchableOpacity>
+        )}
+      </View>
+      {(c.replies ?? []).map((r) => renderComment(r, true))}
+    </View>
+  );
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+        <View style={styles.modalSheet}>
+          <View style={styles.modalHandle} />
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Comments</Text>
+            <TouchableOpacity onPress={onClose}><Ionicons name="close" size={22} color={COLORS.grey} /></TouchableOpacity>
+          </View>
+          {loading ? (
+            <View style={styles.modalCenter}>
+              <ActivityIndicator color={COLORS.yellow} />
+            </View>
+          ) : comments.length === 0 ? (
+            <View style={styles.modalCenter}>
+              <Text style={styles.noComments}>No comments yet. Be the first!</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={comments}
+              keyExtractor={(c) => c.id}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }}
+              renderItem={({ item: c }) => renderComment(c)}
+            />
+          )}
+          {replyTo && (
+            <View style={styles.replyingTo}>
+              <Text style={styles.replyingToText}>Replying to @{replyTo.name}</Text>
+              <TouchableOpacity onPress={() => setReplyTo(null)}>
+                <Ionicons name="close-circle" size={16} color={COLORS.grey} />
+              </TouchableOpacity>
+            </View>
+          )}
+          <View style={styles.commentInput}>
+            <TextInput
+              style={styles.commentTextInput}
+              placeholder={replyTo ? `Reply to @${replyTo.name}...` : 'Add a comment...'}
+              placeholderTextColor={COLORS.grey}
+              value={text}
+              onChangeText={setText}
+              maxLength={300}
+              multiline
+              returnKeyType="done"
+              blurOnSubmit
+            />
+            <TouchableOpacity onPress={submit} disabled={submitting || !text.trim()} style={styles.sendBtn}>
+              {submitting
+                ? <ActivityIndicator size="small" color={COLORS.yellow} />
+                : <Ionicons name="send" size={18} color={text.trim() ? COLORS.yellow : COLORS.grey} />
+              }
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
+};
 
 const FeedCard = ({
   item,
   myId,
   followingIds,
+  likedIds,
+  commentCount,
   onFollowChange,
+  onLikeChange,
   onUserPress,
+  onCommentPress,
+  onMenuPress,
 }: {
   item: FeedSighting;
   myId: string | null;
   followingIds: Set<string>;
+  likedIds: Set<string>;
+  commentCount: number;
   onFollowChange: (userId: string, following: boolean) => void;
+  onLikeChange: (sightingId: string, liked: boolean, delta: number) => void;
   onUserPress: (userId: string) => void;
+  onCommentPress: () => void;
+  onMenuPress?: () => void;
 }) => {
   const isOwn = item.userId === myId;
   const isFollowed = followingIds.has(item.userId);
-  const [loading, setLoading] = useState(false);
+  const [localLiked, setLocalLiked] = useState(likedIds.has(item.sightingId));
+  const [localLikeCount, setLocalLikeCount] = useState(item.likeCount);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [likeLoading, setLikeLoading] = useState(false);
 
-  const toggle = async () => {
-    setLoading(true);
-    if (isFollowed) {
-      await unfollowUser(item.userId);
-      onFollowChange(item.userId, false);
-    } else {
-      await followUser(item.userId);
-      onFollowChange(item.userId, true);
-    }
-    setLoading(false);
+  useEffect(() => {
+    setLocalLiked(likedIds.has(item.sightingId));
+  }, [likedIds, item.sightingId]);
+
+  useEffect(() => {
+    setLocalLikeCount(item.likeCount);
+  }, [item.likeCount]);
+
+  const toggleFollow = async () => {
+    setFollowLoading(true);
+    if (isFollowed) { await unfollowUser(item.userId); onFollowChange(item.userId, false); }
+    else { await followUser(item.userId); onFollowChange(item.userId, true); }
+    setFollowLoading(false);
+  };
+
+  const toggleLike = async () => {
+    if (!item.sightingId || likeLoading) return;
+    const newLiked = !localLiked;
+    setLocalLiked(newLiked);
+    setLocalLikeCount(prev => prev + (newLiked ? 1 : -1));
+    setLikeLoading(true);
+    onLikeChange(item.sightingId, newLiked, newLiked ? 1 : -1);
+    if (newLiked) await likeSighting(item.sightingId);
+    else await unlikeSighting(item.sightingId);
+    setLikeLoading(false);
   };
 
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <TouchableOpacity onPress={() => onUserPress(item.userId)} style={styles.cardHeaderLeft}>
-          <Avatar name={item.displayName} />
+          <Avatar name={item.displayName} photoUri={item.avatarUrl} />
           <View style={styles.cardHeaderInfo}>
-            <Text style={styles.cardUser}>{item.displayName ? `@${item.displayName}` : '@unknown'}</Text>
-            <Text style={styles.cardTime}>{timeAgo(item.timestamp)}</Text>
+            <Text style={styles.cardUser}>{item.displayName || 'unknown'}</Text>
+            <View style={styles.cardTimeRow}>
+              <Text style={styles.cardTime}>{timeAgo(item.timestamp)}</Text>
+              <Ionicons
+                name={item.visibility === 'private' ? 'lock-closed-outline' : item.visibility === 'followers' ? 'people-outline' : 'earth-outline'}
+                size={13}
+                color={COLORS.grey}
+              />
+            </View>
           </View>
         </TouchableOpacity>
-        {!isOwn && (
+        {!isOwn ? (
           <TouchableOpacity
             style={[styles.followBtn, isFollowed && styles.followingBtn]}
-            onPress={toggle}
-            disabled={loading}
+            onPress={toggleFollow}
+            disabled={followLoading}
           >
-            {loading
+            {followLoading
               ? <ActivityIndicator size="small" color={COLORS.white} />
               : <Text style={[styles.followBtnText, isFollowed && styles.followingBtnText]}>
                   {isFollowed ? 'Following' : 'Follow'}
                 </Text>
             }
           </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.menuBtn} onPress={onMenuPress}>
+            <Ionicons name="ellipsis-horizontal" size={20} color={COLORS.grey} />
+          </TouchableOpacity>
         )}
       </View>
       <Image source={{ uri: item.photoUrl }} style={styles.cardPhoto} resizeMode="cover" />
       <View style={styles.cardFooter}>
-        {item.caption ? <Text style={styles.cardCaption}>{item.caption}</Text> : null}
         <Text style={styles.cardAnimal}>{formatLabel(item.label)}</Text>
-        <View style={styles.cardMeta}>
+        {item.caption ? <Text style={styles.cardCaption}>{item.caption}</Text> : null}
+        <View style={styles.cardActions}>
+          <TouchableOpacity style={styles.actionBtn} onPress={toggleLike} disabled={likeLoading}>
+            <Ionicons name={localLiked ? 'heart' : 'heart-outline'} size={20} color={localLiked ? '#E05C5C' : COLORS.grey} />
+            {localLikeCount > 0 && <Text style={[styles.actionCount, localLiked && { color: '#E05C5C' }]}>{localLikeCount}</Text>}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionBtn} onPress={onCommentPress}>
+            <Ionicons name="chatbubble-outline" size={18} color={COLORS.grey} />
+            {commentCount > 0 && <Text style={styles.actionCount}>{commentCount}</Text>}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => Share.share({
+              url: item.photoUrl,
+              message: `Check out this ${formatLabel(item.label)} I spotted on WildDex! 🦁`,
+            })}
+          >
+            <Ionicons name="share-outline" size={18} color={COLORS.grey} />
+          </TouchableOpacity>
           {item.location && (
-            <View style={styles.cardLocationRow}>
-              <Ionicons name="location-outline" size={12} color={COLORS.grey} />
-              <Text style={styles.cardLocation}>{item.location}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1, justifyContent: 'flex-end' }}>
+              <Ionicons name="location-outline" size={13} color={COLORS.grey} />
+              <Text style={styles.cardLocation} numberOfLines={1}>{item.location}</Text>
             </View>
           )}
         </View>
       </View>
     </View>
+  );
+};
+
+const AUDIENCE_OPTIONS = [
+  { v: 'public' as const, label: 'Everyone', sub: 'Visible to all WildDex users', icon: 'earth-outline' as const },
+  { v: 'followers' as const, label: 'Followers Only', sub: 'Only people who follow you', icon: 'people-outline' as const },
+  { v: 'private' as const, label: 'Just Me', sub: 'Only visible to you', icon: 'lock-closed-outline' as const },
+];
+
+const PostMenuSheet = ({
+  item,
+  visible,
+  onClose,
+  onEditCaption,
+  onChangeVisibility,
+}: {
+  item: FeedSighting | null;
+  visible: boolean;
+  onClose: () => void;
+  onEditCaption: () => void;
+  onChangeVisibility: (v: 'public' | 'followers' | 'private') => void;
+}) => {
+  const [page, setPage] = useState<'main' | 'audience'>('main');
+
+  useEffect(() => { if (visible) setPage('main'); }, [visible]);
+
+  if (!item) return null;
+  const currentAudience = AUDIENCE_OPTIONS.find((o) => o.v === item.visibility) ?? AUDIENCE_OPTIONS[0];
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent presentationStyle="overFullScreen">
+      <TouchableOpacity style={styles.menuOverlay} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} style={styles.menuSheet}>
+          <View style={styles.modalHandle} />
+
+          {page === 'main' ? (
+            <>
+              <TouchableOpacity style={styles.menuRow} onPress={() => { onClose(); setTimeout(onEditCaption, 320); }}>
+                <Ionicons name="create-outline" size={20} color={COLORS.white} />
+                <Text style={styles.menuRowText}>Edit Caption</Text>
+              </TouchableOpacity>
+              <View style={styles.menuSep} />
+              <TouchableOpacity style={styles.menuRow} onPress={() => setPage('audience')}>
+                <Ionicons name={currentAudience.icon} size={20} color={COLORS.white} />
+                <Text style={styles.menuRowText}>Who can see this</Text>
+                <View style={styles.menuRowRight}>
+                  <Text style={styles.menuRowValue}>{currentAudience.label}</Text>
+                  <Ionicons name="chevron-forward" size={14} color={COLORS.darkGrey} />
+                </View>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <View style={styles.menuAudienceHeader}>
+                <TouchableOpacity onPress={() => setPage('main')} style={{ padding: 4 }}>
+                  <Ionicons name="chevron-back" size={20} color={COLORS.grey} />
+                </TouchableOpacity>
+                <Text style={styles.menuAudienceTitle}>Who can see this</Text>
+                <View style={{ width: 28 }} />
+              </View>
+              {AUDIENCE_OPTIONS.map(({ v, label, sub, icon }, i) => {
+                const active = item.visibility === v;
+                return (
+                  <React.Fragment key={v}>
+                    {i > 0 && <View style={styles.menuSep} />}
+                    <TouchableOpacity style={styles.menuRow} onPress={() => { onChangeVisibility(v); onClose(); }}>
+                      <Ionicons name={icon} size={20} color={active ? COLORS.yellow : COLORS.white} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.menuRowText, active && { color: COLORS.yellow }]}>{label}</Text>
+                        <Text style={styles.menuRowSub}>{sub}</Text>
+                      </View>
+                      {active && <Ionicons name="checkmark" size={17} color={COLORS.yellow} />}
+                    </TouchableOpacity>
+                  </React.Fragment>
+                );
+              })}
+            </>
+          )}
+
+          <View style={styles.menuSep} />
+          <TouchableOpacity style={styles.menuRow} onPress={onClose}>
+            <Text style={styles.menuCancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+};
+
+const CaptionEditModal = ({
+  item,
+  visible,
+  onClose,
+  onSaved,
+}: {
+  item: FeedSighting | null;
+  visible: boolean;
+  onClose: () => void;
+  onSaved: (sightingId: string, caption: string) => void;
+}) => {
+  const [text, setText] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (visible) setText(item?.caption ?? '');
+  }, [visible, item]);
+
+  const save = async () => {
+    if (!item?.sightingId) return;
+    setSaving(true);
+    await updateSightingCaption(item.sightingId, text.trim());
+    onSaved(item.sightingId, text.trim());
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent presentationStyle="overFullScreen">
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+        <View style={styles.captionEditSheet}>
+          <View style={styles.modalHandle} />
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Edit Caption</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close" size={22} color={COLORS.grey} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.captionEditBody}>
+            <TextInput
+              style={styles.captionEditInput}
+              value={text}
+              onChangeText={setText}
+              placeholder="Add a caption..."
+              placeholderTextColor={COLORS.grey}
+              multiline
+              maxLength={200}
+              autoFocus
+            />
+            <TouchableOpacity style={styles.captionSaveBtn} onPress={save} disabled={saving}>
+              {saving
+                ? <ActivityIndicator size="small" color={COLORS.white} />
+                : <Text style={styles.captionSaveBtnText}>Save</Text>
+              }
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 };
 
@@ -112,9 +447,12 @@ const LeaderboardRow = ({ entry, rank, myId, onPress }: { entry: LeaderboardEntr
   return (
     <TouchableOpacity style={[styles.leaderRow, isMe && styles.leaderRowMe]} onPress={onPress}>
       <Text style={styles.leaderRank}>{medal ?? `#${rank}`}</Text>
-      <Avatar name={entry.displayName} size={40} />
+      <Avatar name={entry.displayName} photoUri={entry.avatarUrl} size={40} />
       <View style={styles.leaderInfo}>
-        <Text style={styles.leaderName}>{entry.displayName ? `@${entry.displayName}` : '@unknown'}{isMe ? ' (you)' : ''}</Text>
+        <View style={styles.leaderNameRow}>
+          <Text style={styles.leaderName}>{entry.displayName || 'unknown'}</Text>
+          {isMe && <View style={styles.youBadge}><Text style={styles.youBadgeText}>YOU</Text></View>}
+        </View>
         <Text style={styles.leaderSub}>{entry.totalSightings} sightings</Text>
       </View>
       <View style={styles.leaderSpecies}>
@@ -134,9 +472,23 @@ const FeedScreen: React.FC = () => {
   const [myFeed, setMyFeed] = useState<FeedSighting[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [myId, setMyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [commentSightingId, setCommentSightingId] = useState<string | null>(null);
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [menuItem, setMenuItem] = useState<FeedSighting | null>(null);
+  const [editCaptionItem, setEditCaptionItem] = useState<FeedSighting | null>(null);
+
+  const updateLikeCounts = (sightingId: string, delta: number) => {
+    const update = (items: FeedSighting[]) =>
+      items.map((s) => s.sightingId === sightingId ? { ...s, likeCount: s.likeCount + delta } : s);
+    setFeed(update);
+    setFollowingFeed(update);
+    setMyFeed(update);
+  };
 
   const load = useCallback(async () => {
     const [feedData, lbData, followIds, userId, myData] = await Promise.all([
@@ -151,6 +503,10 @@ const FeedScreen: React.FC = () => {
     setFollowingIds(new Set(followIds));
     setMyId(userId);
     setMyFeed(myData);
+    getUnreadNotificationCount().then(setUnreadCount);
+
+    const allIds = feedData.map((s) => s.sightingId).filter(Boolean);
+    if (allIds.length > 0) setLikedIds(await getLikedSightingIds(allIds));
 
     if (followIds.length > 0) {
       const ff = await getFollowingFeed();
@@ -173,6 +529,50 @@ const FeedScreen: React.FC = () => {
     });
   };
 
+  const handleCommentCountChange = (sightingId: string, delta: number) => {
+    setCommentCounts((prev) => {
+      const base = prev[sightingId] ?? (activeFeed.find(s => s.sightingId === sightingId)?.commentCount ?? 0);
+      return { ...prev, [sightingId]: Math.max(0, base + delta) };
+    });
+  };
+
+  const handleLikeChange = (sightingId: string, liked: boolean, delta: number) => {
+    setLikedIds((prev) => {
+      const next = new Set(prev);
+      if (liked) next.add(sightingId); else next.delete(sightingId);
+      return next;
+    });
+    updateLikeCounts(sightingId, delta);
+  };
+
+  const handleChangeVisibility = (item: FeedSighting, v: 'public' | 'followers' | 'private') => {
+    if (!item.sightingId) return;
+    // Update visibility in all feed arrays; remove from global/following if made private
+    const updateVis = (items: FeedSighting[]) =>
+      items.map((s) => s.sightingId === item.sightingId ? { ...s, visibility: v } : s);
+    setMyFeed(updateVis);
+    if (v === 'private') {
+      const remove = (items: FeedSighting[]) => items.filter((s) => s.sightingId !== item.sightingId);
+      setFeed(remove);
+      setFollowingFeed(remove);
+    } else if (v === 'followers') {
+      setFeed((items) => items.filter((s) => s.sightingId !== item.sightingId));
+      setFollowingFeed(updateVis);
+    } else {
+      setFeed(updateVis);
+      setFollowingFeed(updateVis);
+    }
+    updateSightingVisibility(item.sightingId, v).catch(() => {});
+  };
+
+  const handleCaptionSaved = (sightingId: string, caption: string) => {
+    const update = (items: FeedSighting[]) =>
+      items.map((s) => s.sightingId === sightingId ? { ...s, caption } : s);
+    setFeed(update);
+    setFollowingFeed(update);
+    setMyFeed(update);
+  };
+
   const handleInvite = async () => {
     await Share.share({
       message: `Join me on WildDex 🦁 — identify animals and build your collection! Download it on the App Store.`,
@@ -188,10 +588,20 @@ const FeedScreen: React.FC = () => {
       <StatusBar barStyle="light-content" />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Community</Text>
-        <TouchableOpacity style={styles.inviteBtn} onPress={handleInvite}>
-          <Ionicons name="person-add-outline" size={16} color={COLORS.white} />
-          <Text style={styles.inviteBtnText}>Invite</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={styles.bellBtn}>
+            <Ionicons name="notifications-outline" size={22} color={COLORS.white} />
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : String(unreadCount)}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.inviteBtn} onPress={handleInvite}>
+            <Ionicons name="person-add-outline" size={16} color={COLORS.white} />
+            <Text style={styles.inviteBtnText}>Invite</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.tabRow}>
@@ -199,7 +609,7 @@ const FeedScreen: React.FC = () => {
           style={[styles.tabBtn, tab === 'feed' && styles.tabBtnActive]}
           onPress={() => setTab('feed')}
         >
-          <Text style={[styles.tabText, tab === 'feed' && styles.tabTextActive]}>Recent</Text>
+          <Text style={[styles.tabText, tab === 'feed' && styles.tabTextActive]}>Feed</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tabBtn, tab === 'top' && styles.tabBtnActive]}
@@ -244,22 +654,50 @@ const FeedScreen: React.FC = () => {
               <Text style={styles.emptySub}>Be the first to spot something!</Text>
             </View>
           ) : (
-            <FlatList
-              data={activeFeed}
-              keyExtractor={(_, i) => String(i)}
-              renderItem={({ item }) => (
-                <FeedCard
-                  item={item}
-                  myId={myId}
-                  followingIds={followingIds}
-                  onFollowChange={handleFollowChange}
-                  onUserPress={goToUser}
-                />
-              )}
-              contentContainerStyle={styles.feedList}
-              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.yellow} />}
-              showsVerticalScrollIndicator={false}
-            />
+            <>
+              <FlatList
+                data={activeFeed}
+                keyExtractor={(item) => item.sightingId || String(item.timestamp)}
+                extraData={likedIds}
+                renderItem={({ item }) => (
+                  <FeedCard
+                    item={item}
+                    myId={myId}
+                    followingIds={followingIds}
+                    likedIds={likedIds}
+                    commentCount={commentCounts[item.sightingId] ?? item.commentCount}
+                    onFollowChange={handleFollowChange}
+                    onLikeChange={handleLikeChange}
+                    onUserPress={goToUser}
+                    onCommentPress={() => setCommentSightingId(item.sightingId)}
+                    onMenuPress={item.userId === myId ? () => setMenuItem(item) : undefined}
+                  />
+                )}
+                contentContainerStyle={styles.feedList}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.yellow} />}
+                showsVerticalScrollIndicator={false}
+              />
+              <CommentsModal
+                sightingId={commentSightingId ?? ''}
+                myId={myId}
+                visible={!!commentSightingId}
+                onClose={() => setCommentSightingId(null)}
+                onCommentCountChange={(delta) => commentSightingId && handleCommentCountChange(commentSightingId, delta)}
+              />
+              <CaptionEditModal
+                item={editCaptionItem}
+                visible={!!editCaptionItem}
+                onClose={() => setEditCaptionItem(null)}
+                onSaved={handleCaptionSaved}
+              />
+              <PostMenuSheet
+                item={menuItem}
+                visible={!!menuItem}
+                onClose={() => setMenuItem(null)}
+                onEditCaption={() => setEditCaptionItem(menuItem)}
+                onChangeVisibility={(v) => menuItem && handleChangeVisibility(menuItem, v)}
+              />
+            </>
           )}
         </>
       ) : (
@@ -304,7 +742,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.primary,
   },
-  headerTitle: { fontSize: 22, fontWeight: '700', color: COLORS.white, letterSpacing: 0.5 },
+  headerTitle: { fontSize: 18, fontWeight: '900', color: COLORS.yellow, letterSpacing: 3, textTransform: 'uppercase' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  bellBtn: { padding: 4, position: 'relative' },
+  badge: {
+    position: 'absolute', top: 0, right: 0,
+    backgroundColor: COLORS.primary, borderRadius: 8,
+    minWidth: 16, height: 16, justifyContent: 'center', alignItems: 'center',
+    paddingHorizontal: 3,
+  },
+  badgeText: { color: COLORS.white, fontSize: 9, fontWeight: '800' },
+  menuBtn: { padding: 4 },
   inviteBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -343,9 +791,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
   },
-  filterBtnActive: { borderColor: COLORS.yellow, backgroundColor: 'rgba(255,203,5,0.1)' },
+  filterBtnActive: { borderColor: COLORS.amber, backgroundColor: 'rgba(245,166,35,0.1)' },
   filterText: { color: COLORS.grey, fontSize: 13, fontWeight: '500' },
-  filterTextActive: { color: COLORS.yellow, fontWeight: '600' },
+  filterTextActive: { color: COLORS.amber, fontWeight: '600' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
   emptyTitle: { fontSize: 17, fontWeight: '700', color: COLORS.white, textAlign: 'center', paddingHorizontal: 32 },
   emptySub: { fontSize: 13, color: COLORS.grey },
@@ -368,7 +816,8 @@ const styles = StyleSheet.create({
   avatarLetter: { color: COLORS.white, fontWeight: '700' },
   cardHeaderInfo: { flex: 1 },
   cardUser: { color: COLORS.yellow, fontWeight: '700', fontSize: 14 },
-  cardTime: { color: COLORS.grey, fontSize: 11, marginTop: 1 },
+  cardTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 1 },
+  cardTime: { color: COLORS.grey, fontSize: 11 },
   followBtn: {
     backgroundColor: COLORS.primary,
     borderRadius: 8,
@@ -382,22 +831,103 @@ const styles = StyleSheet.create({
   followingBtnText: { color: COLORS.grey },
   cardPhoto: { width: '100%', height: 260 },
   cardFooter: { padding: 12, gap: 6 },
-  cardCaption: { color: COLORS.white, fontSize: 14, lineHeight: 20, marginBottom: 2 },
-  cardAnimal: { color: COLORS.grey, fontSize: 13, fontWeight: '600' },
-  cardMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 },
+  cardAnimal: { color: COLORS.white, fontSize: 16, fontWeight: '700' },
+  cardCaption: { color: COLORS.grey, fontSize: 13, lineHeight: 19 },
+  cardActions: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 4 },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  actionCount: { color: COLORS.grey, fontSize: 13 },
   cardLocation: { color: COLORS.grey, fontSize: 12 },
+  // Comments modal
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalSheet: {
+    backgroundColor: COLORS.card, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    borderWidth: 1, borderColor: COLORS.cardBorder, maxHeight: '75%', paddingBottom: 32,
+  },
+  modalHandle: { width: 36, height: 4, backgroundColor: COLORS.cardBorder, borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 4 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
+  modalTitle: { color: COLORS.white, fontSize: 16, fontWeight: '700' },
+  modalCenter: { paddingVertical: 36, justifyContent: 'center', alignItems: 'center' },
+  noComments: { color: COLORS.grey, fontSize: 14 },
+  commentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
+  commentReplyRow: { marginLeft: 36, marginBottom: 8 },
+  commentBubble: { flex: 1, backgroundColor: COLORS.background, borderRadius: 12, padding: 10 },
+  commentUser: { color: COLORS.yellow, fontSize: 12, fontWeight: '700', marginBottom: 3 },
+  commentText: { color: COLORS.white, fontSize: 14, lineHeight: 20 },
+  replyBtn: { marginTop: 6 },
+  replyBtnText: { color: COLORS.grey, fontSize: 12, fontWeight: '600' },
+  replyingTo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 6, backgroundColor: COLORS.background },
+  replyingToText: { color: COLORS.amber, fontSize: 12 },
+  deleteBtn: { paddingTop: 10 },
+  commentInput: {
+    flexDirection: 'row', alignItems: 'flex-end', gap: 10,
+    paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: COLORS.cardBorder,
+  },
+  commentTextInput: {
+    flex: 1, backgroundColor: COLORS.background, borderRadius: 12, borderWidth: 1,
+    borderColor: COLORS.cardBorder, color: COLORS.white, paddingHorizontal: 14,
+    paddingVertical: 10, fontSize: 14, maxHeight: 100,
+  },
+  sendBtn: { paddingBottom: 10 },
+  captionEditSheet: {
+    backgroundColor: COLORS.card, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    borderWidth: 1, borderColor: COLORS.cardBorder,
+  },
+  captionEditBody: { paddingHorizontal: 16, paddingBottom: 32, gap: 12 },
+  captionEditInput: {
+    backgroundColor: COLORS.background, borderRadius: 12, borderWidth: 1,
+    borderColor: COLORS.cardBorder, color: COLORS.white, paddingHorizontal: 14,
+    paddingVertical: 12, fontSize: 15, minHeight: 80, textAlignVertical: 'top',
+  },
+  captionSaveBtn: {
+    backgroundColor: COLORS.primary, borderRadius: 12,
+    paddingVertical: 13, alignItems: 'center',
+  },
+  captionSaveBtnText: { color: COLORS.white, fontWeight: '700', fontSize: 15 },
+  // Post menu sheet
+  menuOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
+  menuSheet: {
+    backgroundColor: COLORS.card,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderWidth: 1, borderColor: COLORS.cardBorder,
+    paddingBottom: 32,
+  },
+  menuRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, gap: 14 },
+  menuSep: { height: 1, backgroundColor: COLORS.cardBorder, marginHorizontal: 20 },
+  menuRowText: { flex: 1, color: COLORS.white, fontSize: 16 },
+  menuRowRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  menuRowValue: { color: COLORS.grey, fontSize: 13 },
+  menuRowSub: { color: COLORS.grey, fontSize: 12, marginTop: 2 },
+  menuAudienceHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingTop: 4, paddingBottom: 12,
+  },
+  menuAudienceTitle: { color: COLORS.white, fontSize: 16, fontWeight: '700' },
+  menuCancelText: { flex: 1, color: COLORS.grey, fontSize: 16, textAlign: 'center' },
   leaderList: { paddingHorizontal: 16, paddingBottom: 20 },
   leaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 14,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.cardBorder,
     gap: 12,
   },
-  leaderRowMe: { backgroundColor: 'rgba(255,203,5,0.05)', borderRadius: 8, paddingHorizontal: 8 },
-  leaderRank: { width: 32, textAlign: 'center', color: COLORS.grey, fontSize: 14, fontWeight: '700' },
+  leaderRowMe: {
+    backgroundColor: 'rgba(255,203,5,0.1)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,203,5,0.35)',
+  },
+  leaderNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  youBadge: {
+    backgroundColor: COLORS.yellow,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  youBadgeText: { color: COLORS.background, fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  leaderRank: { width: 32, height: 40, textAlign: 'center', textAlignVertical: 'center', lineHeight: 40, color: COLORS.grey, fontSize: 14, fontWeight: '700' },
   leaderInfo: { flex: 1 },
   leaderName: { color: COLORS.white, fontSize: 15, fontWeight: '600' },
   leaderSub: { color: COLORS.grey, fontSize: 12, marginTop: 2 },

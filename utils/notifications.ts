@@ -5,11 +5,13 @@ const NOTIF_ENABLED_KEY = 'wilddex_daily_notif_enabled';
 const NOTIF_HOUR = 9; // 9am daily
 
 const MESSAGES = [
-  { title: '🦎 Time to explore!', body: 'Go find a new animal to add to your WildDex.' },
-  { title: '🐦 Nature is calling', body: 'Head outside and spot something wild today.' },
-  { title: '🌿 Daily discovery', body: 'Your WildDex is waiting — go find something new.' },
-  { title: '🦊 New sighting?', body: 'Take a photo of an animal and identify it today.' },
-  { title: '🐝 Get outside!', body: "There's wildlife around you — go find it." },
+  { title: '🦁 Your WildDex is calling!', body: "Get outside — there's a wild animal waiting to be discovered!" },
+  { title: '🐦 Daily challenge unlocked!', body: "Can you spot something new today? Your collection needs you!" },
+  { title: '🌿 Adventure awaits!', body: "A new species is out there right now — go catch it!" },
+  { title: "🦊 Don't break your streak!", body: "Head outside and add to your WildDex before the day ends!" },
+  { title: '🐝 Nature is wild today!', body: "There's always something new to discover — get exploring!" },
+  { title: '🦅 Eyes up, explorer!', body: "Wildlife is everywhere if you look! What will you find today?" },
+  { title: '🌊 The wild world is waiting!', body: "Open your camera and see what's out there — you might be surprised!" },
 ];
 
 Notifications.setNotificationHandler({
@@ -22,7 +24,8 @@ Notifications.setNotificationHandler({
 
 export async function getNotificationsEnabled(): Promise<boolean> {
   const val = await AsyncStorage.getItem(NOTIF_ENABLED_KEY);
-  return val === 'true';
+  // Default to true if never set
+  return val === null ? true : val === 'true';
 }
 
 export async function enableDailyNotification(): Promise<boolean> {
@@ -48,4 +51,13 @@ export async function enableDailyNotification(): Promise<boolean> {
 export async function disableDailyNotification(): Promise<void> {
   await Notifications.cancelAllScheduledNotificationsAsync();
   await AsyncStorage.setItem(NOTIF_ENABLED_KEY, 'false');
+}
+
+// Call on app startup to ensure notifications are scheduled if enabled by default
+export async function initNotifications(): Promise<void> {
+  const val = await AsyncStorage.getItem(NOTIF_ENABLED_KEY);
+  if (val === null) {
+    // First launch — enable by default
+    await enableDailyNotification();
+  }
 }

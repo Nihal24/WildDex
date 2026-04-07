@@ -109,7 +109,7 @@ export default BottomTabs;
 const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: COLORS.background,
-    borderTopColor: 'rgba(255,255,255,0.07)',
+    borderTopColor: COLORS.cardBorder,
     borderTopWidth: 1,
     height: 76,
     paddingBottom: 12,

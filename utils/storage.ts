@@ -14,6 +14,7 @@ export interface Sighting {
   latitude?: number;
   longitude?: number;
   caption?: string;
+  visibility?: string;
 }
 
 async function getCurrentUserId(): Promise<string | null> {
@@ -72,7 +73,7 @@ export async function saveSighting(sighting: Sighting): Promise<void> {
 
     const { error } = await supabase.from('sightings').insert({
       user_id: userId,
-      label: sighting.label,
+      label: sighting.label.toLowerCase().trim(),
       confidence: sighting.confidence,
       photo_url: publicUrl ?? permanentUri,
       timestamp: sighting.timestamp,
@@ -80,6 +81,7 @@ export async function saveSighting(sighting: Sighting): Promise<void> {
       latitude: sighting.latitude,
       longitude: sighting.longitude,
       caption: sighting.caption ?? null,
+      visibility: sighting.visibility ?? 'public',
     });
     if (error) console.warn('Supabase sighting sync failed:', error.message);
   }
@@ -250,6 +252,7 @@ export async function migrateLocalSightingsToSupabase(): Promise<void> {
 }
 
 export interface FeedSighting {
+  sightingId: string;
   label: string;
   confidence: number;
   photoUrl: string;
@@ -257,27 +260,35 @@ export interface FeedSighting {
   location?: string;
   userId: string;
   displayName: string;
+  avatarUrl?: string;
   caption?: string;
+  visibility: string;
+  likeCount: number;
+  commentCount: number;
+}
+
+export interface Comment {
+  id: string;
+  userId: string;
+  displayName: string;
+  avatarUrl?: string;
+  text: string;
+  createdAt: number;
+  parentId?: string;
+  replies?: Comment[];
 }
 
 export interface LeaderboardEntry {
   userId: string;
   displayName: string;
+  avatarUrl?: string;
   speciesCount: number;
   totalSightings: number;
 }
 
-export async function getFeedSightings(): Promise<FeedSighting[]> {
-  const { data, error } = await supabase
-    .from('sightings')
-    .select('label, confidence, photo_url, timestamp, location, user_id, caption, profiles(username)')
-    .like('photo_url', 'http%')
-    .order('timestamp', { ascending: false })
-    .limit(50);
-
-  if (error || !data) return [];
-
-  return data.map((row: any) => ({
+function mapSighting(row: any): FeedSighting {
+  return {
+    sightingId: row.id,
     label: row.label,
     confidence: row.confidence,
     photoUrl: row.photo_url,
@@ -285,16 +296,53 @@ export async function getFeedSightings(): Promise<FeedSighting[]> {
     location: row.location,
     userId: row.user_id,
     displayName: row.profiles?.username ?? '',
+    avatarUrl: row.profiles?.avatar_url ?? undefined,
     caption: row.caption ?? undefined,
-  }));
+    visibility: row.visibility ?? 'public',
+    likeCount: row.likes?.[0]?.count ?? 0,
+    commentCount: row.comments?.[0]?.count ?? 0,
+  };
+}
+
+const FEED_SELECT = 'id, label, confidence, photo_url, timestamp, location, user_id, caption, visibility, profiles(username, avatar_url)';
+
+async function enrichWithCounts(sightings: FeedSighting[]): Promise<FeedSighting[]> {
+  const ids = sightings.map((s) => s.sightingId).filter(Boolean);
+  if (ids.length === 0) return sightings;
+  const [likesRes, commentsRes] = await Promise.all([
+    supabase.from('likes').select('sighting_id').in('sighting_id', ids),
+    supabase.from('comments').select('sighting_id').in('sighting_id', ids),
+  ]);
+  const likeMap: Record<string, number> = {};
+  const commentMap: Record<string, number> = {};
+  for (const r of (likesRes.data ?? [])) likeMap[r.sighting_id] = (likeMap[r.sighting_id] ?? 0) + 1;
+  for (const r of (commentsRes.data ?? [])) commentMap[r.sighting_id] = (commentMap[r.sighting_id] ?? 0) + 1;
+  return sightings.map((s) => ({ ...s, likeCount: likeMap[s.sightingId] ?? 0, commentCount: commentMap[s.sightingId] ?? 0 }));
+}
+
+export async function getFeedSightings(): Promise<FeedSighting[]> {
+  const { data, error } = await supabase
+    .from('sightings')
+    .select(FEED_SELECT)
+    .like('photo_url', 'http%')
+    .eq('visibility', 'public')
+    .order('timestamp', { ascending: false })
+    .limit(50);
+
+  if (error || !data) return [];
+  return enrichWithCounts(data.map(mapSighting));
 }
 
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   const { data, error } = await supabase.rpc('get_leaderboard');
   if (error || !data) return [];
+  const userIds = data.map((row: any) => row.user_id);
+  const { data: profiles } = await supabase.from('profiles').select('id, avatar_url').in('id', userIds);
+  const avatarMap = Object.fromEntries((profiles ?? []).map((p: any) => [p.id, p.avatar_url]));
   return data.map((row: any) => ({
     userId: row.user_id,
     displayName: row.username ?? '',
+    avatarUrl: avatarMap[row.user_id] ?? undefined,
     speciesCount: Number(row.species_count),
     totalSightings: Number(row.total_sightings),
   }));
@@ -332,6 +380,7 @@ export async function followUser(targetId: string): Promise<void> {
   const userId = await getCurrentUserId();
   if (!userId) return;
   await supabase.from('follows').insert({ follower_id: userId, following_id: targetId });
+  notifyActivity(userId, targetId, 'follow');
 }
 
 export async function unfollowUser(targetId: string): Promise<void> {
@@ -363,54 +412,84 @@ export async function getFollowingFeed(): Promise<FeedSighting[]> {
   if (followingIds.length === 0) return [];
   const { data, error } = await supabase
     .from('sightings')
-    .select('label, confidence, photo_url, timestamp, location, user_id, caption, profiles(username)')
+    .select(FEED_SELECT)
     .like('photo_url', 'http%')
     .in('user_id', followingIds)
+    .in('visibility', ['public', 'followers'])
     .order('timestamp', { ascending: false })
     .limit(50);
   if (error || !data) return [];
-  return data.map((row: any) => ({
-    label: row.label,
-    confidence: row.confidence,
-    photoUrl: row.photo_url,
-    timestamp: row.timestamp,
-    location: row.location,
-    userId: row.user_id,
-    displayName: row.profiles?.username ?? '',
-    caption: row.caption ?? undefined,
+  return enrichWithCounts(data.map(mapSighting));
+}
+
+export async function getUserProfile(userId: string): Promise<{ displayName: string; avatarUrl?: string; speciesCount: number; totalSightings: number; followersCount: number; followingCount: number }> {
+  const [profileRes, sightingsRes, followersRes, followingRes] = await Promise.all([
+    supabase.from('profiles').select('username, avatar_url').eq('id', userId).single(),
+    supabase.from('sightings').select('label').eq('user_id', userId),
+    supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId),
+    supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId),
+  ]);
+  const displayName = profileRes.data?.username ?? '';
+  const avatarUrl = profileRes.data?.avatar_url ?? undefined;
+  const sightings = sightingsRes.data ?? [];
+  const speciesCount = new Set(sightings.map((s: any) => s.label)).size;
+  return {
+    displayName, avatarUrl, speciesCount, totalSightings: sightings.length,
+    followersCount: followersRes.count ?? 0,
+    followingCount: followingRes.count ?? 0,
+  };
+}
+
+export interface FollowUser {
+  userId: string;
+  displayName: string;
+  avatarUrl?: string;
+}
+
+export async function getFollowers(userId: string): Promise<FollowUser[]> {
+  const { data } = await supabase
+    .from('follows')
+    .select('follower_id, profiles!follows_follower_id_fkey(username, avatar_url)')
+    .eq('following_id', userId);
+  return (data ?? []).map((r: any) => ({
+    userId: r.follower_id,
+    displayName: r.profiles?.username ?? '',
+    avatarUrl: r.profiles?.avatar_url ?? undefined,
   }));
 }
 
-export async function getUserProfile(userId: string): Promise<{ displayName: string; speciesCount: number; totalSightings: number }> {
-  const [profileRes, sightingsRes] = await Promise.all([
-    supabase.from('profiles').select('username').eq('id', userId).single(),
-    supabase.from('sightings').select('label').eq('user_id', userId),
+export async function getFollowing(userId: string): Promise<FollowUser[]> {
+  const { data } = await supabase
+    .from('follows')
+    .select('following_id, profiles!follows_following_id_fkey(username, avatar_url)')
+    .eq('follower_id', userId);
+  return (data ?? []).map((r: any) => ({
+    userId: r.following_id,
+    displayName: r.profiles?.username ?? '',
+    avatarUrl: r.profiles?.avatar_url ?? undefined,
+  }));
+}
+
+export async function getMyFollowCounts(): Promise<{ followersCount: number; followingCount: number }> {
+  const userId = await getCurrentUserId();
+  if (!userId) return { followersCount: 0, followingCount: 0 };
+  const [followersRes, followingRes] = await Promise.all([
+    supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId),
+    supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId),
   ]);
-  const displayName = profileRes.data?.username ?? '';
-  const sightings = sightingsRes.data ?? [];
-  const speciesCount = new Set(sightings.map((s: any) => s.label)).size;
-  return { displayName, speciesCount, totalSightings: sightings.length };
+  return { followersCount: followersRes.count ?? 0, followingCount: followingRes.count ?? 0 };
 }
 
 export async function getUserFeedSightings(userId: string): Promise<FeedSighting[]> {
   const { data, error } = await supabase
     .from('sightings')
-    .select('label, confidence, photo_url, timestamp, location, user_id, caption, profiles(username)')
+    .select(FEED_SELECT)
     .like('photo_url', 'http%')
     .eq('user_id', userId)
     .order('timestamp', { ascending: false })
     .limit(30);
   if (error || !data) return [];
-  return data.map((row: any) => ({
-    label: row.label,
-    confidence: row.confidence,
-    photoUrl: row.photo_url,
-    timestamp: row.timestamp,
-    location: row.location,
-    userId: row.user_id,
-    displayName: row.profiles?.username ?? '',
-    caption: row.caption ?? undefined,
-  }));
+  return enrichWithCounts(data.map(mapSighting));
 }
 
 export async function getMyFeedSightings(): Promise<FeedSighting[]> {
@@ -418,32 +497,25 @@ export async function getMyFeedSightings(): Promise<FeedSighting[]> {
   if (!userId) return [];
 
   const [profileRes, sightingsRes] = await Promise.all([
-    supabase.from('profiles').select('username').eq('id', userId).single(),
+    supabase.from('profiles').select('username, avatar_url').eq('id', userId).single(),
     supabase.from('sightings')
-      .select('label, confidence, photo_url, timestamp, location, user_id, caption')
+      .select(FEED_SELECT)
       .eq('user_id', userId)
       .order('timestamp', { ascending: false })
       .limit(50),
   ]);
 
   const displayName = profileRes.data?.username ?? '';
+  const avatarUrl = profileRes.data?.avatar_url ?? undefined;
 
   if (!sightingsRes.error && sightingsRes.data) {
-    return sightingsRes.data.map((row: any) => ({
-      label: row.label,
-      confidence: row.confidence,
-      photoUrl: row.photo_url,
-      timestamp: row.timestamp,
-      location: row.location,
-      userId: row.user_id,
-      displayName,
-      caption: row.caption ?? undefined,
-    }));
+    return sightingsRes.data.map(mapSighting);
   }
 
   // Offline fallback: use local sightings
   const local = await getLocalSightings();
   return local.map((s) => ({
+    sightingId: '',
     label: s.label,
     confidence: s.confidence,
     photoUrl: s.photoUri,
@@ -451,10 +523,205 @@ export async function getMyFeedSightings(): Promise<FeedSighting[]> {
     location: s.location,
     userId,
     displayName,
+    avatarUrl,
     caption: s.caption,
+    likeCount: 0,
+    commentCount: 0,
   }));
 }
 
 export async function getCurrentUserId_public(): Promise<string | null> {
   return getCurrentUserId();
+}
+
+export function calculateSightingStreak(sightings: Sighting[]): number {
+  if (sightings.length === 0) return 0;
+  const dates = new Set(sightings.map(s => new Date(s.timestamp).toLocaleDateString()));
+  const today = new Date().toLocaleDateString();
+  const yesterday = new Date(Date.now() - 86400000).toLocaleDateString();
+  // Start from today if spotted today, else yesterday (streak still alive)
+  const startOffset = dates.has(today) ? 0 : dates.has(yesterday) ? 1 : -1;
+  if (startOffset === -1) return 0;
+  let streak = 0;
+  for (let i = startOffset; ; i++) {
+    const d = new Date(Date.now() - i * 86400000).toLocaleDateString();
+    if (dates.has(d)) streak++;
+    else break;
+  }
+  return streak;
+}
+
+// ── Likes ──────────────────────────────────────────────────────────────────
+
+async function notifyActivity(actorId: string, targetUserId: string, type: 'like' | 'comment' | 'follow', sightingId?: string): Promise<void> {
+  const supabaseUrl = (await import('expo-constants')).default.expoConfig?.extra?.supabaseUrl;
+  const supabaseKey = (await import('expo-constants')).default.expoConfig?.extra?.supabasePublishableKey;
+  if (!supabaseUrl || !supabaseKey) return;
+  fetch(`${supabaseUrl}/functions/v1/notify-activity`, {
+    method: 'POST',
+    headers: { apikey: supabaseKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ actor_id: actorId, target_user_id: targetUserId, type, ...(sightingId ? { sighting_id: sightingId } : {}) }),
+  }).catch(() => {});
+}
+
+export async function likeSighting(sightingId: string): Promise<void> {
+  const userId = await getCurrentUserId();
+  if (!userId) return;
+  await supabase.from('likes').insert({ user_id: userId, sighting_id: sightingId });
+  const { data } = await supabase.from('sightings').select('user_id').eq('id', sightingId).single();
+  if (data?.user_id) notifyActivity(userId, data.user_id, 'like', sightingId);
+}
+
+export async function unlikeSighting(sightingId: string): Promise<void> {
+  const userId = await getCurrentUserId();
+  if (!userId) return;
+  await supabase.from('likes').delete().eq('user_id', userId).eq('sighting_id', sightingId);
+}
+
+export async function getLikedSightingIds(sightingIds: string[]): Promise<Set<string>> {
+  const userId = await getCurrentUserId();
+  if (!userId || sightingIds.length === 0) return new Set();
+  const { data } = await supabase
+    .from('likes')
+    .select('sighting_id')
+    .eq('user_id', userId)
+    .in('sighting_id', sightingIds);
+  return new Set((data ?? []).map((r: any) => r.sighting_id));
+}
+
+// ── Comments ───────────────────────────────────────────────────────────────
+
+export async function getComments(sightingId: string): Promise<Comment[]> {
+  const { data } = await supabase
+    .from('comments')
+    .select('id, user_id, text, created_at, parent_id, profiles(username, avatar_url)')
+    .eq('sighting_id', sightingId)
+    .order('created_at', { ascending: true });
+
+  const rows = (data ?? []).map((row: any): Comment => ({
+    id: row.id,
+    userId: row.user_id,
+    displayName: row.profiles?.username ?? '',
+    avatarUrl: row.profiles?.avatar_url ?? undefined,
+    text: row.text,
+    createdAt: new Date(row.created_at).getTime(),
+    parentId: row.parent_id ?? undefined,
+    replies: [],
+  }));
+
+  // Build thread tree — top-level comments with replies nested
+  const map = Object.fromEntries(rows.map((c) => [c.id, c]));
+  const roots: Comment[] = [];
+  for (const c of rows) {
+    if (c.parentId && map[c.parentId]) {
+      map[c.parentId].replies!.push(c);
+    } else {
+      roots.push(c);
+    }
+  }
+  return roots;
+}
+
+export async function addComment(sightingId: string, text: string, parentId?: string): Promise<void> {
+  const userId = await getCurrentUserId();
+  if (!userId) return;
+  await supabase.from('comments').insert({
+    user_id: userId,
+    sighting_id: sightingId,
+    text,
+    ...(parentId ? { parent_id: parentId } : {}),
+  });
+  const { data } = await supabase.from('sightings').select('user_id').eq('id', sightingId).single();
+  if (data?.user_id) notifyActivity(userId, data.user_id, 'comment', sightingId);
+}
+
+export async function deleteComment(commentId: string): Promise<void> {
+  await supabase.from('comments').delete().eq('id', commentId);
+}
+
+export async function deleteSightingById(sightingId: string): Promise<void> {
+  const userId = await getCurrentUserId();
+  if (!userId) return;
+  const { error } = await supabase.from('sightings').delete().eq('id', sightingId).eq('user_id', userId);
+  if (error) throw new Error(error.message);
+}
+
+export async function updateSightingVisibility(sightingId: string, visibility: string): Promise<void> {
+  const userId = await getCurrentUserId();
+  if (!userId) return;
+  await supabase.from('sightings').update({ visibility }).eq('id', sightingId).eq('user_id', userId);
+}
+
+export async function updateSightingCaption(sightingId: string, caption: string): Promise<void> {
+  const userId = await getCurrentUserId();
+  if (!userId) return;
+  await supabase.from('sightings').update({ caption: caption || null }).eq('id', sightingId).eq('user_id', userId);
+}
+
+// ── Notifications ──────────────────────────────────────────────────────────
+
+export interface AppNotification {
+  id: string;
+  actorId?: string;
+  actorName: string;
+  actorAvatarUrl?: string;
+  type: 'like' | 'comment' | 'follow';
+  sightingId?: string;
+  sightingPhotoUrl?: string;
+  read: boolean;
+  createdAt: number;
+}
+
+export async function getNotifications(): Promise<AppNotification[]> {
+  const userId = await getCurrentUserId();
+  if (!userId) return [];
+  const { data } = await supabase
+    .from('notifications')
+    .select('id, type, actor_id, sighting_id, read, created_at, actor:profiles!actor_id(username, avatar_url), sighting:sightings!sighting_id(photo_url)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    actorId: row.actor_id ?? undefined,
+    actorName: row.actor?.username ?? '',
+    actorAvatarUrl: row.actor?.avatar_url ?? undefined,
+    type: row.type,
+    sightingId: row.sighting_id ?? undefined,
+    sightingPhotoUrl: row.sighting?.photo_url ?? undefined,
+    read: row.read,
+    createdAt: new Date(row.created_at).getTime(),
+  }));
+}
+
+export async function getUnreadNotificationCount(): Promise<number> {
+  const userId = await getCurrentUserId();
+  if (!userId) return 0;
+  const { count } = await supabase
+    .from('notifications')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('read', false);
+  return count ?? 0;
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  const userId = await getCurrentUserId();
+  if (!userId) return;
+  await supabase.from('notifications').update({ read: true }).eq('user_id', userId).eq('read', false);
+}
+
+// ── Default Visibility ─────────────────────────────────────────────────────
+
+export async function getDefaultVisibility(): Promise<string> {
+  const userId = await getCurrentUserId();
+  if (!userId) return 'public';
+  const { data } = await supabase.from('profiles').select('default_visibility').eq('id', userId).single();
+  return data?.default_visibility ?? 'public';
+}
+
+export async function updateDefaultVisibility(visibility: string): Promise<void> {
+  const userId = await getCurrentUserId();
+  if (!userId) return;
+  await supabase.from('profiles').upsert({ id: userId, default_visibility: visibility });
 }
