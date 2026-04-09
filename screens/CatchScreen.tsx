@@ -12,7 +12,6 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { ColorScheme } from '../constants/theme';
 import { useTheme } from '../utils/ThemeContext';
 import { getSightings } from '../utils/storage';
-import { BADGES, Badge } from '../utils/badges';
 
 const CatchScreen: React.FC = () => {
   const { colors: COLORS, theme } = useTheme();
@@ -24,7 +23,6 @@ const CatchScreen: React.FC = () => {
   const [isNew, setIsNew] = useState(false);
   const [speciesCount, setSpeciesCount] = useState(0);
   const [thisSpeciesCount, setThisSpeciesCount] = useState(1);
-  const [earnedBadge, setEarnedBadge] = useState<Badge | null>(null);
 
   const displayName = label
     .split('_')
@@ -42,12 +40,9 @@ const CatchScreen: React.FC = () => {
 
     getSightings().then((sightings) => {
       const forThisSpecies = sightings.filter((s) => s.label === label).length;
-      const newSpeciesCount = new Set(sightings.map((s) => s.label)).size;
       setIsNew(forThisSpecies === 1);
       setThisSpeciesCount(forThisSpecies);
-      setSpeciesCount(newSpeciesCount);
-      const badge = BADGES.find((b) => b.threshold === newSpeciesCount);
-      if (badge) setEarnedBadge(badge);
+      setSpeciesCount(new Set(sightings.map((s) => s.label)).size);
     });
   }, []);
 
@@ -84,18 +79,6 @@ const CatchScreen: React.FC = () => {
             <Ionicons name="checkmark-circle" size={13} color="#4CAF50" />
             <Text style={styles.loggedText}>Logged to WildDex</Text>
           </View>
-
-          {earnedBadge && (
-            <View style={[styles.badgeEarned, { borderColor: earnedBadge.color + '60', backgroundColor: earnedBadge.color + '18' }]}>
-              <Text style={styles.badgeEarnedEmoji}>{earnedBadge.emoji}</Text>
-              <View>
-                <Text style={[styles.badgeEarnedTitle, { color: earnedBadge.color }]}>
-                  {earnedBadge.label} Badge Unlocked!
-                </Text>
-                <Text style={styles.badgeEarnedSub}>{earnedBadge.description} discovered</Text>
-              </View>
-            </View>
-          )}
 
           <Text style={styles.statsLine}>
             Spotted {thisSpeciesCount}×{'  ·  '}{speciesCount} species in Dex
@@ -209,17 +192,4 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
     marginTop: 8,
   },
   learnMoreBtnText: { color: COLORS.white, fontWeight: '800', fontSize: 15 },
-  badgeEarned: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    width: '100%',
-  },
-  badgeEarnedEmoji: { fontSize: 26 },
-  badgeEarnedTitle: { fontSize: 13, fontWeight: '800' },
-  badgeEarnedSub: { fontSize: 11, color: COLORS.grey, marginTop: 1 },
 });

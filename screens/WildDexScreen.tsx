@@ -282,7 +282,7 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
   };
 
   useFocusEffect(useCallback(() => {
-    loadData(!!newLabel);
+    loadData(true);
   }, [newLabel]));
 
   const onEditSearchChange = (text: string) => {
