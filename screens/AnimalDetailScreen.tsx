@@ -11,7 +11,8 @@ import {
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { COLORS, ColorScheme } from '../constants/theme';
+import { useTheme } from '../utils/ThemeContext';
 import { getAnimalProfile, AnimalInfo } from '../utils/claude';
 import { getLatestPhotoForLabel } from '../utils/storage';
 
@@ -31,6 +32,8 @@ const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: s
 );
 
 const AnimalDetailScreen: React.FC<Props> = ({ route, navigation }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const { label, id, photoUri: passedPhotoUri, fromCatch } = route.params;
   const [photoUri, setPhotoUri] = useState<string | null>(passedPhotoUri ?? null);
   const [info, setInfo] = useState<AnimalInfo | null>(null);
@@ -124,7 +127,7 @@ const AnimalDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
 export default AnimalDetailScreen;
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
     flexDirection: 'row',

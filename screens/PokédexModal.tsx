@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { COLORS } from '../constants/theme';
+import { COLORS, ColorScheme } from '../constants/theme';
+import { useTheme } from '../utils/ThemeContext';
 import { getAnimalProfile, AnimalInfo, AnimalStats } from '../utils/claude';
 
 const STATS: { key: keyof AnimalStats; label: string; color: string }[] = [
@@ -53,6 +54,8 @@ function StatBar({ label, value, color }: { label: string; value: number; color:
 }
 
 const PokédexModal: React.FC = () => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { label, photoUri } = route.params;
@@ -155,7 +158,7 @@ const PokédexModal: React.FC = () => {
 
 export default PokédexModal;
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
     flexDirection: 'row',

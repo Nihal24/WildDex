@@ -38,7 +38,8 @@ const COUNTRY_CODES = [
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../utils/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { COLORS } from '../constants/theme';
+import { COLORS, ColorScheme } from '../constants/theme';
+import { useTheme } from '../utils/ThemeContext';
 
 // 'landing'  → logo, Get Started / Log In / Apple
 // 'phone'    → enter phone number
@@ -52,6 +53,8 @@ interface AuthScreenProps {
 }
 
 const AuthScreen: React.FC<AuthScreenProps> = ({ startAtUsername, onUsernameSet }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const [screen, setScreen] = useState<Screen>(startAtUsername ? 'username' : 'landing');
   const [isNewUser, setIsNewUser] = useState(true);
   const [countryCode, setCountryCode] = useState('+1');
@@ -357,7 +360,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ startAtUsername, onUsernameSet 
 
 export default AuthScreen;
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   inner: { flex: 1, justifyContent: 'center', paddingHorizontal: 28 },
   backBtn: { position: 'absolute', top: 8, left: 0, padding: 8 },

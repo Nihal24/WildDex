@@ -8,7 +8,8 @@ import ExploreScreen from '../screens/ExploreScreen';
 import CameraScreen from '../screens/CameraScreen';
 import WildDexScreen from '../screens/WildDexScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import { COLORS } from '../constants/theme';
+import { ColorScheme } from '../constants/theme';
+import { useTheme } from '../utils/ThemeContext';
 
 export type BottomTabParamList = {
   Feed: undefined;
@@ -21,92 +22,52 @@ export type BottomTabParamList = {
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 
 const TabIcon = ({
-  name,
-  outlineName,
-  focused,
+  name, outlineName, focused, colors,
 }: {
   name: React.ComponentProps<typeof Ionicons>['name'];
   outlineName: React.ComponentProps<typeof Ionicons>['name'];
   focused: boolean;
+  colors: ColorScheme;
 }) => (
-  <Ionicons
-    name={focused ? name : outlineName}
-    size={24}
-    color={focused ? COLORS.yellow : COLORS.grey}
-  />
+  <Ionicons name={focused ? name : outlineName} size={24} color={focused ? colors.yellow : colors.grey} />
 );
 
-const CameraTabIcon = ({ focused }: { focused: boolean }) => (
-  <View style={[styles.cameraTab, focused && styles.cameraTabActive]}>
-    <Ionicons name="camera" size={26} color={COLORS.white} />
-  </View>
-);
+const CameraTabIcon = ({ focused, colors }: { focused: boolean; colors: ColorScheme }) => {
+  const styles = makeStyles(colors);
+  return (
+    <View style={[styles.cameraTab, focused && styles.cameraTabActive]}>
+      <Ionicons name="camera" size={26} color={colors.white} />
+    </View>
+  );
+};
 
 const BottomTabs: React.FC = () => {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+
   return (
     <Tab.Navigator
       initialRouteName="Feed"
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: COLORS.yellow,
-        tabBarInactiveTintColor: COLORS.grey,
+        tabBarActiveTintColor: colors.yellow,
+        tabBarInactiveTintColor: colors.grey,
         tabBarLabelStyle: styles.tabLabel,
       }}
     >
-      <Tab.Screen
-        name="Feed"
-        component={FeedScreen}
-        options={{
-          tabBarLabel: 'Community',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="people" outlineName="people-outline" focused={focused} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Explore"
-        component={ExploreScreen}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="map" outlineName="map-outline" focused={focused} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Camera"
-        component={CameraScreen}
-        options={{
-          tabBarLabel: () => null,
-          tabBarIcon: ({ focused }) => <CameraTabIcon focused={focused} />,
-        }}
-      />
-      <Tab.Screen
-        name="WildDex"
-        component={WildDexScreen}
-        options={{
-          tabBarLabel: 'Collection',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="paw" outlineName="paw-outline" focused={focused} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="person" outlineName="person-outline" focused={focused} />
-          ),
-        }}
-      />
+      <Tab.Screen name="Feed" component={FeedScreen} options={{ tabBarLabel: 'Community', tabBarIcon: ({ focused }) => <TabIcon name="people" outlineName="people-outline" focused={focused} colors={colors} /> }} />
+      <Tab.Screen name="Explore" component={ExploreScreen} options={{ tabBarIcon: ({ focused }) => <TabIcon name="map" outlineName="map-outline" focused={focused} colors={colors} /> }} />
+      <Tab.Screen name="Camera" component={CameraScreen} options={{ tabBarLabel: () => null, tabBarIcon: ({ focused }) => <CameraTabIcon focused={focused} colors={colors} /> }} />
+      <Tab.Screen name="WildDex" component={WildDexScreen} options={{ tabBarLabel: 'Collection', tabBarIcon: ({ focused }) => <TabIcon name="paw" outlineName="paw-outline" focused={focused} colors={colors} /> }} />
+      <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarIcon: ({ focused }) => <TabIcon name="person" outlineName="person-outline" focused={focused} colors={colors} /> }} />
     </Tab.Navigator>
   );
 };
 
 export default BottomTabs;
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   tabBar: {
     backgroundColor: COLORS.background,
     borderTopColor: COLORS.cardBorder,
@@ -115,24 +76,12 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     paddingTop: 4,
   },
-  tabLabel: {
-    fontSize: 10,
-    fontWeight: '500',
-    letterSpacing: 0.2,
-  },
+  tabLabel: { fontSize: 10, fontWeight: '500', letterSpacing: 0.2 },
   cameraTab: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 58, height: 58, borderRadius: 29,
     backgroundColor: COLORS.darkGrey,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-    borderWidth: 1.5,
-    borderColor: COLORS.cardBorder,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 8, borderWidth: 1.5, borderColor: COLORS.cardBorder,
   },
-  cameraTabActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
+  cameraTabActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
 });

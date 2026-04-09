@@ -6,13 +6,16 @@ import {
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { COLORS, ColorScheme } from '../constants/theme';
+import { useTheme } from '../utils/ThemeContext';
 import { getFollowers, getFollowing, FollowUser } from '../utils/storage';
 import { RootStackParamList } from '../navigation/RootNavigator';
 
 type RouteParams = { userId: string; type: 'followers' | 'following' };
 
 const FollowListScreen: React.FC = () => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const route = useRoute<RouteProp<{ params: RouteParams }, 'params'>>();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { userId, type } = route.params;
@@ -79,7 +82,7 @@ const FollowListScreen: React.FC = () => {
 
 export default FollowListScreen;
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   navHeader: {

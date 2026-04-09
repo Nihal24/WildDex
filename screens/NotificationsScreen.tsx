@@ -6,7 +6,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { COLORS, ColorScheme } from '../constants/theme';
+import { useTheme } from '../utils/ThemeContext';
 import { getNotifications, markAllNotificationsRead, AppNotification } from '../utils/storage';
 
 const timeAgo = (ts: number): string => {
@@ -29,6 +30,8 @@ const notifText = (n: AppNotification): string => {
 };
 
 const NotificationsScreen: React.FC = () => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const navigation = useNavigation<any>();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,7 +100,7 @@ const NotificationsScreen: React.FC = () => {
 
 export default NotificationsScreen;
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

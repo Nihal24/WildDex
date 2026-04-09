@@ -7,7 +7,8 @@ import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { COLORS, ColorScheme } from '../constants/theme';
+import { useTheme } from '../utils/ThemeContext';
 import {
   getUserProfile, getUserFeedSightings, isFollowing, followUser, unfollowUser,
   getCurrentUserId_public, FeedSighting,
@@ -30,6 +31,8 @@ const timeAgo = (timestamp: number): string => {
 };
 
 const UserProfileScreen: React.FC = () => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const route = useRoute<RouteProp<{ params: RouteParams }, 'params'>>();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { userId } = route.params;
@@ -179,7 +182,7 @@ const UserProfileScreen: React.FC = () => {
 
 export default UserProfileScreen;
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   navHeader: {

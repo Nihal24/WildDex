@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Continent } from '../utils/claude';
-import { COLORS } from '../constants/theme';
+import { COLORS, ColorScheme } from '../constants/theme';
+import { useTheme } from '../utils/ThemeContext';
 
 // Continent name → ISO continent code used in Natural Earth data
 const CONTINENT_MAP: Record<Continent, string> = {
@@ -20,6 +21,8 @@ interface Props {
 }
 
 export const WorldMap: React.FC<Props> = ({ highlightedContinents }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const highlighted = highlightedContinents.map((c) => CONTINENT_MAP[c]);
   const highlightedJson = JSON.stringify(highlighted);
   const primaryColor = COLORS.primary;   // e.g. '#e53935'
@@ -153,7 +156,7 @@ fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   container: { width: '100%' },
   webview: { width: '100%', height: 220, borderRadius: 12, overflow: 'hidden', backgroundColor: '#0a1628' },
   legend: {

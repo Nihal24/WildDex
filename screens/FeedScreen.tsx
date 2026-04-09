@@ -7,7 +7,8 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { COLORS, ColorScheme } from '../constants/theme';
+import { useTheme } from '../utils/ThemeContext';
 import {
   getFeedSightings, getFollowingFeed, getMyFeedSightings, getLeaderboard,
   followUser, unfollowUser, getFollowingIds, getLikedSightingIds,
@@ -464,6 +465,8 @@ const LeaderboardRow = ({ entry, rank, myId, onPress }: { entry: LeaderboardEntr
 };
 
 const FeedScreen: React.FC = () => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [tab, setTab] = useState<'feed' | 'top'>('feed');
   const [feedFilter, setFeedFilter] = useState<'global' | 'following' | 'mine'>('global');
@@ -732,7 +735,7 @@ const FeedScreen: React.FC = () => {
 
 export default FeedScreen;
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
     flexDirection: 'row',

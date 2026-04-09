@@ -20,7 +20,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { COLORS, ColorScheme } from '../constants/theme';
+import { useTheme } from '../utils/ThemeContext';
 import { getSightings, getLocalSightings, Sighting, updateSightingLocation, deleteSighting } from '../utils/storage';
 import { getAnimalProfile, AnimalInfo, AnimalStats } from '../utils/claude';
 import { getRarityFromConservationStatus, RarityInfo } from '../utils/rarity';
@@ -153,6 +154,8 @@ const StatBar: React.FC<{ label: string; value: number; color: string }> = ({ la
 
 // --- Main Screen ---
 const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, navigation }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const newLabel = route?.params?.newLabel as string | undefined;
   const [newBadge, setNewBadge] = useState<Badge | null>(null);
   const badgeScaleAnim = useRef(new Animated.Value(0)).current;
@@ -623,7 +626,7 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
 
 export default WildDexScreen;
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
     flexDirection: 'row',

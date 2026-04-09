@@ -28,7 +28,8 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import Constants from 'expo-constants';
 import { useNavigation } from '@react-navigation/native';
-import { COLORS } from '../constants/theme';
+import { COLORS, ColorScheme } from '../constants/theme';
+import { useTheme } from '../utils/ThemeContext';
 import { saveSighting, getDefaultVisibility } from '../utils/storage';
 import { prefetchAnimalProfile } from '../utils/claude';
 import * as Location from 'expo-location';
@@ -60,6 +61,8 @@ const identifyAnimal = async (
 };
 
 const CameraScreen: React.FC = () => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const navigation = useNavigation<any>();
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
@@ -520,7 +523,7 @@ const CameraScreen: React.FC = () => {
 
 export default CameraScreen;
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   toast: {
     position: 'absolute',

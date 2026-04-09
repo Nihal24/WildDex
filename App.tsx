@@ -11,7 +11,7 @@ import OnboardingScreen, { ONBOARDING_KEY } from './screens/OnboardingScreen';
 import { supabase } from './utils/supabase';
 import { migrateLocalSightingsToSupabase, clearUserIdCache } from './utils/storage';
 import { initNotifications } from './utils/notifications';
-import { COLORS } from './constants/theme';
+import { ThemeProvider, useTheme } from './utils/ThemeContext';
 
 async function registerPushToken() {
   if (!Device.isDevice) return;
@@ -25,7 +25,8 @@ async function registerPushToken() {
   }
 }
 
-const App: React.FC = () => {
+const AppInner: React.FC = () => {
+  const { colors: COLORS } = useTheme();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
@@ -84,5 +85,11 @@ const App: React.FC = () => {
     </NavigationContainer>
   );
 };
+
+const App: React.FC = () => (
+  <ThemeProvider>
+    <AppInner />
+  </ThemeProvider>
+);
 
 export default App;

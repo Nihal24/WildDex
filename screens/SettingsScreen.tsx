@@ -16,7 +16,8 @@ import {
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { COLORS, ColorScheme } from '../constants/theme';
+import { useTheme } from '../utils/ThemeContext';
 import { supabase } from '../utils/supabase';
 import { getMyDisplayName, updateUsername, getDefaultVisibility, updateDefaultVisibility } from '../utils/storage';
 
@@ -29,6 +30,8 @@ const CONTINENTS = ['Africa', 'Asia', 'Europe', 'North America', 'South America'
 type ContinentOption = typeof CONTINENTS[number];
 
 const SettingsScreen: React.FC = () => {
+  const { colors: COLORS, isDark, toggleTheme } = useTheme();
+  const styles = makeStyles(COLORS);
   const navigation = useNavigation();
 
   const [username, setUsername] = useState('');
@@ -143,6 +146,16 @@ const SettingsScreen: React.FC = () => {
         <Text style={styles.sectionLabel}>PREFERENCES</Text>
         <View style={styles.card}>
           <View style={styles.row}>
+            <Ionicons name={isDark ? 'moon-outline' : 'sunny-outline'} size={19} color={COLORS.grey} />
+            <Text style={styles.rowText}>Dark Mode</Text>
+            <Switch
+              value={isDark}
+              onValueChange={toggleTheme}
+              trackColor={{ false: COLORS.cardBorder, true: COLORS.primary }}
+              thumbColor={COLORS.white}
+            />
+          </View>
+          <View style={[styles.row, styles.rowBorder]}>
             <Ionicons name="notifications-outline" size={19} color={COLORS.grey} />
             <Text style={styles.rowText}>Daily Reminder</Text>
             <Switch
@@ -230,7 +243,7 @@ const SettingsScreen: React.FC = () => {
 
 export default SettingsScreen;
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

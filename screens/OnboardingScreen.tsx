@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { COLORS } from '../constants/theme';
+import { COLORS, ColorScheme } from '../constants/theme';
+import { useTheme } from '../utils/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
@@ -17,7 +18,7 @@ const SLIDES = [
     emoji: '🦁',
     title: 'Welcome to WildDex',
     sub: 'Your personal Pokédex for the real animal kingdom!',
-    accent: COLORS.primary,
+    accent: '#A83220',
   },
   {
     id: '2',
@@ -46,6 +47,8 @@ const SLIDES = [
 ];
 
 const OnboardingScreen: React.FC<{ onDone: () => void; userId: string }> = ({ onDone, userId }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const [index, setIndex] = useState(0);
   const flatRef = useRef<FlatList>(null);
 
@@ -129,7 +132,7 @@ const OnboardingScreen: React.FC<{ onDone: () => void; userId: string }> = ({ on
 
 export default OnboardingScreen;
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,

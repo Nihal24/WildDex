@@ -4,7 +4,8 @@ import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
+import { COLORS, ColorScheme } from '../constants/theme';
+import { useTheme } from '../utils/ThemeContext';
 import { getSightings, purgeBrokenPhotoSightings, Sighting } from '../utils/storage';
 
 const formatLabel = (label: string) =>
@@ -30,6 +31,8 @@ const AnimalMarker = ({ photoUri, label, selected }: { photoUri: string; label: 
 };
 
 const ExploreScreen: React.FC = () => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const [sightings, setSightings] = useState<Sighting[]>([]);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -193,7 +196,7 @@ const ExploreScreen: React.FC = () => {
 
 export default ExploreScreen;
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
     flexDirection: 'row',
