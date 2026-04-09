@@ -2,7 +2,8 @@ import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const NOTIF_ENABLED_KEY = 'wilddex_daily_notif_enabled';
-const NOTIF_HOUR = 9; // 9am daily
+const NOTIF_HOUR_KEY = 'wilddex_daily_notif_hour';
+const DEFAULT_HOUR = 9;
 
 const MESSAGES = [
   { title: '🦁 Your WildDex is calling!', body: "Get outside — there's a wild animal waiting to be discovered!" },
@@ -24,13 +25,19 @@ Notifications.setNotificationHandler({
 
 export async function getNotificationsEnabled(): Promise<boolean> {
   const val = await AsyncStorage.getItem(NOTIF_ENABLED_KEY);
-  // Default to true if never set
   return val === null ? true : val === 'true';
 }
 
-export async function enableDailyNotification(): Promise<boolean> {
+export async function getNotificationHour(): Promise<number> {
+  const val = await AsyncStorage.getItem(NOTIF_HOUR_KEY);
+  return val !== null ? parseInt(val, 10) : DEFAULT_HOUR;
+}
+
+export async function enableDailyNotification(hour?: number): Promise<boolean> {
   const { status } = await Notifications.requestPermissionsAsync();
   if (status !== 'granted') return false;
+
+  const notifHour = hour ?? (await getNotificationHour());
 
   await Notifications.cancelAllScheduledNotificationsAsync();
 
@@ -39,13 +46,20 @@ export async function enableDailyNotification(): Promise<boolean> {
     content: { title: msg.title, body: msg.body },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: NOTIF_HOUR,
+      hour: notifHour,
       minute: 0,
     },
   });
 
   await AsyncStorage.setItem(NOTIF_ENABLED_KEY, 'true');
+  await AsyncStorage.setItem(NOTIF_HOUR_KEY, String(notifHour));
   return true;
+}
+
+export async function setNotificationHour(hour: number): Promise<void> {
+  await AsyncStorage.setItem(NOTIF_HOUR_KEY, String(hour));
+  const enabled = await getNotificationsEnabled();
+  if (enabled) await enableDailyNotification(hour);
 }
 
 export async function disableDailyNotification(): Promise<void> {
@@ -53,11 +67,9 @@ export async function disableDailyNotification(): Promise<void> {
   await AsyncStorage.setItem(NOTIF_ENABLED_KEY, 'false');
 }
 
-// Call on app startup to ensure notifications are scheduled if enabled by default
 export async function initNotifications(): Promise<void> {
   const val = await AsyncStorage.getItem(NOTIF_ENABLED_KEY);
   if (val === null) {
-    // First launch — enable by default
     await enableDailyNotification();
   }
 }

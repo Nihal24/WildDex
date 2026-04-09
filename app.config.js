@@ -13,10 +13,12 @@ export default {
     extra: {
       supabaseUrl: process.env.SUPABASE_URL,
       supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY,
+      sentryDsn: process.env.SENTRY_DSN,
       eas: { projectId: '6777bdbf-f5a4-4d86-a971-310b0a004f90' },
     },
     plugins: [
       ['expo-notifications', { icon: './assets/icon.png', color: '#A83220' }],
+      '@sentry/react-native/expo',
     ],
     android: {
       package: 'com.nihalmandava.wilddex',

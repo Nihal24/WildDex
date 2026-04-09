@@ -22,7 +22,7 @@ import { useTheme, ThemeMode } from '../utils/ThemeContext';
 import { supabase } from '../utils/supabase';
 import { getMyDisplayName, updateUsername, getDefaultVisibility, updateDefaultVisibility } from '../utils/storage';
 
-import { getNotificationsEnabled, enableDailyNotification, disableDailyNotification } from '../utils/notifications';
+import { getNotificationsEnabled, enableDailyNotification, disableDailyNotification, getNotificationHour, setNotificationHour } from '../utils/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 
@@ -41,6 +41,8 @@ const SettingsScreen: React.FC = () => {
   const [usernameLoading, setUsernameLoading] = useState(false);
 
   const [notifsEnabled, setNotifsEnabled] = useState(false);
+  const [notifHour, setNotifHour] = useState(9);
+  const [notifTimePickerVisible, setNotifTimePickerVisible] = useState(false);
   const [region, setRegion] = useState<ContinentOption | null>(null);
   const [regionPickerVisible, setRegionPickerVisible] = useState(false);
   const [defaultVisibility, setDefaultVisibility] = useState('public');
@@ -49,6 +51,7 @@ const SettingsScreen: React.FC = () => {
   useEffect(() => {
     getMyDisplayName().then((name) => { setUsername(name); setUsernameInput(name); });
     getNotificationsEnabled().then(setNotifsEnabled);
+    getNotificationHour().then(setNotifHour);
     AsyncStorage.getItem(REGION_KEY).then((v) => { if (v) setRegion(v as ContinentOption); });
     getDefaultVisibility().then(setDefaultVisibility);
   }, []);
@@ -82,6 +85,18 @@ const SettingsScreen: React.FC = () => {
     setRegion(continent);
     await AsyncStorage.setItem(REGION_KEY, continent);
     setRegionPickerVisible(false);
+  };
+
+  const formatHour = (h: number) => {
+    const suffix = h < 12 ? 'AM' : 'PM';
+    const display = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${display}:00 ${suffix}`;
+  };
+
+  const selectNotifHour = async (h: number) => {
+    setNotifHour(h);
+    setNotifTimePickerVisible(false);
+    await setNotificationHour(h);
   };
 
   const handleInvite = async () => {
@@ -175,6 +190,14 @@ const SettingsScreen: React.FC = () => {
               thumbColor={COLORS.white}
             />
           </View>
+          {notifsEnabled && (
+            <TouchableOpacity style={[styles.row, styles.rowBorder]} onPress={() => setNotifTimePickerVisible(true)}>
+              <Ionicons name="time-outline" size={19} color={COLORS.grey} />
+              <Text style={styles.rowText}>Reminder Time</Text>
+              <Text style={styles.rowValue}>{formatHour(notifHour)}</Text>
+              <Ionicons name="chevron-forward" size={14} color={COLORS.darkGrey} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={[styles.row, styles.rowBorder]} onPress={() => setRegionPickerVisible(true)}>
             <Ionicons name="globe-outline" size={19} color={COLORS.grey} />
             <Text style={styles.rowText}>Region</Text>
@@ -232,6 +255,21 @@ const SettingsScreen: React.FC = () => {
                   </Text>
                 </View>
                 {defaultVisibility === v && <Ionicons name="checkmark" size={18} color={COLORS.yellow} />}
+              </TouchableOpacity>
+            ))}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Notification time picker */}
+      <Modal visible={notifTimePickerVisible} animationType="slide" transparent presentationStyle="overFullScreen">
+        <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setNotifTimePickerVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.pickerSheet}>
+            <Text style={styles.pickerTitle}>Reminder Time</Text>
+            {[6, 7, 8, 9, 10, 12, 14, 17, 19, 21].map((h) => (
+              <TouchableOpacity key={h} style={styles.pickerRow} onPress={() => selectNotifHour(h)}>
+                <Text style={[styles.pickerOption, notifHour === h && styles.pickerOptionSelected]}>{formatHour(h)}</Text>
+                {notifHour === h && <Ionicons name="checkmark" size={18} color={COLORS.yellow} />}
               </TouchableOpacity>
             ))}
           </TouchableOpacity>

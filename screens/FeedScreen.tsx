@@ -1,8 +1,9 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, StatusBar,
   FlatList, Image, TouchableOpacity, ActivityIndicator, RefreshControl, Share,
   Modal, KeyboardAvoidingView, Platform, TextInput, Keyboard, TouchableWithoutFeedback,
+  Animated,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -41,6 +42,35 @@ const Avatar = ({ name, photoUri, size = 36 }: { name: string; photoUri?: string
       : <Text style={[styles.avatarLetter, { fontSize: size * 0.4 }]}>{name.charAt(0).toUpperCase()}</Text>
     }
   </View>
+  );
+};
+
+const CommentSkeleton = () => {
+  const { colors: COLORS } = useTheme();
+  const pulse = useRef(new Animated.Value(0.4)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.4, duration: 700, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  return (
+    <View style={{ paddingHorizontal: 16, gap: 16, paddingTop: 8 }}>
+      {[1, 2, 3].map((i) => (
+        <Animated.View key={i} style={{ flexDirection: 'row', gap: 10, opacity: pulse }}>
+          <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.cardBorder }} />
+          <View style={{ flex: 1, gap: 6 }}>
+            <View style={{ width: '30%', height: 10, borderRadius: 5, backgroundColor: COLORS.cardBorder }} />
+            <View style={{ width: '80%', height: 10, borderRadius: 5, backgroundColor: COLORS.cardBorder }} />
+            <View style={{ width: '50%', height: 10, borderRadius: 5, backgroundColor: COLORS.cardBorder }} />
+          </View>
+        </Animated.View>
+      ))}
+    </View>
   );
 };
 
@@ -124,9 +154,7 @@ const CommentsModal = ({
             <TouchableOpacity onPress={onClose}><Ionicons name="close" size={22} color={COLORS.grey} /></TouchableOpacity>
           </View>
           {loading ? (
-            <View style={styles.modalCenter}>
-              <ActivityIndicator color={COLORS.yellow} />
-            </View>
+            <CommentSkeleton />
           ) : comments.length === 0 ? (
             <View style={styles.modalCenter}>
               <Text style={styles.noComments}>No comments yet. Be the first!</Text>

@@ -5,6 +5,8 @@ import { Session } from '@supabase/supabase-js';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Sentry from '@sentry/react-native';
+import Constants from 'expo-constants';
 import RootNavigator from './navigation/RootNavigator';
 import AuthScreen from './screens/AuthScreen';
 import OnboardingScreen, { ONBOARDING_KEY } from './screens/OnboardingScreen';
@@ -13,9 +15,17 @@ import { migrateLocalSightingsToSupabase, clearUserIdCache } from './utils/stora
 import { initNotifications } from './utils/notifications';
 import { ThemeProvider, useTheme } from './utils/ThemeContext';
 
+const sentryDsn = Constants.expoConfig?.extra?.sentryDsn;
+if (sentryDsn) {
+  Sentry.init({ dsn: sentryDsn, tracesSampleRate: 0.2 });
+}
+
 class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
   state = { hasError: false };
   static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    if (sentryDsn) Sentry.captureException(error, { extra: { componentStack: info.componentStack } });
+  }
   render() {
     if (this.state.hasError) {
       return (
