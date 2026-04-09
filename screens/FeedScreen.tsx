@@ -667,9 +667,19 @@ const FeedScreen: React.FC = () => {
             <View style={styles.center}>
               <Ionicons name="leaf-outline" size={48} color={COLORS.darkGrey} />
               <Text style={styles.emptyTitle}>
-                {feedFilter === 'following' ? 'Follow someone to see their sightings' : feedFilter === 'mine' ? 'No sightings yet' : 'No sightings yet'}
+                {feedFilter === 'following'
+                  ? 'No sightings from people you follow'
+                  : feedFilter === 'mine'
+                  ? 'No sightings yet'
+                  : 'No sightings yet'}
               </Text>
-              <Text style={styles.emptySub}>Be the first to spot something!</Text>
+              <Text style={styles.emptySub}>
+                {feedFilter === 'following'
+                  ? 'Find people to follow in the Top Spotters tab'
+                  : feedFilter === 'mine'
+                  ? 'Identify an animal to log your first sighting'
+                  : 'Be the first to spot something!'}
+              </Text>
             </View>
           ) : (
             <>

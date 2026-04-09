@@ -9,6 +9,7 @@ import {
   ScrollView,
   Alert,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,6 +34,7 @@ const ProfileScreen: React.FC = () => {
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [myId, setMyId] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   useFocusEffect(useCallback(() => {
     getMyDisplayName().then(setUsername);
@@ -71,6 +73,7 @@ const ProfileScreen: React.FC = () => {
   };
 
   const uploadAvatar = async (uri: string) => {
+    setAvatarUploading(true);
     try {
       const userId = (await supabase.auth.getUser()).data.user?.id;
       if (!userId) return;
@@ -84,6 +87,8 @@ const ProfileScreen: React.FC = () => {
       setAvatarUrl(data.publicUrl);
     } catch (e: any) {
       Alert.alert('Upload failed', e.message);
+    } finally {
+      setAvatarUploading(false);
     }
   };
 
@@ -105,9 +110,11 @@ const ProfileScreen: React.FC = () => {
 
         {/* Hero card */}
         <View style={styles.heroCard}>
-          <TouchableOpacity onPress={pickAvatar} style={styles.avatarWrapper}>
+          <TouchableOpacity onPress={pickAvatar} style={styles.avatarWrapper} disabled={avatarUploading}>
             <View style={styles.avatarCircle}>
-              {avatarUrl
+              {avatarUploading
+                ? <ActivityIndicator color={COLORS.white} />
+                : avatarUrl
                 ? <Image source={{ uri: avatarUrl }} style={{ width: 84, height: 84, borderRadius: 42 }} resizeMode="cover" />
                 : <Text style={styles.avatarLetter}>{avatarLetter}</Text>
               }

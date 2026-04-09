@@ -18,7 +18,7 @@ const CatchScreen: React.FC = () => {
   const styles = makeStyles(COLORS);
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { label, photoUri } = route.params;
+  const { label, photoUri } = route.params ?? {};
 
   const [isNew, setIsNew] = useState(false);
   const [speciesCount, setSpeciesCount] = useState(0);

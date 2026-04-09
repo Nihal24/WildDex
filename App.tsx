@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, Platform } from 'react-native';
+import React, { useEffect, useState, Component } from 'react';
+import { View, ActivityIndicator, Platform, Text, TouchableOpacity } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { Session } from '@supabase/supabase-js';
 import * as Notifications from 'expo-notifications';
@@ -12,6 +12,29 @@ import { supabase } from './utils/supabase';
 import { migrateLocalSightingsToSupabase, clearUserIdCache } from './utils/storage';
 import { initNotifications } from './utils/notifications';
 import { ThemeProvider, useTheme } from './utils/ThemeContext';
+
+class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0D0505', padding: 32, gap: 16 }}>
+          <Text style={{ fontSize: 48 }}>🐾</Text>
+          <Text style={{ color: '#F5ECD7', fontSize: 20, fontWeight: '800', textAlign: 'center' }}>Something went wrong</Text>
+          <Text style={{ color: '#8A6060', fontSize: 14, textAlign: 'center' }}>Please restart WildDex to continue.</Text>
+          <TouchableOpacity
+            onPress={() => this.setState({ hasError: false })}
+            style={{ backgroundColor: '#CC0000', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 32, marginTop: 8 }}
+          >
+            <Text style={{ color: '#F5ECD7', fontWeight: '700', fontSize: 15 }}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 async function registerPushToken() {
   if (!Device.isDevice) return;
@@ -87,9 +110,13 @@ const AppInner: React.FC = () => {
 };
 
 const App: React.FC = () => (
-  <ThemeProvider>
-    <AppInner />
-  </ThemeProvider>
+  <ErrorBoundary>
+    <ThemeProvider>
+      <ErrorBoundary>
+        <AppInner />
+      </ErrorBoundary>
+    </ThemeProvider>
+  </ErrorBoundary>
 );
 
 export default App;

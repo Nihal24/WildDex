@@ -34,6 +34,18 @@ export default {
         NSPhotoLibraryUsageDescription: 'WildDex needs photo access to set your profile picture.',
         NSCameraUsageDescription: 'WildDex uses your camera to identify and photograph animals.',
         NSPhotoLibraryAddUsageDescription: 'WildDex saves your sighting cards to Photos.',
+        NSPrivacyTracking: false,
+        NSPrivacyTrackingDomains: [],
+        NSPrivacyAccessedAPITypes: [
+          {
+            NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryUserDefaults',
+            NSPrivacyAccessedAPITypeReasons: ['CA92.1'],
+          },
+          {
+            NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryFileTimestamp',
+            NSPrivacyAccessedAPITypeReasons: ['C617.1'],
+          },
+        ],
       },
     },
   },

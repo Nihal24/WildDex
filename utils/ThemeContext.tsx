@@ -30,10 +30,12 @@ function colorsForTheme(t: ThemeMode): ColorScheme {
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<ThemeMode>('pokedex');
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(THEME_KEY).then((v) => {
       if (v === 'light' || v === 'dark' || v === 'pokedex') setThemeState(v);
+      setReady(true);
     });
   }, []);
 
@@ -43,6 +45,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
+
+  if (!ready) return null;
 
   return (
     <ThemeContext.Provider value={{ colors: colorsForTheme(theme), theme, isDark: theme === 'dark', setTheme, toggleTheme }}>

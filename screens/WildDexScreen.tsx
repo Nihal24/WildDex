@@ -415,6 +415,10 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
             keyExtractor={(item) => item.label}
             numColumns={3}
             contentContainerStyle={styles.grid}
+            windowSize={8}
+            removeClippedSubviews
+            maxToRenderPerBatch={12}
+            initialNumToRender={18}
             renderItem={({ item }) => (
               <DiscoveredCard
                 label={item.label}
@@ -439,6 +443,10 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
           data={sightings.filter(s => s.label.replace(/_/g, ' ').toLowerCase().includes(searchQuery.toLowerCase()))}
           keyExtractor={(_, i) => String(i)}
           contentContainerStyle={styles.list}
+          windowSize={8}
+          removeClippedSubviews
+          maxToRenderPerBatch={10}
+          initialNumToRender={15}
           renderItem={({ item }) => <SightingRow item={item} onEdit={() => { setEditingSighting(item); setEditSearch(item.location ?? ''); setEditSuggestions([]); }} onDelete={() => handleDelete(item.photoUri, item.timestamp)} />}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />

@@ -13,6 +13,7 @@ import {
   Share,
   TextInput,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -194,6 +195,11 @@ const SettingsScreen: React.FC = () => {
           <TouchableOpacity style={styles.row} onPress={handleInvite}>
             <Ionicons name="person-add-outline" size={19} color={COLORS.grey} />
             <Text style={styles.rowText}>Invite Friends</Text>
+            <Ionicons name="chevron-forward" size={14} color={COLORS.darkGrey} />
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.row, styles.rowBorder]} onPress={() => Linking.openURL('https://wilddex.app/privacy')}>
+            <Ionicons name="shield-checkmark-outline" size={19} color={COLORS.grey} />
+            <Text style={styles.rowText}>Privacy Policy</Text>
             <Ionicons name="chevron-forward" size={14} color={COLORS.darkGrey} />
           </TouchableOpacity>
           <TouchableOpacity style={[styles.row, styles.rowBorder]} onPress={handleLogout}>
