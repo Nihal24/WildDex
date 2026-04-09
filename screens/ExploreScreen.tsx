@@ -185,13 +185,6 @@ const ExploreScreen: React.FC = () => {
         </View>
       )}
 
-      {!loading && located.length === 0 && (
-        <View style={styles.emptyOverlay}>
-          <Ionicons name="location-outline" size={48} color={COLORS.darkGrey} />
-          <Text style={styles.emptyTitle}>No pins yet</Text>
-          <Text style={styles.emptySub}>Identify an animal to drop a pin on the map</Text>
-        </View>
-      )}
     </SafeAreaView>
   );
 };
@@ -230,8 +223,7 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
     justifyContent: 'center',
   },
   zoomDivider: { height: 1, backgroundColor: COLORS.cardBorder },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyOverlay: { position: 'absolute', bottom: 80, left: 0, right: 0, alignItems: 'center', gap: 8 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: COLORS.white },
   emptySub: { fontSize: 13, color: COLORS.grey, textAlign: 'center', paddingHorizontal: 40 },
   markerContainer: { alignItems: 'center' },

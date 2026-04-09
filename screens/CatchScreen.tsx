@@ -142,6 +142,7 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
+    marginTop: 8,
   },
   loggedText: {
     color: '#4CAF50',
