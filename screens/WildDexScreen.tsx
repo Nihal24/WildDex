@@ -172,7 +172,6 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
   const styles = makeStyles(COLORS);
   const newLabel = route?.params?.newLabel as string | undefined;
   const [newBadge, setNewBadge] = useState<Badge | null>(null);
-  const badgeScaleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!newLabel) return;
@@ -181,11 +180,6 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
     }, 7200);
     return () => clearTimeout(timer);
   }, [newLabel]);
-
-  useEffect(() => {
-    if (!newBadge) return;
-    Animated.spring(badgeScaleAnim, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true }).start();
-  }, [newBadge]);
   const [tab, setTab] = useState<'collection' | 'sightings'>('collection');
   const [searchQuery, setSearchQuery] = useState('');
   const [collectionSpecies, setCollectionSpecies] = useState<{ label: string; photoUri: string; number: string }[]>([]);
@@ -248,14 +242,13 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
       }).length;
       const badgeCount = Math.max(newCount, localCount);
 
-      const shownRaw = await AsyncStorage.getItem('wilddex_shown_badges_v2');
+      const shownRaw = await AsyncStorage.getItem('wilddex_shown_badges_v3');
       const shown: string[] = shownRaw ? JSON.parse(shownRaw) : [];
       const earned = getEarnedBadges(badgeCount).find(b => !shown.includes(b.id));
       console.log('[Badge] count:', badgeCount, 'shown:', shown, 'earned:', earned?.id ?? 'none');
       if (earned) {
-        badgeScaleAnim.setValue(0);
         setNewBadge(earned);
-        await AsyncStorage.setItem('wilddex_shown_badges_v2', JSON.stringify([...shown, earned.id]));
+        await AsyncStorage.setItem('wilddex_shown_badges_v3', JSON.stringify([...shown, earned.id]));
       }
     }
 
@@ -507,7 +500,7 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
       {/* Badge Earned Modal */}
       <Modal visible={!!newBadge} transparent animationType="fade">
         <View style={styles.badgeOverlay}>
-          <Animated.View style={[styles.badgeCard, { transform: [{ scale: badgeScaleAnim }] }]}>
+          <View style={styles.badgeCard}>
             <Text style={styles.badgeEarnedLabel}>BADGE EARNED</Text>
             <Text style={styles.badgeEmoji}>{newBadge?.emoji}</Text>
             <Text style={styles.badgeName}>{newBadge?.label}</Text>
@@ -519,7 +512,7 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
             >
               <Text style={styles.badgeBtnText}>Awesome!</Text>
             </TouchableOpacity>
-          </Animated.View>
+          </View>
         </View>
       </Modal>
 
