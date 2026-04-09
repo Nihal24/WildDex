@@ -248,13 +248,14 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
       }).length;
       const badgeCount = Math.max(newCount, localCount);
 
-      const shownRaw = await AsyncStorage.getItem('wilddex_shown_badges');
+      const shownRaw = await AsyncStorage.getItem('wilddex_shown_badges_v2');
       const shown: string[] = shownRaw ? JSON.parse(shownRaw) : [];
       const earned = getEarnedBadges(badgeCount).find(b => !shown.includes(b.id));
+      console.log('[Badge] count:', badgeCount, 'shown:', shown, 'earned:', earned?.id ?? 'none');
       if (earned) {
         badgeScaleAnim.setValue(0);
         setNewBadge(earned);
-        await AsyncStorage.setItem('wilddex_shown_badges', JSON.stringify([...shown, earned.id]));
+        await AsyncStorage.setItem('wilddex_shown_badges_v2', JSON.stringify([...shown, earned.id]));
       }
     }
 
