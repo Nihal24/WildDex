@@ -33,19 +33,25 @@ const formatLabel = (label: string) =>
   label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
 // --- Segmented Control ---
-const SegmentedControl: React.FC<{ active: 'collection' | 'sightings'; onChange: (v: 'collection' | 'sightings') => void }> = ({ active, onChange }) => (
-  <View style={styles.segmentWrapper}>
-    <TouchableOpacity style={[styles.segment, active === 'collection' && styles.segmentActive]} onPress={() => onChange('collection')}>
-      <Text style={[styles.segmentText, active === 'collection' && styles.segmentTextActive]}>Collection</Text>
-    </TouchableOpacity>
-    <TouchableOpacity style={[styles.segment, active === 'sightings' && styles.segmentActive]} onPress={() => onChange('sightings')}>
-      <Text style={[styles.segmentText, active === 'sightings' && styles.segmentTextActive]}>Sightings</Text>
-    </TouchableOpacity>
-  </View>
-);
+const SegmentedControl: React.FC<{ active: 'collection' | 'sightings'; onChange: (v: 'collection' | 'sightings') => void }> = ({ active, onChange }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
+  return (
+    <View style={styles.segmentWrapper}>
+      <TouchableOpacity style={[styles.segment, active === 'collection' && styles.segmentActive]} onPress={() => onChange('collection')}>
+        <Text style={[styles.segmentText, active === 'collection' && styles.segmentTextActive]}>Collection</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={[styles.segment, active === 'sightings' && styles.segmentActive]} onPress={() => onChange('sightings')}>
+        <Text style={[styles.segmentText, active === 'sightings' && styles.segmentTextActive]}>Sightings</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 // --- Discovered Card ---
 const DiscoveredCard: React.FC<{ label: string; photoUri: string; number: string; rarityColor?: string; glow?: boolean; onPress: () => void }> = ({ label, photoUri, number, rarityColor, glow, onPress }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const glowAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -80,6 +86,8 @@ const DiscoveredCard: React.FC<{ label: string; photoUri: string; number: string
 
 // --- Sighting Row ---
 const SightingRow: React.FC<{ item: Sighting; onEdit: () => void; onDelete: () => void }> = ({ item, onEdit, onDelete }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const [photoExists, setPhotoExists] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -116,15 +124,19 @@ const SightingRow: React.FC<{ item: Sighting; onEdit: () => void; onDelete: () =
 };
 
 // --- Info Row for Detail Modal ---
-const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: string }) => (
-  <View style={styles.infoRow}>
-    <Ionicons name={icon as any} size={18} color={COLORS.yellow} style={styles.infoIcon} />
-    <View style={styles.infoText}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
+const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: string }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
+  return (
+    <View style={styles.infoRow}>
+      <Ionicons name={icon as any} size={18} color={COLORS.yellow} style={styles.infoIcon} />
+      <View style={styles.infoText}>
+        <Text style={styles.infoLabel}>{label}</Text>
+        <Text style={styles.infoValue}>{value}</Text>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 // --- Pokémon Stat Bar ---
 const STAT_CONFIG: { key: keyof AnimalStats; label: string; color: string }[] = [
@@ -137,6 +149,8 @@ const STAT_CONFIG: { key: keyof AnimalStats; label: string; color: string }[] = 
 ];
 
 const StatBar: React.FC<{ label: string; value: number; color: string }> = ({ label, value, color }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(anim, { toValue: value / 100, duration: 600, useNativeDriver: false }).start();

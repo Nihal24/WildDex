@@ -11,6 +11,19 @@ export const DARK_COLORS = {
   undiscovered: '#0A0703',
 };
 
+export const POKEDEX_COLORS = {
+  background: '#0D0505',
+  card: '#1A0808',
+  cardBorder: '#6B1515',
+  primary: '#CC0000',
+  yellow: '#FFCB05',
+  amber: '#F5A623',
+  white: '#F5ECD7',
+  grey: '#8A6060',
+  darkGrey: '#3D1818',
+  undiscovered: '#080303',
+};
+
 export const LIGHT_COLORS = {
   background: '#E8E0D8',
   card: '#F2EDE8',

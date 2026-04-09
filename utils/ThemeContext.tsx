@@ -1,38 +1,51 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DARK_COLORS, LIGHT_COLORS, ColorScheme } from '../constants/theme';
+import { DARK_COLORS, LIGHT_COLORS, POKEDEX_COLORS, ColorScheme } from '../constants/theme';
 
 const THEME_KEY = 'wilddex_theme';
 
+export type ThemeMode = 'dark' | 'light' | 'pokedex';
+
 interface ThemeContextValue {
   colors: ColorScheme;
+  theme: ThemeMode;
   isDark: boolean;
+  setTheme: (t: ThemeMode) => void;
   toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  colors: DARK_COLORS,
-  isDark: true,
+  colors: POKEDEX_COLORS,
+  theme: 'pokedex',
+  isDark: false,
+  setTheme: () => {},
   toggleTheme: () => {},
 });
 
+function colorsForTheme(t: ThemeMode): ColorScheme {
+  if (t === 'light') return LIGHT_COLORS;
+  if (t === 'pokedex') return POKEDEX_COLORS;
+  return DARK_COLORS;
+}
+
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isDark, setIsDark] = useState(true);
+  const [theme, setThemeState] = useState<ThemeMode>('pokedex');
 
   useEffect(() => {
     AsyncStorage.getItem(THEME_KEY).then((v) => {
-      if (v === 'light') setIsDark(false);
+      if (v === 'light' || v === 'dark' || v === 'pokedex') setThemeState(v);
     });
   }, []);
 
-  const toggleTheme = () => {
-    const next = !isDark;
-    setIsDark(next);
-    AsyncStorage.setItem(THEME_KEY, next ? 'dark' : 'light');
+  const setTheme = (t: ThemeMode) => {
+    setThemeState(t);
+    AsyncStorage.setItem(THEME_KEY, t);
   };
 
+  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
+
   return (
-    <ThemeContext.Provider value={{ colors: isDark ? DARK_COLORS : LIGHT_COLORS, isDark, toggleTheme }}>
+    <ThemeContext.Provider value={{ colors: colorsForTheme(theme), theme, isDark: theme === 'dark', setTheme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

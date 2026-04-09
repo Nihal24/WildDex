@@ -21,15 +21,19 @@ interface Props {
   navigation: any;
 }
 
-const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: string }) => (
-  <View style={styles.infoRow}>
-    <Ionicons name={icon as any} size={18} color={COLORS.yellow} style={styles.infoIcon} />
-    <View style={styles.infoText}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
+const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: string }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
+  return (
+    <View style={styles.infoRow}>
+      <Ionicons name={icon as any} size={18} color={COLORS.yellow} style={styles.infoIcon} />
+      <View style={styles.infoText}>
+        <Text style={styles.infoLabel}>{label}</Text>
+        <Text style={styles.infoValue}>{value}</Text>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 const AnimalDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { colors: COLORS } = useTheme();

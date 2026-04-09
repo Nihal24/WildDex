@@ -52,7 +52,7 @@ const RootNavigator: React.FC = () => (
     <Stack.Screen
       name="Catch"
       component={CatchScreen}
-      options={{ presentation: 'card', animation: 'fade' }}
+      options={{ presentation: 'transparentModal', animation: 'fade' }}
     />
     <Stack.Screen
       name="AnimalDetail"

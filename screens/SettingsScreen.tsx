@@ -17,7 +17,7 @@ import {
 
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, ColorScheme } from '../constants/theme';
-import { useTheme } from '../utils/ThemeContext';
+import { useTheme, ThemeMode } from '../utils/ThemeContext';
 import { supabase } from '../utils/supabase';
 import { getMyDisplayName, updateUsername, getDefaultVisibility, updateDefaultVisibility } from '../utils/storage';
 
@@ -30,7 +30,7 @@ const CONTINENTS = ['Africa', 'Asia', 'Europe', 'North America', 'South America'
 type ContinentOption = typeof CONTINENTS[number];
 
 const SettingsScreen: React.FC = () => {
-  const { colors: COLORS, isDark, toggleTheme } = useTheme();
+  const { colors: COLORS, theme, setTheme } = useTheme();
   const styles = makeStyles(COLORS);
   const navigation = useNavigation();
 
@@ -145,15 +145,24 @@ const SettingsScreen: React.FC = () => {
         {/* Preferences */}
         <Text style={styles.sectionLabel}>PREFERENCES</Text>
         <View style={styles.card}>
-          <View style={styles.row}>
-            <Ionicons name={isDark ? 'moon-outline' : 'sunny-outline'} size={19} color={COLORS.grey} />
-            <Text style={styles.rowText}>Dark Mode</Text>
-            <Switch
-              value={isDark}
-              onValueChange={toggleTheme}
-              trackColor={{ false: COLORS.cardBorder, true: COLORS.primary }}
-              thumbColor={COLORS.white}
-            />
+          <View style={[styles.row, { flexDirection: 'column', alignItems: 'flex-start', gap: 10 }]}>
+            <Text style={styles.rowText}>Theme</Text>
+            <View style={styles.themeSelector}>
+              {([
+                { id: 'dark', label: 'Dark', icon: 'moon-outline' },
+                { id: 'light', label: 'Light', icon: 'sunny-outline' },
+                { id: 'pokedex', label: 'Pokédex', icon: 'game-controller-outline' },
+              ] as { id: ThemeMode; label: string; icon: string }[]).map(({ id, label, icon }) => (
+                <TouchableOpacity
+                  key={id}
+                  style={[styles.themeOption, theme === id && styles.themeOptionActive]}
+                  onPress={() => setTheme(id)}
+                >
+                  <Ionicons name={icon as any} size={16} color={theme === id ? COLORS.white : COLORS.grey} />
+                  <Text style={[styles.themeOptionText, theme === id && styles.themeOptionTextActive]}>{label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
           <View style={[styles.row, styles.rowBorder]}>
             <Ionicons name="notifications-outline" size={19} color={COLORS.grey} />
@@ -273,6 +282,35 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   cancelBtnText: { color: COLORS.grey, fontWeight: '600' },
   saveBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: COLORS.primary, alignItems: 'center' },
   saveBtnText: { color: COLORS.white, fontWeight: '700' },
+  themeSelector: {
+    flexDirection: 'row',
+    gap: 8,
+    width: '100%',
+  },
+  themeOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    backgroundColor: COLORS.background,
+  },
+  themeOptionActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  themeOptionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.grey,
+  },
+  themeOptionTextActive: {
+    color: COLORS.white,
+  },
   pickerOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
   pickerSheet: { backgroundColor: COLORS.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 4 },
   pickerTitle: { fontSize: 18, fontWeight: '800', color: COLORS.white, textAlign: 'center', marginBottom: 12 },

@@ -76,16 +76,6 @@ const UserProfileScreen: React.FC = () => {
   const earnedBadges = getEarnedBadges(profile?.speciesCount ?? 0);
   const nextBadge = getNextBadge(profile?.speciesCount ?? 0);
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.center}>
-          <ActivityIndicator color={COLORS.yellow} size="large" />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   const listHeader = useMemo(() => (
     <View>
       <View style={styles.profileHeader}>
@@ -142,6 +132,16 @@ const UserProfileScreen: React.FC = () => {
       <Text style={styles.sightingsLabel}>SIGHTINGS</Text>
     </View>
   ), [profile, following, followLoading, isOwnProfile, userId, navigation]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.center}>
+          <ActivityIndicator color={COLORS.yellow} size="large" />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>

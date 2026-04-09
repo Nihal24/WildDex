@@ -16,15 +16,19 @@ import { COLORS, ColorScheme } from '../constants/theme';
 import { useTheme } from '../utils/ThemeContext';
 import { getAnimalProfile, AnimalInfo } from '../utils/claude';
 
-const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: string }) => (
-  <View style={styles.infoRow}>
-    <Ionicons name={icon as any} size={18} color={COLORS.yellow} style={styles.infoIcon} />
-    <View style={styles.infoText}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
+const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: string }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
+  return (
+    <View style={styles.infoRow}>
+      <Ionicons name={icon as any} size={18} color={COLORS.yellow} style={styles.infoIcon} />
+      <View style={styles.infoText}>
+        <Text style={styles.infoLabel}>{label}</Text>
+        <Text style={styles.infoValue}>{value}</Text>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 const InfoModal: React.FC = () => {
   const { colors: COLORS } = useTheme();

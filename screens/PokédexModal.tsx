@@ -26,7 +26,7 @@ const STATS: { key: keyof AnimalStats; label: string; color: string }[] = [
   { key: 'special_defense',label: 'SP.DEF', color: '#34d399' },
 ];
 
-function StatBar({ label, value, color }: { label: string; value: number; color: string }) {
+function StatBar({ label, value, color, styles }: { label: string; value: number; color: string; styles: ReturnType<typeof makeStyles> }) {
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -104,6 +104,7 @@ const PokédexModal: React.FC = () => {
                     label={lbl}
                     value={info.stats![key] ?? 0}
                     color={color}
+                    styles={styles}
                   />
                 ))}
                 <Text style={styles.statsFooter}>

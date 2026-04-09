@@ -12,6 +12,8 @@ const formatLabel = (label: string) =>
   label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
 const AnimalMarker = ({ photoUri, label, selected }: { photoUri: string; label: string; selected: boolean }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const [failed, setFailed] = React.useState(false);
   const initials = label.split('_').map((w) => w[0]?.toUpperCase()).join('').slice(0, 2);
   return (

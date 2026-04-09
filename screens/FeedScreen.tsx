@@ -31,14 +31,18 @@ const timeAgo = (timestamp: number): string => {
   return days < 7 ? `${days}d ago` : new Date(timestamp).toLocaleDateString();
 };
 
-const Avatar = ({ name, photoUri, size = 36 }: { name: string; photoUri?: string; size?: number }) => (
+const Avatar = ({ name, photoUri, size = 36 }: { name: string; photoUri?: string; size?: number }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
+  return (
   <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }]}>
     {photoUri
       ? <Image source={{ uri: photoUri }} style={{ width: size, height: size, borderRadius: size / 2 }} resizeMode="cover" />
       : <Text style={[styles.avatarLetter, { fontSize: size * 0.4 }]}>{name.charAt(0).toUpperCase()}</Text>
     }
   </View>
-);
+  );
+};
 
 const CommentsModal = ({
   sightingId,
@@ -53,6 +57,8 @@ const CommentsModal = ({
   onClose: () => void;
   onCommentCountChange: (delta: number) => void;
 }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const [comments, setComments] = useState<Comment[]>([]);
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
@@ -190,6 +196,8 @@ const FeedCard = ({
   onCommentPress: () => void;
   onMenuPress?: () => void;
 }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const isOwn = item.userId === myId;
   const isFollowed = followingIds.has(item.userId);
   const [localLiked, setLocalLiked] = useState(likedIds.has(item.sightingId));
@@ -313,6 +321,8 @@ const PostMenuSheet = ({
   onEditCaption: () => void;
   onChangeVisibility: (v: 'public' | 'followers' | 'private') => void;
 }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const [page, setPage] = useState<'main' | 'audience'>('main');
 
   useEffect(() => { if (visible) setPage('main'); }, [visible]);
@@ -391,6 +401,8 @@ const CaptionEditModal = ({
   onClose: () => void;
   onSaved: (sightingId: string, caption: string) => void;
 }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const [text, setText] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -443,6 +455,8 @@ const CaptionEditModal = ({
 };
 
 const LeaderboardRow = ({ entry, rank, myId, onPress }: { entry: LeaderboardEntry; rank: number; myId: string | null; onPress: () => void }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null;
   const isMe = entry.userId === myId;
   return (

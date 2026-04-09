@@ -348,10 +348,6 @@ const CameraScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <Animated.View style={[styles.toast, { transform: [{ translateY: toastY }] }]} pointerEvents="none">
-        <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
-        <Text style={styles.toastText}>{toastLabel} added to WildDex!</Text>
-      </Animated.View>
 
       {capturedPhoto ? (
         <KeyboardAvoidingView
@@ -402,12 +398,6 @@ const CameraScreen: React.FC = () => {
                       <Text style={styles.unrecognizedLabel}>API Error</Text>
                       <Text style={styles.unrecognizedSub} numberOfLines={3}>{prediction.label}</Text>
                     </View>
-                  </View>
-                )}
-                {saved && (
-                  <View style={styles.savedBadge}>
-                    <Ionicons name="checkmark-circle" size={16} color={COLORS.yellow} />
-                    <Text style={styles.savedText}>Added to WildDex</Text>
                   </View>
                 )}
                 {pendingSighting && !saved && (

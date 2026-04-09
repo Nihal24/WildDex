@@ -4,28 +4,25 @@ import {
   Text,
   StyleSheet,
   Image,
-  SafeAreaView,
   TouchableOpacity,
   Animated,
-  StatusBar,
-  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { COLORS, ColorScheme } from '../constants/theme';
+import { ColorScheme } from '../constants/theme';
 import { useTheme } from '../utils/ThemeContext';
 import { getSightings } from '../utils/storage';
 
-const { height } = Dimensions.get('window');
-
 const CatchScreen: React.FC = () => {
-  const { colors: COLORS } = useTheme();
+  const { colors: COLORS, theme } = useTheme();
   const styles = makeStyles(COLORS);
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { label, photoUri } = route.params;
 
   const [isNew, setIsNew] = useState(false);
+  const [speciesCount, setSpeciesCount] = useState(0);
+  const [thisSpeciesCount, setThisSpeciesCount] = useState(1);
 
   const displayName = label
     .split('_')
@@ -33,140 +30,159 @@ const CatchScreen: React.FC = () => {
     .join(' ');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(32)).current;
+  const scaleAnim = useRef(new Animated.Value(0.88)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
-      Animated.spring(slideAnim, { toValue: 0, friction: 9, tension: 60, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, friction: 8, tension: 70, useNativeDriver: true }),
     ]).start();
 
-    // Check if this is the first ever sighting of this species
     getSightings().then((sightings) => {
-      const count = sightings.filter((s) => s.label === label).length;
-      setIsNew(count === 1);
+      const forThisSpecies = sightings.filter((s) => s.label === label).length;
+      setIsNew(forThisSpecies === 1);
+      setThisSpeciesCount(forThisSpecies);
+      setSpeciesCount(new Set(sightings.map((s) => s.label)).size);
     });
   }, []);
 
+  const dismiss = () => navigation.goBack();
+
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
+    <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
+      {/* Tap outside to dismiss */}
+      <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={dismiss} />
 
-      {/* Back button */}
-      <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-        <Ionicons name="arrow-back" size={22} color={COLORS.grey} />
-      </TouchableOpacity>
-
-      {/* Photo */}
-      <View style={styles.photoWrapper}>
+      <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
+        {/* Photo */}
         <Image source={{ uri: photoUri }} style={styles.photo} resizeMode="cover" />
-        <View style={styles.photoBadge}>
-          <Ionicons name="checkmark-circle" size={15} color="#4CAF50" />
-          <Text style={styles.photoBadgeText}>LOGGED TO WILDDEX</Text>
-        </View>
-      </View>
 
-      {/* Info */}
-      <Animated.View style={[styles.info, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-        {isNew && (
-          <View style={styles.discoveryBadge}>
-            <Ionicons name="star" size={12} color={COLORS.yellow} />
-            <Text style={styles.discoveryText}>NEW DISCOVERY</Text>
-          </View>
-        )}
-
-        <Text style={styles.name}>{displayName}</Text>
-
-        <TouchableOpacity
-          style={styles.learnMoreBtn}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate('InfoModal', { label, photoUri })}
-        >
-          <Text style={styles.learnMoreBtnText}>Learn More</Text>
-          <Ionicons name="arrow-forward" size={18} color={COLORS.white} />
+        {/* Close button */}
+        <TouchableOpacity style={styles.closeBtn} onPress={dismiss}>
+          <Ionicons name="close" size={18} color={COLORS.white} />
         </TouchableOpacity>
+
+        {/* Body */}
+        <View style={styles.body}>
+          {isNew && (
+            <View style={styles.discoveryBadge}>
+              <Ionicons name="star" size={11} color={COLORS.yellow} />
+              <Text style={styles.discoveryText}>NEW DISCOVERY</Text>
+            </View>
+          )}
+
+          <Text style={styles.name}>
+            {theme === 'pokedex' ? `A wild ${displayName} appeared!` : `You found a ${displayName}!`}
+          </Text>
+
+          <View style={styles.loggedBadge}>
+            <Ionicons name="checkmark-circle" size={13} color="#4CAF50" />
+            <Text style={styles.loggedText}>Logged to WildDex</Text>
+          </View>
+
+          <Text style={styles.statsLine}>
+            Spotted {thisSpeciesCount}×{'  ·  '}{speciesCount} species in Dex
+          </Text>
+
+          <TouchableOpacity
+            style={styles.learnMoreBtn}
+            activeOpacity={0.85}
+            onPress={() => {
+              navigation.goBack();
+              setTimeout(() => navigation.navigate('InfoModal', { label, photoUri }), 300);
+            }}
+          >
+            <Text style={styles.learnMoreBtnText}>Learn More</Text>
+            <Ionicons name="arrow-forward" size={17} color={COLORS.white} />
+          </TouchableOpacity>
+        </View>
       </Animated.View>
-    </SafeAreaView>
+    </Animated.View>
   );
 };
 
 export default CatchScreen;
 
 const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  backBtn: {
-    position: 'absolute',
-    top: 56,
-    left: 16,
-    zIndex: 10,
-    padding: 8,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    borderRadius: 20,
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 28,
   },
-  photoWrapper: {
-    height: height * 0.52,
-    position: 'relative',
+  card: {
+    width: '100%',
+    backgroundColor: COLORS.card,
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
   photo: {
     width: '100%',
-    height: '100%',
+    height: 220,
   },
-  photoBadge: {
+  closeBtn: {
     position: 'absolute',
-    bottom: 14,
-    alignSelf: 'center',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 16,
+    padding: 6,
+  },
+  body: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 28,
+    gap: 8,
+  },
+  loggedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(0,0,0,0.72)',
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: '#4CAF50' + '60',
+    gap: 5,
   },
-  photoBadgeText: {
+  loggedText: {
     color: '#4CAF50',
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
-  info: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-    gap: 12,
+    fontSize: 13,
+    fontWeight: '600',
   },
   discoveryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     backgroundColor: COLORS.yellow + '18',
     borderRadius: 20,
-    paddingVertical: 5,
-    paddingHorizontal: 14,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: COLORS.yellow + '40',
+    marginBottom: 2,
   },
   discoveryText: {
     color: COLORS.yellow,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.5,
   },
   name: {
-    fontSize: 36,
+    fontSize: 28,
     fontWeight: '900',
     color: COLORS.white,
     textAlign: 'center',
-    letterSpacing: 0.5,
-    marginTop: 4,
+    letterSpacing: 0.3,
+  },
+  statsLine: {
+    fontSize: 12,
+    color: COLORS.grey,
+    textAlign: 'center',
+    marginTop: 2,
   },
   learnMoreBtn: {
     backgroundColor: COLORS.primary,
-    borderRadius: 14,
-    paddingVertical: 16,
+    borderRadius: 12,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -174,5 +190,5 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
     width: '100%',
     marginTop: 8,
   },
-  learnMoreBtnText: { color: COLORS.white, fontWeight: '800', fontSize: 16 },
+  learnMoreBtnText: { color: COLORS.white, fontWeight: '800', fontSize: 15 },
 });
