@@ -9,7 +9,7 @@ import AnimalDetailScreen from '../screens/AnimalDetailScreen';
 import CatchScreen from '../screens/CatchScreen';
 import InfoModal from '../screens/InfoModal';
 import RegionModal from '../screens/RegionModal';
-import PokédexModal from '../screens/PokédexModal';
+import PokedexModal from '../screens/PokedexModal';
 
 export type RootStackParamList = {
   Main: undefined;
@@ -21,7 +21,7 @@ export type RootStackParamList = {
   Catch: { label: string; photoUri: string };
   InfoModal: { label: string; photoUri: string };
   RegionModal: { label: string; photoUri: string };
-  PokédexModal: { label: string; photoUri: string };
+  PokedexModal: { label: string; photoUri: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -70,8 +70,8 @@ const RootNavigator: React.FC = () => (
       options={{ presentation: 'card', animation: 'slide_from_right' }}
     />
     <Stack.Screen
-      name="PokédexModal"
-      component={PokédexModal}
+      name="PokedexModal"
+      component={PokedexModal}
       options={{ presentation: 'card', animation: 'slide_from_right' }}
     />
   </Stack.Navigator>

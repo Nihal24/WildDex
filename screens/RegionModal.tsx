@@ -93,7 +93,7 @@ const RegionModal: React.FC = () => {
       <TouchableOpacity
         style={styles.nextBtn}
         activeOpacity={0.85}
-        onPress={() => navigation.navigate('PokédexModal', { label, photoUri })}
+        onPress={() => navigation.navigate('PokedexModal', { label, photoUri })}
       >
         <Text style={styles.nextBtnText}>Pokédex Match</Text>
         <Ionicons name="arrow-forward" size={18} color={COLORS.white} />
