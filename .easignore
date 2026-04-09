@@ -16,5 +16,3 @@ mcp-server/
 dataset/
 dist-ios/
 dist/
-/wilddex_bird_model.keras
-/wilddex_model.tflite
