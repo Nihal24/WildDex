@@ -33,7 +33,7 @@ import { useTheme } from '../utils/ThemeContext';
 import { saveSighting, getDefaultVisibility } from '../utils/storage';
 import { prefetchAnimalProfile } from '../utils/claude';
 import * as Location from 'expo-location';
-const CONFIDENCE_THRESHOLD = 0.0;
+const CONFIDENCE_THRESHOLD = 0.5;
 
 const identifyAnimal = async (
   photoUri: string,
@@ -136,12 +136,18 @@ const CameraScreen: React.FC = () => {
       }
 
       const finalResult = result;
+
+      if (finalResult.confidence < CONFIDENCE_THRESHOLD) {
+        setIsNotAnimal(true);
+        setPrediction({ label: 'not_animal', confidence: 0 });
+        return;
+      }
+
       setPrediction(finalResult);
       // Start fetching animal profile immediately — will be cached by the time user opens WildDex modal
       prefetchAnimalProfile(finalResult.label);
 
-      const shouldSave = finalResult.confidence >= CONFIDENCE_THRESHOLD;
-      if (shouldSave) {
+      {
         if (fromGallery) {
           setPendingSighting({ ...finalResult, photoUri });
         } else {
