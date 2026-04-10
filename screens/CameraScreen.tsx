@@ -404,7 +404,7 @@ const CameraScreen: React.FC = () => {
                   <>
                     <TextInput
                       style={styles.captionInput}
-                      placeholder="Add a caption... (optional)"
+                      placeholder="Add a caption..."
                       placeholderTextColor={COLORS.darkGrey}
                       value={caption}
                       onChangeText={setCaption}

@@ -243,10 +243,10 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
 
       const prevRaw = await AsyncStorage.getItem('wilddex_badge_last_count');
       const prevCount = prevRaw ? parseInt(prevRaw, 10) : 0;
+      await AsyncStorage.setItem('wilddex_badge_last_count', String(badgeCount));
       if (badgeCount > prevCount) {
         const crossed = BADGES.filter(b => b.threshold > prevCount && b.threshold <= badgeCount);
-        if (crossed.length > 0) setNewBadge(crossed[crossed.length - 1]);
-        await AsyncStorage.setItem('wilddex_badge_last_count', String(badgeCount));
+        if (crossed.length > 0) setTimeout(() => setNewBadge(crossed[crossed.length - 1]), 800);
       }
     }
 
