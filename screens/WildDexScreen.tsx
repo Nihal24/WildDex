@@ -27,7 +27,7 @@ import { getAnimalProfile, AnimalInfo, AnimalStats } from '../utils/claude';
 import { getRarityFromConservationStatus, RarityInfo } from '../utils/rarity';
 import { WorldMap } from '../components/WorldMap';
 import { Continent } from '../utils/claude';
-import { getEarnedBadges, Badge } from '../utils/badges';
+import { BADGES, Badge } from '../utils/badges';
 
 const formatLabel = (label: string) =>
   label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -231,7 +231,6 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
 
     if (checkBadge) {
       // Use local sightings for badge count — always up to date immediately after a catch
-      // (Supabase may not have received the insert yet when this runs)
       const localSightings = await getLocalSightings();
       const localSeen = new Set<string>();
       const localCount = localSightings.filter(s => {
@@ -242,13 +241,18 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
       }).length;
       const badgeCount = Math.max(newCount, localCount);
 
-      const shownRaw = await AsyncStorage.getItem('wilddex_shown_badges_v3');
-      const shown: string[] = shownRaw ? JSON.parse(shownRaw) : [];
-      const earned = getEarnedBadges(badgeCount).find(b => !shown.includes(b.id));
-      console.log('[Badge] count:', badgeCount, 'shown:', shown, 'earned:', earned?.id ?? 'none');
-      if (earned) {
-        setNewBadge(earned);
-        await AsyncStorage.setItem('wilddex_shown_badges_v3', JSON.stringify([...shown, earned.id]));
+      const prevRaw = await AsyncStorage.getItem('wilddex_badge_last_count');
+      if (prevRaw === null) {
+        // First run — set baseline silently, no popup
+        await AsyncStorage.setItem('wilddex_badge_last_count', String(badgeCount));
+      } else {
+        const prevCount = parseInt(prevRaw, 10);
+        if (badgeCount > prevCount) {
+          // Count increased — check if any badge threshold was crossed
+          const crossed = BADGES.filter(b => b.threshold > prevCount && b.threshold <= badgeCount);
+          if (crossed.length > 0) setNewBadge(crossed[crossed.length - 1]);
+          await AsyncStorage.setItem('wilddex_badge_last_count', String(badgeCount));
+        }
       }
     }
 
