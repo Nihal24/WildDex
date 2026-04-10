@@ -15,6 +15,8 @@ import {
   TextInput,
   Animated,
   Dimensions,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -445,49 +447,52 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
       )}
 
       {/* Edit Location Modal */}
-      <Modal visible={!!editingSighting} animationType="slide" transparent presentationStyle="overFullScreen">
-        <TouchableOpacity style={styles.editOverlay} activeOpacity={1} onPress={() => { setEditingSighting(null); setEditSearch(''); setEditSuggestions([]); }}>
-          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-          <View style={styles.editSheet}>
-            <Text style={styles.editTitle}>Edit Location</Text>
-            <View style={styles.editInputRow}>
-              <Ionicons name="search" size={16} color={COLORS.darkGrey} style={{ marginLeft: 12 }} />
-              <TextInput
-                style={styles.editInput}
-                placeholder="City, park, or address..."
-                placeholderTextColor={COLORS.darkGrey}
-                value={editSearch}
-                onChangeText={onEditSearchChange}
-                autoCorrect={false}
-              />
-              {editSearch.length > 0 && (
-                <TouchableOpacity onPress={() => { setEditSearch(''); setEditSuggestions([]); }} style={{ marginRight: 12 }}>
-                  <Ionicons name="close-circle" size={18} color={COLORS.darkGrey} />
-                </TouchableOpacity>
+      <Modal visible={!!editingSighting} animationType="fade" transparent presentationStyle="overFullScreen">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <TouchableOpacity style={styles.editOverlay} activeOpacity={1} onPress={() => { setEditingSighting(null); setEditSearch(''); setEditSuggestions([]); }}>
+            <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+            <View style={styles.editSheet}>
+              <Text style={styles.editTitle}>Edit Location</Text>
+              <View style={styles.editInputRow}>
+                <Ionicons name="search" size={16} color={COLORS.darkGrey} style={{ marginLeft: 12 }} />
+                <TextInput
+                  style={styles.editInput}
+                  placeholder="City, park, or address..."
+                  placeholderTextColor={COLORS.darkGrey}
+                  value={editSearch}
+                  onChangeText={onEditSearchChange}
+                  autoCorrect={false}
+                  autoFocus
+                />
+                {editSearch.length > 0 && (
+                  <TouchableOpacity onPress={() => { setEditSearch(''); setEditSuggestions([]); }} style={{ marginRight: 12 }}>
+                    <Ionicons name="close-circle" size={18} color={COLORS.darkGrey} />
+                  </TouchableOpacity>
+                )}
+              </View>
+              {editSuggestions.length > 0 && (
+                <ScrollView style={styles.editDropdown} keyboardShouldPersistTaps="always">
+                  {editSuggestions.map((s, i) => {
+                    const sub = [s.region, s.country].filter(Boolean).join(', ');
+                    return (
+                      <TouchableOpacity key={i} style={[styles.editDropdownItem, i > 0 && styles.editDropdownDivider]} onPress={() => saveEditLocation(i)}>
+                        <Ionicons name="location-outline" size={16} color={COLORS.yellow} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.dropdownLine1}>{s.city}</Text>
+                          {sub ? <Text style={styles.dropdownLine2}>{sub}</Text> : null}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
               )}
+              <TouchableOpacity onPress={() => { setEditingSighting(null); setEditSearch(''); setEditSuggestions([]); }} style={styles.editCancel}>
+                <Text style={styles.editCancelText}>Cancel</Text>
+              </TouchableOpacity>
             </View>
-            {editSuggestions.length > 0 && (
-              <ScrollView style={styles.editDropdown} keyboardShouldPersistTaps="always">
-                {editSuggestions.map((s, i) => {
-                  const sub = [s.region, s.country].filter(Boolean).join(', ');
-                  return (
-                    <TouchableOpacity key={i} style={[styles.editDropdownItem, i > 0 && styles.editDropdownDivider]} onPress={() => saveEditLocation(i)}>
-                      <Ionicons name="location-outline" size={16} color={COLORS.yellow} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.dropdownLine1}>{s.city}</Text>
-                        {sub ? <Text style={styles.dropdownLine2}>{sub}</Text> : null}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            )}
-            <TouchableOpacity onPress={() => { setEditingSighting(null); setEditSearch(''); setEditSuggestions([]); }} style={styles.editCancel}>
-              <Text style={styles.editCancelText}>Cancel</Text>
             </TouchableOpacity>
-          </View>
           </TouchableOpacity>
-        </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
@@ -690,8 +695,8 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   separator: { height: 10 },
   searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.card, borderRadius: 10, marginHorizontal: 16, marginBottom: 8, paddingHorizontal: 12, paddingVertical: 9, gap: 8, borderWidth: 1, borderColor: COLORS.cardBorder },
   searchInput: { flex: 1, color: COLORS.white, fontSize: 14, padding: 0, letterSpacing: 0 },
-  editOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
-  editSheet: { backgroundColor: COLORS.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 16 },
+  editOverlay: { flex: 1, justifyContent: 'flex-start', backgroundColor: 'rgba(0,0,0,0.6)' },
+  editSheet: { backgroundColor: COLORS.card, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, padding: 24, paddingTop: 16, gap: 16 },
   editTitle: { fontSize: 20, fontWeight: '800', color: COLORS.white, textAlign: 'center' },
   editInputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.background, borderRadius: 12, borderWidth: 1, borderColor: COLORS.cardBorder },
   editInput: { flex: 1, padding: 14, color: COLORS.white, fontSize: 15 },
