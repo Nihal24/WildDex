@@ -183,13 +183,9 @@ const CommentsModal = ({
               <Text style={styles.noComments}>No comments yet. Be the first!</Text>
             </View>
           ) : (
-            <FlatList
-              data={comments}
-              keyExtractor={(c) => c.id}
-              extraData={comments}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }}
-              renderItem={({ item: c }) => renderComment(c)}
-            />
+            <ScrollView keyboardShouldPersistTaps="always" contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+              {comments.map((c) => renderComment(c))}
+            </ScrollView>
           )}
           {replyTo && (
             <View style={styles.replyingTo}>
