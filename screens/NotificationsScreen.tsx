@@ -73,8 +73,14 @@ const NotificationsScreen: React.FC = () => {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[styles.row, !item.read && styles.rowUnread]}
-              onPress={() => item.actorId && navigation.navigate('UserProfile', { userId: item.actorId })}
-              activeOpacity={item.actorId ? 0.7 : 1}
+              onPress={() => {
+                if ((item.type === 'like' || item.type === 'comment') && item.sightingId) {
+                  navigation.navigate('Main', { screen: 'Feed', params: { highlightSightingId: item.sightingId } });
+                } else if (item.actorId) {
+                  navigation.navigate('UserProfile', { userId: item.actorId });
+                }
+              }}
+              activeOpacity={0.7}
             >
               <View style={styles.avatar}>
                 {item.actorAvatarUrl

@@ -5,7 +5,7 @@ import {
   Modal, KeyboardAvoidingView, Platform, TextInput, Keyboard, TouchableWithoutFeedback,
   Animated, PanResponder,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, ColorScheme } from '../constants/theme';
@@ -527,6 +527,8 @@ const FeedScreen: React.FC = () => {
   const { colors: COLORS } = useTheme();
   const styles = makeStyles(COLORS);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<any>();
+  const flatListRef = useRef<FlatList>(null);
   const [tab, setTab] = useState<'feed' | 'top'>('feed');
   const [feedFilter, setFeedFilter] = useState<'global' | 'following' | 'mine'>('global');
   const [feed, setFeed] = useState<FeedSighting[]>([]);
@@ -581,6 +583,16 @@ const FeedScreen: React.FC = () => {
   }, []);
 
   useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
+
+  // Scroll to highlighted sighting when navigating from a notification
+  useEffect(() => {
+    const highlightId = route.params?.highlightSightingId;
+    if (!highlightId || loading) return;
+    const idx = feed.findIndex((s) => s.sightingId === highlightId);
+    if (idx >= 0) {
+      setTimeout(() => flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.1 }), 300);
+    }
+  }, [route.params?.highlightSightingId, loading]);
 
   const onRefresh = () => { setRefreshing(true); load(); };
 
@@ -729,6 +741,7 @@ const FeedScreen: React.FC = () => {
           ) : (
             <>
               <FlatList
+                ref={flatListRef}
                 data={activeFeed}
                 keyExtractor={(item) => item.sightingId || String(item.timestamp)}
                 extraData={likedIds}
