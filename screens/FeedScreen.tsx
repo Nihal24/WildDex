@@ -111,6 +111,7 @@ const CommentsModal = ({
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const deletingIds = useRef(new Set<string>());
 
   const load = useCallback(async () => {
     if (!sightingId) return;
@@ -134,9 +135,12 @@ const CommentsModal = ({
   };
 
   const remove = async (commentId: string) => {
-    await deleteComment(commentId);
-    onCommentCountChange(-1);
+    if (deletingIds.current.has(commentId)) return;
+    deletingIds.current.add(commentId);
     setComments((prev) => prev.filter((c) => c.id !== commentId));
+    onCommentCountChange(-1);
+    await deleteComment(commentId);
+    deletingIds.current.delete(commentId);
   };
 
   const renderComment = (c: Comment, isReply = false) => (
@@ -180,6 +184,7 @@ const CommentsModal = ({
             <FlatList
               data={comments}
               keyExtractor={(c) => c.id}
+              extraData={comments}
               contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }}
               renderItem={({ item: c }) => renderComment(c)}
             />
