@@ -27,7 +27,7 @@ serve(async (req) => {
       });
     }
 
-    // Convert image to base64 once — used by Claude
+    // ── Run iNat + Sonnet in parallel; prefer iNat, fall back to Sonnet ───
     const arrayBuffer = await imageFile.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
     let binary = '';
@@ -35,29 +35,11 @@ serve(async (req) => {
     const base64 = btoa(binary);
     const mimeType = (imageFile.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
 
-    // ── Run Claude and iNat in parallel ────────────────────────────────────
     const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
     const inatToken = Deno.env.get('INAT_API_TOKEN');
 
-    const claudePromise = anthropicKey
-      ? fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 50,
-            messages: [{
-              role: 'user',
-              content: [
-                { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
-                { type: 'text', text: 'Is the PRIMARY subject of this photo a wild or domesticated non-human animal? If yes, reply with ONLY its most specific common name in lowercase — use breed/subspecies when clearly identifiable (e.g. "siberian husky" not "dog", "american robin" not "bird", "bengal tiger" not "tiger", "golden retriever" not "dog"). If the specific breed/subspecies is not clearly identifiable, use the species name (e.g. "dog", "bird"). If the primary subject is food, a person, a plant, an object, scenery, or anything other than a non-human animal, reply exactly: none. Also reply none if an animal is only in the background and not the clear main focus.' },
-              ],
-            }],
-          }),
-        }).then(r => r.ok ? r.json() : null).catch(() => null)
-      : Promise.resolve(null);
-
-    const inatPromise = (async () => {
+    // ── Step 1: Try iNat (free, fast) ─────────────────────────────────────
+    const inatResult = await (async () => {
       try {
         const inatForm = new FormData();
         inatForm.append('image', imageFile);
@@ -81,25 +63,35 @@ serve(async (req) => {
       } catch { return null; }
     })();
 
-    const [claudeData, inatResult] = await Promise.all([claudePromise, inatPromise]);
+    if (inatResult) {
+      return new Response(JSON.stringify(inatResult), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
-    // Prefer Claude — if it confidently identified something, use it
+    // ── Step 2: iNat failed — call Sonnet ─────────────────────────────────
+    const claudeData = anthropicKey
+      ? await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 50,
+            messages: [{
+              role: 'user',
+              content: [
+                { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
+                { type: 'text', text: 'Is the PRIMARY subject of this photo a wild or domesticated non-human animal? If yes, reply with ONLY its most specific common name in lowercase — use breed/subspecies when clearly identifiable (e.g. "siberian husky" not "dog", "american robin" not "bird", "bengal tiger" not "tiger", "golden retriever" not "dog"). If the specific breed/subspecies is not clearly identifiable, use the species name (e.g. "dog", "bird"). If the primary subject is food, a person, a plant, an object, scenery, or anything other than a non-human animal, reply exactly: none. Also reply none if an animal is only in the background and not the clear main focus.' },
+              ],
+            }],
+          }),
+        }).then(r => r.ok ? r.json() : null).catch(() => null)
+      : null;
+
     const claudeName = claudeData?.content?.[0]?.text?.trim().toLowerCase().replace(/\.$/, '');
     if (claudeName && claudeName !== 'none') {
       return new Response(
         JSON.stringify({ label: claudeName.replace(/[\s-]+/g, '_'), confidence: 0.9, source: 'claude' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
-    }
-    // Claude explicitly said not an animal — trust it
-    if (claudeName === 'none') {
-      return new Response(JSON.stringify({ error: 'not_animal' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    // Claude failed/errored — fall back to iNat
-    if (inatResult) {
-      return new Response(JSON.stringify(inatResult), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     return new Response(JSON.stringify({ error: 'not_animal' }), {
