@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, StatusBar,
   FlatList, Image, TouchableOpacity, ActivityIndicator, RefreshControl, Share,
-  Modal, KeyboardAvoidingView, Platform, TextInput, Keyboard, TouchableWithoutFeedback,
+  Modal, ScrollView, KeyboardAvoidingView, Platform, TextInput, Keyboard, TouchableWithoutFeedback,
   Animated, PanResponder,
 } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
