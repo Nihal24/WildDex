@@ -169,10 +169,12 @@ const CommentsModal = ({
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
         <Animated.View style={[styles.modalSheet, { transform: [{ translateY }] }]}>
-          <View style={styles.modalHandle} {...panResponder.panHandlers} />
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Comments</Text>
-            <TouchableOpacity onPress={onClose}><Ionicons name="close" size={22} color={COLORS.grey} /></TouchableOpacity>
+          <View style={styles.modalDragArea} {...panResponder.panHandlers}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Comments</Text>
+              <TouchableOpacity onPress={onClose}><Ionicons name="close" size={22} color={COLORS.grey} /></TouchableOpacity>
+            </View>
           </View>
           {loading ? (
             <CommentSkeleton />
@@ -934,6 +936,7 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
     backgroundColor: COLORS.card, borderTopLeftRadius: 20, borderTopRightRadius: 20,
     borderWidth: 1, borderColor: COLORS.cardBorder, maxHeight: '75%', paddingBottom: 32,
   },
+  modalDragArea: { paddingBottom: 4 },
   modalHandle: { width: 36, height: 4, backgroundColor: COLORS.cardBorder, borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 4 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   modalTitle: { color: COLORS.white, fontSize: 16, fontWeight: '700' },
