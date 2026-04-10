@@ -149,7 +149,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ startAtUsername, onUsernameSet 
       if (user) {
         const { error: upsertError } = await supabase
           .from('profiles')
-          .upsert({ id: user.id, username: clean }, { onConflict: 'username' });
+          .upsert({ id: user.id, username: clean }, { onConflict: 'id' });
         if (upsertError) {
           if (upsertError.code === '23505') {
             setError('That username is taken — try another.');
