@@ -50,7 +50,7 @@ serve(async (req) => {
               role: 'user',
               content: [
                 { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
-                { type: 'text', text: 'Identify the real animal in this photo. Reply with ONLY the common name in lowercase (e.g. "clownfish", "bengal tiger", "lion", "human"). Rules: only real living animals or humans count — if the image contains a cartoon, drawing, toy, fictional creature, Pokémon, animated character, or no animal at all, reply exactly: none' },
+                { type: 'text', text: 'Is the PRIMARY subject of this photo a wild or domesticated non-human animal? If yes, reply with ONLY its common name in lowercase (e.g. "clownfish", "bengal tiger", "house cat"). If the primary subject is food, a person, a plant, an object, scenery, or anything other than a non-human animal, reply exactly: none. Also reply none if an animal is only in the background and not the clear main focus.' },
               ],
             }],
           }),
