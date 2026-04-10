@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, SafeAreaView, StatusBar,
   FlatList, Image, TouchableOpacity, ActivityIndicator, RefreshControl, Share,
   Modal, KeyboardAvoidingView, Platform, TextInput, Keyboard, TouchableWithoutFeedback,
-  Animated,
+  Animated, PanResponder,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -89,6 +89,23 @@ const CommentsModal = ({
 }) => {
   const { colors: COLORS } = useTheme();
   const styles = makeStyles(COLORS);
+  const translateY = useRef(new Animated.Value(0)).current;
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, g) => g.dy > 0,
+      onPanResponderMove: (_, g) => { if (g.dy > 0) translateY.setValue(g.dy); },
+      onPanResponderRelease: (_, g) => {
+        if (g.dy > 100) {
+          Animated.timing(translateY, { toValue: 600, duration: 200, useNativeDriver: true }).start(onClose);
+        } else {
+          Animated.spring(translateY, { toValue: 0, useNativeDriver: true }).start();
+        }
+      },
+    })
+  ).current;
+
+  useEffect(() => { if (visible) translateY.setValue(0); }, [visible]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
@@ -147,8 +164,8 @@ const CommentsModal = ({
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
-        <View style={styles.modalSheet}>
-          <View style={styles.modalHandle} />
+        <Animated.View style={[styles.modalSheet, { transform: [{ translateY }] }]}>
+          <View style={styles.modalHandle} {...panResponder.panHandlers} />
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Comments</Text>
             <TouchableOpacity onPress={onClose}><Ionicons name="close" size={22} color={COLORS.grey} /></TouchableOpacity>
@@ -194,7 +211,7 @@ const CommentsModal = ({
               }
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
     </Modal>
