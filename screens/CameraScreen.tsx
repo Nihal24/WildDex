@@ -119,10 +119,11 @@ const CameraScreen: React.FC = () => {
     try {
       const resized = await ImageManipulator.manipulateAsync(
         photoUri,
-        [{ resize: { width: 800 } }],
-        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+        [{ resize: { width: 1080 } }],
+        { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG }
       );
-      const result = await identifyAnimal(resized.uri);
+      const compressedUri = resized.uri;
+      const result = await identifyAnimal(compressedUri);
 
       if (result?.error === 'not_animal') {
         setIsNotAnimal(true);
@@ -149,12 +150,12 @@ const CameraScreen: React.FC = () => {
 
       {
         if (fromGallery) {
-          setPendingSighting({ ...finalResult, photoUri });
+          setPendingSighting({ ...finalResult, photoUri: compressedUri });
         } else {
           // Camera shot — navigate immediately, fetch location in background
           const timestamp = Date.now();
           retake();
-          navigation.navigate('Catch', { label: finalResult.label, photoUri });
+          navigation.navigate('Catch', { label: finalResult.label, photoUri: compressedUri });
           setSaved(true);
           // Save with location in background — don't block navigation
           (async () => {
@@ -168,7 +169,7 @@ const CameraScreen: React.FC = () => {
                 longitude = loc.coords.longitude;
               }
             } catch {}
-            await saveSighting({ ...finalResult, photoUri, timestamp, latitude, longitude, visibility });
+            await saveSighting({ ...finalResult, photoUri: compressedUri, timestamp, latitude, longitude, visibility });
           })();
         }
       }
