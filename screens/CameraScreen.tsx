@@ -68,7 +68,7 @@ const CameraScreen: React.FC = () => {
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<CameraCapturedPicture | null>(null);
-  const [prediction, setPrediction] = useState<{ label: string; confidence: number } | null>(null);
+  const [prediction, setPrediction] = useState<{ label: string; confidence: number; source?: string } | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [isNotAnimal, setIsNotAnimal] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -397,6 +397,11 @@ const CameraScreen: React.FC = () => {
                     <Text style={styles.resultLabel}>
                       {prediction.label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                     </Text>
+                    {prediction.source && (
+                      <Text style={{ color: COLORS.grey, fontSize: 11, marginTop: 4 }}>
+                        Identified via {prediction.source === 'inat' ? 'iNaturalist' : 'Claude AI'}
+                      </Text>
+                    )}
                   </View>
                 ) : (
                   <View style={styles.unrecognizedContent}>
