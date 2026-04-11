@@ -329,15 +329,17 @@ const FeedCard = ({
             <Ionicons name="chatbubble-outline" size={18} color={COLORS.grey} />
             {commentCount > 0 && <Text style={styles.actionCount}>{commentCount}</Text>}
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => Share.share({
-              url: item.photoUrl,
-              message: `Check out this ${formatLabel(item.label)} I spotted on WildDex! 🦁`,
-            })}
-          >
-            <Ionicons name="share-outline" size={18} color={COLORS.grey} />
-          </TouchableOpacity>
+          {isOwn && (
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => Share.share({
+                url: item.photoUrl,
+                message: `Check out this ${formatLabel(item.label)} I spotted on WildDex! 🦁`,
+              })}
+            >
+              <Ionicons name="share-outline" size={18} color={COLORS.grey} />
+            </TouchableOpacity>
+          )}
           {item.location && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1, justifyContent: 'flex-end' }}>
               <Ionicons name="location-outline" size={13} color={COLORS.grey} />
