@@ -397,11 +397,6 @@ const CameraScreen: React.FC = () => {
                     <Text style={styles.resultLabel}>
                       {prediction.label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                     </Text>
-                    {prediction.source && (
-                      <Text style={{ color: COLORS.grey, fontSize: 11, marginTop: 4 }}>
-                        Identified via {prediction.source === 'inat' ? 'iNaturalist' : 'Claude AI'}
-                      </Text>
-                    )}
                   </View>
                 ) : (
                   <View style={styles.unrecognizedContent}>
