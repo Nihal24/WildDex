@@ -86,6 +86,19 @@ const CameraScreen: React.FC = () => {
   const [zoom, setZoom] = useState(0);
   const zoomRef = useRef(0);
   const lastPinchDistance = useRef<number | null>(null);
+  const zoomIndicatorOpacity = useRef(new Animated.Value(0)).current;
+  const zoomFadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Maps 0-1 zoom to a display value of 1x-10x
+  const zoomDisplay = (1 + zoomRef.current * 9).toFixed(1) + 'x';
+
+  const showZoomIndicator = () => {
+    if (zoomFadeTimer.current) clearTimeout(zoomFadeTimer.current);
+    zoomIndicatorOpacity.setValue(1);
+    zoomFadeTimer.current = setTimeout(() => {
+      Animated.timing(zoomIndicatorOpacity, { toValue: 0, duration: 400, useNativeDriver: true }).start();
+    }, 1000);
+  };
 
   const getPinchDistance = (touches: any[]) => {
     const dx = touches[0].pageX - touches[1].pageX;
@@ -106,6 +119,7 @@ const CameraScreen: React.FC = () => {
       zoomRef.current = Math.min(1, Math.max(0, zoomRef.current + delta));
       setZoom(zoomRef.current);
       lastPinchDistance.current = newDistance;
+      showZoomIndicator();
     }
   };
 
@@ -474,6 +488,9 @@ const CameraScreen: React.FC = () => {
             <TouchableOpacity onPress={toggleCameraFacing} style={styles.flipButton}>
               <Ionicons name="camera-reverse" size={26} color="white" />
             </TouchableOpacity>
+            <Animated.View style={[styles.zoomIndicator, { opacity: zoomIndicatorOpacity }]} pointerEvents="none">
+              <Text style={styles.zoomIndicatorText}>{zoomDisplay}</Text>
+            </Animated.View>
             <TouchableOpacity onPress={takePhoto} style={styles.captureButton}>
               <View style={styles.captureInner} />
             </TouchableOpacity>
@@ -578,6 +595,21 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   toastText: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
   camera: { flex: 1 },
   cameraContainer: { flex: 1 },
+  zoomIndicator: {
+    position: 'absolute',
+    top: '45%',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  zoomIndicatorText: {
+    color: 'white',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
   flipButton: {
     position: 'absolute',
     top: 20,
