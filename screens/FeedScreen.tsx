@@ -341,9 +341,9 @@ const FeedCard = ({
             </TouchableOpacity>
           )}
           {item.location && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1, justifyContent: 'flex-end' }}>
-              <Ionicons name="location-outline" size={13} color={COLORS.grey} />
-              <Text style={styles.cardLocation} numberOfLines={1}>{item.location}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1, justifyContent: 'flex-end', minWidth: 0 }}>
+              <Ionicons name="location-outline" size={13} color={COLORS.grey} flexShrink={0} />
+              <Text style={styles.cardLocation} numberOfLines={1} ellipsizeMode="tail">{item.location}</Text>
             </View>
           )}
         </View>
@@ -927,7 +927,7 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   cardActions: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 4 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   actionCount: { color: COLORS.grey, fontSize: 13 },
-  cardLocation: { color: COLORS.grey, fontSize: 12 },
+  cardLocation: { color: COLORS.grey, fontSize: 12, flexShrink: 1 },
   // Comments modal
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalSheet: {
