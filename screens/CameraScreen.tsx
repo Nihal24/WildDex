@@ -83,6 +83,35 @@ const CameraScreen: React.FC = () => {
   const toastY = useRef(new Animated.Value(-80)).current;
   const [toastLabel, setToastLabel] = useState('');
   const locationToastOpacity = useRef(new Animated.Value(0)).current;
+  const [zoom, setZoom] = useState(0);
+  const zoomRef = useRef(0);
+  const lastPinchDistance = useRef<number | null>(null);
+
+  const getPinchDistance = (touches: any[]) => {
+    const dx = touches[0].pageX - touches[1].pageX;
+    const dy = touches[0].pageY - touches[1].pageY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const handleTouchStart = (e: any) => {
+    if (e.nativeEvent.touches.length === 2) {
+      lastPinchDistance.current = getPinchDistance(e.nativeEvent.touches);
+    }
+  };
+
+  const handleTouchMove = (e: any) => {
+    if (e.nativeEvent.touches.length === 2 && lastPinchDistance.current !== null) {
+      const newDistance = getPinchDistance(e.nativeEvent.touches);
+      const delta = (newDistance - lastPinchDistance.current) / 400;
+      zoomRef.current = Math.min(1, Math.max(0, zoomRef.current + delta));
+      setZoom(zoomRef.current);
+      lastPinchDistance.current = newDistance;
+    }
+  };
+
+  const handleTouchEnd = (e: any) => {
+    if (e.nativeEvent.touches.length < 2) lastPinchDistance.current = null;
+  };
 
   const showSaveToast = (label: string, onShown?: () => void) => {
     setToastLabel(label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '));
@@ -435,8 +464,13 @@ const CameraScreen: React.FC = () => {
           </ScrollView>
         </KeyboardAvoidingView>
       ) : (
-        <View style={styles.cameraContainer}>
-          <CameraView style={styles.camera} facing={facing} ref={cameraRef}>
+        <View
+          style={styles.cameraContainer}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <CameraView style={styles.camera} facing={facing} ref={cameraRef} zoom={zoom}>
             <TouchableOpacity onPress={toggleCameraFacing} style={styles.flipButton}>
               <Ionicons name="camera-reverse" size={26} color="white" />
             </TouchableOpacity>
