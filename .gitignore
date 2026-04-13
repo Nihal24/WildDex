@@ -36,3 +36,14 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 .idea/
+
+# ML training data and artifacts
+dataset/
+*.tflite
+*.keras
+*.tar.gz
+/tmp/
+
+# AWS / Kaggle credentials
+.aws/
+.kaggle/
