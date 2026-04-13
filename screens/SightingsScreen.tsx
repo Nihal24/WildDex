@@ -17,18 +17,24 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../constants/theme';
-import { getSightings, Sighting, updateSightingLocation } from '../utils/storage';
+import { ColorScheme } from '../constants/theme';
+import { useTheme } from '../utils/ThemeContext';
+import { getSightings, Sighting, updateSightingLocation, updateSightingLabel } from '../utils/storage';
 
 // --- Edit Location Modal ---
 interface EditModalProps {
   sighting: Sighting | null;
   onClose: () => void;
   onSaved: (timestamp: number, location: string, lat?: number, lon?: number) => void;
+  onLabelSaved: (timestamp: number, label: string) => void;
 }
 
-const EditLocationModal: React.FC<EditModalProps> = ({ sighting, onClose, onSaved }) => {
+const EditLocationModal: React.FC<EditModalProps> = ({ sighting, onClose, onSaved, onLabelSaved }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const [search, setSearch] = useState(sighting?.location ?? '');
+  const [labelEdit, setLabelEdit] = useState('');
+  const [editingLabel, setEditingLabel] = useState(false);
   const [suggestions, setSuggestions] = useState<{ city: string; region: string; country: string }[]>([]);
   const [coords, setCoords] = useState<{ latitude: number; longitude: number }[]>([]);
   const [saving, setSaving] = useState(false);
@@ -36,6 +42,8 @@ const EditLocationModal: React.FC<EditModalProps> = ({ sighting, onClose, onSave
 
   useEffect(() => {
     setSearch(sighting?.location ?? '');
+    setLabelEdit(sighting?.label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') ?? '');
+    setEditingLabel(false);
     setSuggestions([]);
   }, [sighting]);
 
@@ -77,6 +85,20 @@ const EditLocationModal: React.FC<EditModalProps> = ({ sighting, onClose, onSave
     }
   };
 
+  const saveLabel = async () => {
+    if (!sighting || !labelEdit.trim()) return;
+    setSaving(true);
+    try {
+      await updateSightingLabel(sighting.photoUri, labelEdit.trim());
+      onLabelSaved(sighting.timestamp, labelEdit.trim().toLowerCase().replace(/\s+/g, '_'));
+      onClose();
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Modal visible={!!sighting} animationType="slide" transparent presentationStyle="overFullScreen">
       <ScrollView
@@ -85,7 +107,41 @@ const EditLocationModal: React.FC<EditModalProps> = ({ sighting, onClose, onSave
         scrollEnabled={false}
       >
         <View style={styles.sheet}>
-          <Text style={styles.sheetTitle}>Edit Location</Text>
+          <Text style={styles.sheetTitle}>Edit Sighting</Text>
+
+          {/* Name edit */}
+          <TouchableOpacity
+            style={styles.incorrectRow}
+            onPress={() => setEditingLabel((v) => !v)}
+          >
+            <Ionicons name="alert-circle-outline" size={15} color={COLORS.darkGrey} />
+            <Text style={styles.incorrectText}>Identified incorrectly?</Text>
+            <Ionicons
+              name={editingLabel ? 'chevron-up' : 'chevron-down'}
+              size={14}
+              color={COLORS.darkGrey}
+            />
+          </TouchableOpacity>
+          {editingLabel && (
+            <View style={styles.inputRow}>
+              <Ionicons name="paw-outline" size={16} color={COLORS.darkGrey} style={{ marginLeft: 12 }} />
+              <TextInput
+                style={styles.input}
+                placeholder="Correct animal name..."
+                placeholderTextColor={COLORS.darkGrey}
+                value={labelEdit}
+                onChangeText={setLabelEdit}
+                autoCapitalize="words"
+                returnKeyType="done"
+                onSubmitEditing={saveLabel}
+              />
+              <TouchableOpacity onPress={saveLabel} disabled={saving} style={{ marginRight: 12 }}>
+                <Text style={styles.saveText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <Text style={styles.locationLabel}>Location</Text>
           <View style={styles.inputRow}>
             <Ionicons name="search" size={16} color={COLORS.darkGrey} style={{ marginLeft: 12 }} />
             <TextInput
@@ -134,6 +190,8 @@ const EditLocationModal: React.FC<EditModalProps> = ({ sighting, onClose, onSave
 
 // --- Sighting Row ---
 const SightingRow: React.FC<{ item: Sighting; onEdit: () => void }> = ({ item, onEdit }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const [photoExists, setPhotoExists] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -169,6 +227,8 @@ const SightingRow: React.FC<{ item: Sighting; onEdit: () => void }> = ({ item, o
 
 // --- Main Screen ---
 const SightingsScreen: React.FC = () => {
+  const { colors: COLORS } = useTheme();
+  const styles = makeStyles(COLORS);
   const [sightings, setSightings] = useState<Sighting[]>([]);
   const [editing, setEditing] = useState<Sighting | null>(null);
   const toastOpacity = useRef(new Animated.Value(0)).current;
@@ -192,6 +252,13 @@ const SightingsScreen: React.FC = () => {
       prev.map((s) => s.timestamp === timestamp ? { ...s, location, latitude: lat, longitude: lon } : s)
     );
     setEditing(null);
+    showToast();
+  };
+
+  const handleLabelSaved = (timestamp: number, label: string) => {
+    setSightings((prev) =>
+      prev.map((s) => s.timestamp === timestamp ? { ...s, label } : s)
+    );
     showToast();
   };
 
@@ -225,11 +292,12 @@ const SightingsScreen: React.FC = () => {
         sighting={editing}
         onClose={() => setEditing(null)}
         onSaved={handleSaved}
+        onLabelSaved={handleLabelSaved}
       />
 
       <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
         <Ionicons name="checkmark-circle" size={16} color={COLORS.yellow} />
-        <Text style={styles.toastText}>Location updated</Text>
+        <Text style={styles.toastText}>Saved</Text>
       </Animated.View>
     </SafeAreaView>
   );
@@ -237,7 +305,7 @@ const SightingsScreen: React.FC = () => {
 
 export default SightingsScreen;
 
-const styles = StyleSheet.create({
+const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
     flexDirection: 'row',
@@ -258,7 +326,7 @@ const styles = StyleSheet.create({
   rowInfo: { flex: 1 },
   rowLabel: { color: COLORS.white, fontSize: 16, fontWeight: '700', textTransform: 'capitalize' },
   rowLocation: { color: COLORS.grey, fontSize: 12, marginTop: 2 },
-  rowDate: { color: COLORS.darkGrey, fontSize: 11, marginTop: 2 },
+  rowDate: { color: COLORS.grey, fontSize: 11, marginTop: 2 },
   editBtn: { padding: 6 },
   separator: { height: 10 },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
@@ -275,8 +343,12 @@ const styles = StyleSheet.create({
   dropdownDivider: { borderTopWidth: 1, borderTopColor: COLORS.cardBorder },
   dropdownLine1: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
   dropdownLine2: { color: COLORS.grey, fontSize: 12, marginTop: 1 },
+  incorrectRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  incorrectText: { flex: 1, color: COLORS.grey, fontSize: 13, fontWeight: '500' },
+  locationLabel: { color: COLORS.grey, fontSize: 12, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase', marginTop: 4 },
+  saveText: { color: COLORS.yellow, fontWeight: '700', fontSize: 14 },
   cancelBtn: { alignItems: 'center', paddingVertical: 8 },
-  cancelText: { color: COLORS.darkGrey, fontSize: 14 },
+  cancelText: { color: COLORS.grey, fontSize: 14 },
   toast: {
     position: 'absolute',
     bottom: 24,

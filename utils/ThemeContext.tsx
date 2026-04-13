@@ -29,7 +29,7 @@ function colorsForTheme(t: ThemeMode): ColorScheme {
 }
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<ThemeMode>('pokedex');
+  const [theme, setThemeState] = useState<ThemeMode>('light');
   const [ready, setReady] = useState(false);
 
   useEffect(() => {

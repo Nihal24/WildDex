@@ -1,0 +1,3002 @@
+[
+  {
+    "common_name": "mallard",
+    "scientific_name": "Anas platyrhynchos",
+    "observations_count": 853002,
+    "class_label": "mallard"
+  },
+  {
+    "common_name": "western honey bee",
+    "scientific_name": "Apis mellifera",
+    "observations_count": 642940,
+    "class_label": "western_honey_bee"
+  },
+  {
+    "common_name": "house sparrow",
+    "scientific_name": "Passer domesticus",
+    "observations_count": 505342,
+    "class_label": "house_sparrow"
+  },
+  {
+    "common_name": "asian lady beetle",
+    "scientific_name": "Harmonia axyridis",
+    "observations_count": 495233,
+    "class_label": "asian_lady_beetle"
+  },
+  {
+    "common_name": "monarch",
+    "scientific_name": "Danaus plexippus",
+    "observations_count": 466929,
+    "class_label": "monarch"
+  },
+  {
+    "common_name": "canada goose",
+    "scientific_name": "Branta canadensis",
+    "observations_count": 429229,
+    "class_label": "canada_goose"
+  },
+  {
+    "common_name": "american robin",
+    "scientific_name": "Turdus migratorius",
+    "observations_count": 415830,
+    "class_label": "american_robin"
+  },
+  {
+    "common_name": "great blue heron",
+    "scientific_name": "Ardea herodias",
+    "observations_count": 412360,
+    "class_label": "great_blue_heron"
+  },
+  {
+    "common_name": "rock pigeon",
+    "scientific_name": "Columba livia",
+    "observations_count": 401686,
+    "class_label": "rock_pigeon"
+  },
+  {
+    "common_name": "great egret",
+    "scientific_name": "Ardea alba",
+    "observations_count": 381276,
+    "class_label": "great_egret"
+  },
+  {
+    "common_name": "white-tailed deer",
+    "scientific_name": "Odocoileus virginianus",
+    "observations_count": 375939,
+    "class_label": "white_tailed_deer"
+  },
+  {
+    "common_name": "eastern gray squirrel",
+    "scientific_name": "Sciurus carolinensis",
+    "observations_count": 365949,
+    "class_label": "eastern_gray_squirrel"
+  },
+  {
+    "common_name": "northern cardinal",
+    "scientific_name": "Cardinalis cardinalis",
+    "observations_count": 348719,
+    "class_label": "northern_cardinal"
+  },
+  {
+    "common_name": "red-tailed hawk",
+    "scientific_name": "Buteo jamaicensis",
+    "observations_count": 332318,
+    "class_label": "red_tailed_hawk"
+  },
+  {
+    "common_name": "european starling",
+    "scientific_name": "Sturnus vulgaris",
+    "observations_count": 307480,
+    "class_label": "european_starling"
+  },
+  {
+    "common_name": "house finch",
+    "scientific_name": "Haemorhous mexicanus",
+    "observations_count": 307460,
+    "class_label": "house_finch"
+  },
+  {
+    "common_name": "common eastern bumble bee",
+    "scientific_name": "Bombus impatiens",
+    "observations_count": 277933,
+    "class_label": "common_eastern_bumble_bee"
+  },
+  {
+    "common_name": "mourning dove",
+    "scientific_name": "Zenaida macroura",
+    "observations_count": 274938,
+    "class_label": "mourning_dove"
+  },
+  {
+    "common_name": "red-winged blackbird",
+    "scientific_name": "Agelaius phoeniceus",
+    "observations_count": 274835,
+    "class_label": "red_winged_blackbird"
+  },
+  {
+    "common_name": "seven-spotted lady beetle",
+    "scientific_name": "Coccinella septempunctata",
+    "observations_count": 261011,
+    "class_label": "seven_spotted_lady_beetle"
+  },
+  {
+    "common_name": "red admiral",
+    "scientific_name": "Vanessa atalanta",
+    "observations_count": 255367,
+    "class_label": "red_admiral"
+  },
+  {
+    "common_name": "song sparrow",
+    "scientific_name": "Melospiza melodia",
+    "observations_count": 245981,
+    "class_label": "song_sparrow"
+  },
+  {
+    "common_name": "turkey vulture",
+    "scientific_name": "Cathartes aura",
+    "observations_count": 243866,
+    "class_label": "turkey_vulture"
+  },
+  {
+    "common_name": "eurasian blackbird",
+    "scientific_name": "Turdus merula",
+    "observations_count": 233870,
+    "class_label": "eurasian_blackbird"
+  },
+  {
+    "common_name": "dark-eyed junco",
+    "scientific_name": "Junco hyemalis",
+    "observations_count": 232372,
+    "class_label": "dark_eyed_junco"
+  },
+  {
+    "common_name": "great tit",
+    "scientific_name": "Parus major",
+    "observations_count": 231329,
+    "class_label": "great_tit"
+  },
+  {
+    "common_name": "grey heron",
+    "scientific_name": "Ardea cinerea",
+    "observations_count": 229242,
+    "class_label": "grey_heron"
+  },
+  {
+    "common_name": "pond slider",
+    "scientific_name": "Trachemys scripta",
+    "observations_count": 227585,
+    "class_label": "pond_slider"
+  },
+  {
+    "common_name": "small white",
+    "scientific_name": "Pieris rapae",
+    "observations_count": 226875,
+    "class_label": "small_white"
+  },
+  {
+    "common_name": "yellow-rumped warbler",
+    "scientific_name": "Setophaga coronata",
+    "observations_count": 223572,
+    "class_label": "yellow_rumped_warbler"
+  },
+  {
+    "common_name": "northern mockingbird",
+    "scientific_name": "Mimus polyglottos",
+    "observations_count": 221697,
+    "class_label": "northern_mockingbird"
+  },
+  {
+    "common_name": "bald eagle",
+    "scientific_name": "Haliaeetus leucocephalus",
+    "observations_count": 214216,
+    "class_label": "bald_eagle"
+  },
+  {
+    "common_name": "american crow",
+    "scientific_name": "Corvus brachyrhynchos",
+    "observations_count": 200296,
+    "class_label": "american_crow"
+  },
+  {
+    "common_name": "barn swallow",
+    "scientific_name": "Hirundo rustica",
+    "observations_count": 200083,
+    "class_label": "barn_swallow"
+  },
+  {
+    "common_name": "american toad",
+    "scientific_name": "Anaxyrus americanus",
+    "observations_count": 196793,
+    "class_label": "american_toad"
+  },
+  {
+    "common_name": "downy woodpecker",
+    "scientific_name": "Dryobates pubescens",
+    "observations_count": 196626,
+    "class_label": "downy_woodpecker"
+  },
+  {
+    "common_name": "osprey",
+    "scientific_name": "Pandion haliaetus",
+    "observations_count": 194015,
+    "class_label": "osprey"
+  },
+  {
+    "common_name": "double-crested cormorant",
+    "scientific_name": "Nannopterum auritum",
+    "observations_count": 189602,
+    "class_label": "double_crested_cormorant"
+  },
+  {
+    "common_name": "common chaffinch",
+    "scientific_name": "Fringilla coelebs",
+    "observations_count": 186337,
+    "class_label": "common_chaffinch"
+  },
+  {
+    "common_name": "blue jay",
+    "scientific_name": "Cyanocitta cristata",
+    "observations_count": 185664,
+    "class_label": "blue_jay"
+  },
+  {
+    "common_name": "western fence lizard",
+    "scientific_name": "Sceloporus occidentalis",
+    "observations_count": 184656,
+    "class_label": "western_fence_lizard"
+  },
+  {
+    "common_name": "common garter snake",
+    "scientific_name": "Thamnophis sirtalis",
+    "observations_count": 184396,
+    "class_label": "common_garter_snake"
+  },
+  {
+    "common_name": "mule deer",
+    "scientific_name": "Odocoileus hemionus",
+    "observations_count": 181768,
+    "class_label": "mule_deer"
+  },
+  {
+    "common_name": "common raccoon",
+    "scientific_name": "Procyon lotor",
+    "observations_count": 179345,
+    "class_label": "common_raccoon"
+  },
+  {
+    "common_name": "wild turkey",
+    "scientific_name": "Meleagris gallopavo",
+    "observations_count": 176041,
+    "class_label": "wild_turkey"
+  },
+  {
+    "common_name": "american goldfinch",
+    "scientific_name": "Spinus tristis",
+    "observations_count": 175937,
+    "class_label": "american_goldfinch"
+  },
+  {
+    "common_name": "white wagtail",
+    "scientific_name": "Motacilla alba",
+    "observations_count": 175571,
+    "class_label": "white_wagtail"
+  },
+  {
+    "common_name": "eastern cottontail",
+    "scientific_name": "Sylvilagus floridanus",
+    "observations_count": 175229,
+    "class_label": "eastern_cottontail"
+  },
+  {
+    "common_name": "european robin",
+    "scientific_name": "Erithacus rubecula",
+    "observations_count": 172894,
+    "class_label": "european_robin"
+  },
+  {
+    "common_name": "domestic cat",
+    "scientific_name": "Felis catus",
+    "observations_count": 171722,
+    "class_label": "domestic_cat"
+  },
+  {
+    "common_name": "common raven",
+    "scientific_name": "Corvus corax",
+    "observations_count": 171080,
+    "class_label": "common_raven"
+  },
+  {
+    "common_name": "gulf fritillary",
+    "scientific_name": "Dione vanillae",
+    "observations_count": 170763,
+    "class_label": "gulf_fritillary"
+  },
+  {
+    "common_name": "mute swan",
+    "scientific_name": "Cygnus olor",
+    "observations_count": 165348,
+    "class_label": "mute_swan"
+  },
+  {
+    "common_name": "snowy egret",
+    "scientific_name": "Egretta thula",
+    "observations_count": 164062,
+    "class_label": "snowy_egret"
+  },
+  {
+    "common_name": "eurasian magpie",
+    "scientific_name": "Pica pica",
+    "observations_count": 162099,
+    "class_label": "eurasian_magpie"
+  },
+  {
+    "common_name": "black-headed gull",
+    "scientific_name": "Chroicocephalus ridibundus",
+    "observations_count": 161961,
+    "class_label": "black_headed_gull"
+  },
+  {
+    "common_name": "human",
+    "scientific_name": "Homo sapiens",
+    "observations_count": 161554,
+    "class_label": "human"
+  },
+  {
+    "common_name": "eurasian coot",
+    "scientific_name": "Fulica atra",
+    "observations_count": 161281,
+    "class_label": "eurasian_coot"
+  },
+  {
+    "common_name": "red-shouldered hawk",
+    "scientific_name": "Buteo lineatus",
+    "observations_count": 159742,
+    "class_label": "red_shouldered_hawk"
+  },
+  {
+    "common_name": "ring-billed gull",
+    "scientific_name": "Larus delawarensis",
+    "observations_count": 159496,
+    "class_label": "ring_billed_gull"
+  },
+  {
+    "common_name": "black-crowned night heron",
+    "scientific_name": "Nycticorax nycticorax",
+    "observations_count": 158436,
+    "class_label": "black_crowned_night_heron"
+  },
+  {
+    "common_name": "great cormorant",
+    "scientific_name": "Phalacrocorax carbo",
+    "observations_count": 158145,
+    "class_label": "great_cormorant"
+  },
+  {
+    "common_name": "common wood-pigeon",
+    "scientific_name": "Columba palumbus",
+    "observations_count": 158043,
+    "class_label": "common_wood_pigeon"
+  },
+  {
+    "common_name": "painted lady",
+    "scientific_name": "Vanessa cardui",
+    "observations_count": 157917,
+    "class_label": "painted_lady"
+  },
+  {
+    "common_name": "painted turtle",
+    "scientific_name": "Chrysemys picta",
+    "observations_count": 157760,
+    "class_label": "painted_turtle"
+  },
+  {
+    "common_name": "eurasian collared-dove",
+    "scientific_name": "Streptopelia decaocto",
+    "observations_count": 157110,
+    "class_label": "eurasian_collared_dove"
+  },
+  {
+    "common_name": "black-capped chickadee",
+    "scientific_name": "Poecile atricapillus",
+    "observations_count": 155316,
+    "class_label": "black_capped_chickadee"
+  },
+  {
+    "common_name": "eurasian blue tit",
+    "scientific_name": "Cyanistes caeruleus",
+    "observations_count": 154879,
+    "class_label": "eurasian_blue_tit"
+  },
+  {
+    "common_name": "eastern fox squirrel",
+    "scientific_name": "Sciurus niger",
+    "observations_count": 154222,
+    "class_label": "eastern_fox_squirrel"
+  },
+  {
+    "common_name": "great-tailed grackle",
+    "scientific_name": "Quiscalus mexicanus",
+    "observations_count": 152091,
+    "class_label": "great_tailed_grackle"
+  },
+  {
+    "common_name": "northern flicker",
+    "scientific_name": "Colaptes auratus",
+    "observations_count": 151069,
+    "class_label": "northern_flicker"
+  },
+  {
+    "common_name": "cross orbweaver",
+    "scientific_name": "Araneus diadematus",
+    "observations_count": 148209,
+    "class_label": "cross_orbweaver"
+  },
+  {
+    "common_name": "american coot",
+    "scientific_name": "Fulica americana",
+    "observations_count": 148144,
+    "class_label": "american_coot"
+  },
+  {
+    "common_name": "common buzzard",
+    "scientific_name": "Buteo buteo",
+    "observations_count": 147845,
+    "class_label": "common_buzzard"
+  },
+  {
+    "common_name": "eastern tiger swallowtail",
+    "scientific_name": "Papilio glaucus",
+    "observations_count": 147303,
+    "class_label": "eastern_tiger_swallowtail"
+  },
+  {
+    "common_name": "coyote",
+    "scientific_name": "Canis latrans",
+    "observations_count": 146276,
+    "class_label": "coyote"
+  },
+  {
+    "common_name": "white-crowned sparrow",
+    "scientific_name": "Zonotrichia leucophrys",
+    "observations_count": 145095,
+    "class_label": "white_crowned_sparrow"
+  },
+  {
+    "common_name": "green frog",
+    "scientific_name": "Lithobates clamitans",
+    "observations_count": 144033,
+    "class_label": "green_frog"
+  },
+  {
+    "common_name": "cooper's hawk",
+    "scientific_name": "Astur cooperii",
+    "observations_count": 143456,
+    "class_label": "cooper's_hawk"
+  },
+  {
+    "common_name": "brown anole",
+    "scientific_name": "Anolis sagrei",
+    "observations_count": 142917,
+    "class_label": "brown_anole"
+  },
+  {
+    "common_name": "domestic dog",
+    "scientific_name": "Canis familiaris",
+    "observations_count": 142419,
+    "class_label": "domestic_dog"
+  },
+  {
+    "common_name": "blue dasher",
+    "scientific_name": "Pachydiplax longipennis",
+    "observations_count": 141442,
+    "class_label": "blue_dasher"
+  },
+  {
+    "common_name": "eurasian tree sparrow",
+    "scientific_name": "Passer montanus",
+    "observations_count": 140324,
+    "class_label": "eurasian_tree_sparrow"
+  },
+  {
+    "common_name": "eastern bluebird",
+    "scientific_name": "Sialia sialis",
+    "observations_count": 140250,
+    "class_label": "eastern_bluebird"
+  },
+  {
+    "common_name": "red fox",
+    "scientific_name": "Vulpes vulpes",
+    "observations_count": 139104,
+    "class_label": "red_fox"
+  },
+  {
+    "common_name": "great spotted woodpecker",
+    "scientific_name": "Dendrocopos major",
+    "observations_count": 138828,
+    "class_label": "great_spotted_woodpecker"
+  },
+  {
+    "common_name": "common pill woodlouse",
+    "scientific_name": "Armadillidium vulgare",
+    "observations_count": 137901,
+    "class_label": "common_pill_woodlouse"
+  },
+  {
+    "common_name": "killdeer",
+    "scientific_name": "Charadrius vociferus",
+    "observations_count": 136392,
+    "class_label": "killdeer"
+  },
+  {
+    "common_name": "green anole",
+    "scientific_name": "Anolis carolinensis",
+    "observations_count": 135744,
+    "class_label": "green_anole"
+  },
+  {
+    "common_name": "brown pelican",
+    "scientific_name": "Pelecanus occidentalis",
+    "observations_count": 132845,
+    "class_label": "brown_pelican"
+  },
+  {
+    "common_name": "garden snail",
+    "scientific_name": "Cornu aspersum",
+    "observations_count": 131979,
+    "class_label": "garden_snail"
+  },
+  {
+    "common_name": "red-bellied woodpecker",
+    "scientific_name": "Melanerpes carolinus",
+    "observations_count": 131307,
+    "class_label": "red_bellied_woodpecker"
+  },
+  {
+    "common_name": "northern shoveler",
+    "scientific_name": "Spatula clypeata",
+    "observations_count": 131059,
+    "class_label": "northern_shoveler"
+  },
+  {
+    "common_name": "american bullfrog",
+    "scientific_name": "Lithobates catesbeianus",
+    "observations_count": 130696,
+    "class_label": "american_bullfrog"
+  },
+  {
+    "common_name": "hooded crow",
+    "scientific_name": "Corvus cornix",
+    "observations_count": 130103,
+    "class_label": "hooded_crow"
+  },
+  {
+    "common_name": "black swallowtail",
+    "scientific_name": "Papilio polyxenes",
+    "observations_count": 126409,
+    "class_label": "black_swallowtail"
+  },
+  {
+    "common_name": "eurasian kestrel",
+    "scientific_name": "Falco tinnunculus",
+    "observations_count": 125633,
+    "class_label": "eurasian_kestrel"
+  },
+  {
+    "common_name": "eastern pondhawk",
+    "scientific_name": "Erythemis simplicicollis",
+    "observations_count": 125203,
+    "class_label": "eastern_pondhawk"
+  },
+  {
+    "common_name": "black vulture",
+    "scientific_name": "Coragyps atratus",
+    "observations_count": 121183,
+    "class_label": "black_vulture"
+  },
+  {
+    "common_name": "american kestrel",
+    "scientific_name": "Falco sparverius",
+    "observations_count": 120711,
+    "class_label": "american_kestrel"
+  },
+  {
+    "common_name": "speckled wood",
+    "scientific_name": "Pararge aegeria",
+    "observations_count": 120465,
+    "class_label": "speckled_wood"
+  },
+  {
+    "common_name": "green-winged teal",
+    "scientific_name": "Anas crecca",
+    "observations_count": 120343,
+    "class_label": "green_winged_teal"
+  },
+  {
+    "common_name": "common merganser",
+    "scientific_name": "Mergus merganser",
+    "observations_count": 119131,
+    "class_label": "common_merganser"
+  },
+  {
+    "common_name": "anna's hummingbird",
+    "scientific_name": "Calypte anna",
+    "observations_count": 118699,
+    "class_label": "anna's_hummingbird"
+  },
+  {
+    "common_name": "green heron",
+    "scientific_name": "Butorides virescens",
+    "observations_count": 118664,
+    "class_label": "green_heron"
+  },
+  {
+    "common_name": "little egret",
+    "scientific_name": "Egretta garzetta",
+    "observations_count": 118535,
+    "class_label": "little_egret"
+  },
+  {
+    "common_name": "european peacock butterfly",
+    "scientific_name": "Aglais io",
+    "observations_count": 117855,
+    "class_label": "european_peacock_butterfly"
+  },
+  {
+    "common_name": "eastern carpenter bee",
+    "scientific_name": "Xylocopa virginica",
+    "observations_count": 117775,
+    "class_label": "eastern_carpenter_bee"
+  },
+  {
+    "common_name": "white-throated sparrow",
+    "scientific_name": "Zonotrichia albicollis",
+    "observations_count": 116347,
+    "class_label": "white_throated_sparrow"
+  },
+  {
+    "common_name": "common moorhen",
+    "scientific_name": "Gallinula chloropus",
+    "observations_count": 114574,
+    "class_label": "common_moorhen"
+  },
+  {
+    "common_name": "european goldfinch",
+    "scientific_name": "Carduelis carduelis",
+    "observations_count": 114165,
+    "class_label": "european_goldfinch"
+  },
+  {
+    "common_name": "chipping sparrow",
+    "scientific_name": "Spizella passerina",
+    "observations_count": 112979,
+    "class_label": "chipping_sparrow"
+  },
+  {
+    "common_name": "brown marmorated stink bug",
+    "scientific_name": "Halyomorpha halys",
+    "observations_count": 111995,
+    "class_label": "brown_marmorated_stink_bug"
+  },
+  {
+    "common_name": "gadwall",
+    "scientific_name": "Mareca strepera",
+    "observations_count": 111199,
+    "class_label": "gadwall"
+  },
+  {
+    "common_name": "common whitetail",
+    "scientific_name": "Plathemis lydia",
+    "observations_count": 111153,
+    "class_label": "common_whitetail"
+  },
+  {
+    "common_name": "cedar waxwing",
+    "scientific_name": "Bombycilla cedrorum",
+    "observations_count": 110565,
+    "class_label": "cedar_waxwing"
+  },
+  {
+    "common_name": "eastern phoebe",
+    "scientific_name": "Sayornis phoebe",
+    "observations_count": 110038,
+    "class_label": "eastern_phoebe"
+  },
+  {
+    "common_name": "wood duck",
+    "scientific_name": "Aix sponsa",
+    "observations_count": 109601,
+    "class_label": "wood_duck"
+  },
+  {
+    "common_name": "common blue",
+    "scientific_name": "Polyommatus icarus",
+    "observations_count": 109105,
+    "class_label": "common_blue"
+  },
+  {
+    "common_name": "brown-belted bumble bee",
+    "scientific_name": "Bombus griseocollis",
+    "observations_count": 108682,
+    "class_label": "brown_belted_bumble_bee"
+  },
+  {
+    "common_name": "carrion crow",
+    "scientific_name": "Corvus corone",
+    "observations_count": 108116,
+    "class_label": "carrion_crow"
+  },
+  {
+    "common_name": "black kite",
+    "scientific_name": "Milvus migrans",
+    "observations_count": 108077,
+    "class_label": "black_kite"
+  },
+  {
+    "common_name": "white-breasted nuthatch",
+    "scientific_name": "Sitta carolinensis",
+    "observations_count": 107824,
+    "class_label": "white_breasted_nuthatch"
+  },
+  {
+    "common_name": "common snapping turtle",
+    "scientific_name": "Chelydra serpentina",
+    "observations_count": 107580,
+    "class_label": "common_snapping_turtle"
+  },
+  {
+    "common_name": "fiery skipper",
+    "scientific_name": "Hylephila phyleus",
+    "observations_count": 105533,
+    "class_label": "fiery_skipper"
+  },
+  {
+    "common_name": "red-spotted admiral",
+    "scientific_name": "Limenitis arthemis",
+    "observations_count": 104900,
+    "class_label": "red_spotted_admiral"
+  },
+  {
+    "common_name": "bold jumping spider",
+    "scientific_name": "Phidippus audax",
+    "observations_count": 104683,
+    "class_label": "bold_jumping_spider"
+  },
+  {
+    "common_name": "lesser goldfinch",
+    "scientific_name": "Spinus psaltria",
+    "observations_count": 103911,
+    "class_label": "lesser_goldfinch"
+  },
+  {
+    "common_name": "common grackle",
+    "scientific_name": "Quiscalus quiscula",
+    "observations_count": 103127,
+    "class_label": "common_grackle"
+  },
+  {
+    "common_name": "pearl crescent",
+    "scientific_name": "Phyciodes tharos",
+    "observations_count": 102837,
+    "class_label": "pearl_crescent"
+  },
+  {
+    "common_name": "common buckeye",
+    "scientific_name": "Junonia coenia",
+    "observations_count": 101408,
+    "class_label": "common_buckeye"
+  },
+  {
+    "common_name": "large yellow underwing",
+    "scientific_name": "Noctua pronuba",
+    "observations_count": 101226,
+    "class_label": "large_yellow_underwing"
+  },
+  {
+    "common_name": "carolina wren",
+    "scientific_name": "Thryothorus ludovicianus",
+    "observations_count": 99406,
+    "class_label": "carolina_wren"
+  },
+  {
+    "common_name": "yellow garden spider",
+    "scientific_name": "Argiope aurantia",
+    "observations_count": 98308,
+    "class_label": "yellow_garden_spider"
+  },
+  {
+    "common_name": "common drone fly",
+    "scientific_name": "Eristalis tenax",
+    "observations_count": 98045,
+    "class_label": "common_drone_fly"
+  },
+  {
+    "common_name": "great crested grebe",
+    "scientific_name": "Podiceps cristatus",
+    "observations_count": 97898,
+    "class_label": "great_crested_grebe"
+  },
+  {
+    "common_name": "eurasian jay",
+    "scientific_name": "Garrulus glandarius",
+    "observations_count": 96545,
+    "class_label": "eurasian_jay"
+  },
+  {
+    "common_name": "common goldeneye",
+    "scientific_name": "Bucephala clangula",
+    "observations_count": 96284,
+    "class_label": "common_goldeneye"
+  },
+  {
+    "common_name": "european mantis",
+    "scientific_name": "Mantis religiosa",
+    "observations_count": 95781,
+    "class_label": "european_mantis"
+  },
+  {
+    "common_name": "meadow brown",
+    "scientific_name": "Maniola jurtina",
+    "observations_count": 95586,
+    "class_label": "meadow_brown"
+  },
+  {
+    "common_name": "american alligator",
+    "scientific_name": "Alligator mississippiensis",
+    "observations_count": 95462,
+    "class_label": "american_alligator"
+  },
+  {
+    "common_name": "isabella tiger moth",
+    "scientific_name": "Pyrrharctia isabella",
+    "observations_count": 95319,
+    "class_label": "isabella_tiger_moth"
+  },
+  {
+    "common_name": "bufflehead",
+    "scientific_name": "Bucephala albeola",
+    "observations_count": 95032,
+    "class_label": "bufflehead"
+  },
+  {
+    "common_name": "common wall lizard",
+    "scientific_name": "Podarcis muralis",
+    "observations_count": 94654,
+    "class_label": "common_wall_lizard"
+  },
+  {
+    "common_name": "eurasian jackdaw",
+    "scientific_name": "Coloeus monedula",
+    "observations_count": 94409,
+    "class_label": "eurasian_jackdaw"
+  },
+  {
+    "common_name": "gray catbird",
+    "scientific_name": "Dumetella carolinensis",
+    "observations_count": 94308,
+    "class_label": "gray_catbird"
+  },
+  {
+    "common_name": "common box turtle",
+    "scientific_name": "Terrapene carolina",
+    "observations_count": 94219,
+    "class_label": "common_box_turtle"
+  },
+  {
+    "common_name": "black phoebe",
+    "scientific_name": "Sayornis nigricans",
+    "observations_count": 93934,
+    "class_label": "black_phoebe"
+  },
+  {
+    "common_name": "european greenfinch",
+    "scientific_name": "Chloris chloris",
+    "observations_count": 93896,
+    "class_label": "european_greenfinch"
+  },
+  {
+    "common_name": "brown-headed cowbird",
+    "scientific_name": "Molothrus ater",
+    "observations_count": 93357,
+    "class_label": "brown_headed_cowbird"
+  },
+  {
+    "common_name": "eastern chipmunk",
+    "scientific_name": "Tamias striatus",
+    "observations_count": 93216,
+    "class_label": "eastern_chipmunk"
+  },
+  {
+    "common_name": "white-winged dove",
+    "scientific_name": "Zenaida asiatica",
+    "observations_count": 92844,
+    "class_label": "white_winged_dove"
+  },
+  {
+    "common_name": "eastern red-backed salamander",
+    "scientific_name": "Plethodon cinereus",
+    "observations_count": 92787,
+    "class_label": "eastern_red_backed_salamander"
+  },
+  {
+    "common_name": "fieldfare",
+    "scientific_name": "Turdus pilaris",
+    "observations_count": 92451,
+    "class_label": "fieldfare"
+  },
+  {
+    "common_name": "european toad",
+    "scientific_name": "Bufo bufo",
+    "observations_count": 92378,
+    "class_label": "european_toad"
+  },
+  {
+    "common_name": "pied-billed grebe",
+    "scientific_name": "Podilymbus podiceps",
+    "observations_count": 91581,
+    "class_label": "pied_billed_grebe"
+  },
+  {
+    "common_name": "european firebug",
+    "scientific_name": "Pyrrhocoris apterus",
+    "observations_count": 90993,
+    "class_label": "european_firebug"
+  },
+  {
+    "common_name": "white ibis",
+    "scientific_name": "Eudocimus albus",
+    "observations_count": 90958,
+    "class_label": "white_ibis"
+  },
+  {
+    "common_name": "western cattle-egret",
+    "scientific_name": "Ardea ibis",
+    "observations_count": 90797,
+    "class_label": "western_cattle_egret"
+  },
+  {
+    "common_name": "ruby-crowned kinglet",
+    "scientific_name": "Corthylio calendula",
+    "observations_count": 90631,
+    "class_label": "ruby_crowned_kinglet"
+  },
+  {
+    "common_name": "tufted titmouse",
+    "scientific_name": "Baeolophus bicolor",
+    "observations_count": 90622,
+    "class_label": "tufted_titmouse"
+  },
+  {
+    "common_name": "muscovy duck",
+    "scientific_name": "Cairina moschata",
+    "observations_count": 90171,
+    "class_label": "muscovy_duck"
+  },
+  {
+    "common_name": "american herring gull",
+    "scientific_name": "Larus smithsonianus",
+    "observations_count": 89949,
+    "class_label": "american_herring_gull"
+  },
+  {
+    "common_name": "laughing gull",
+    "scientific_name": "Leucophaeus atricilla",
+    "observations_count": 89606,
+    "class_label": "laughing_gull"
+  },
+  {
+    "common_name": "brown-lipped snail",
+    "scientific_name": "Cepaea nemoralis",
+    "observations_count": 88755,
+    "class_label": "brown_lipped_snail"
+  },
+  {
+    "common_name": "greylag goose",
+    "scientific_name": "Anser anser",
+    "observations_count": 88487,
+    "class_label": "greylag_goose"
+  },
+  {
+    "common_name": "european paper wasp",
+    "scientific_name": "Polistes dominula",
+    "observations_count": 88374,
+    "class_label": "european_paper_wasp"
+  },
+  {
+    "common_name": "common carder bumble bee",
+    "scientific_name": "Bombus pascuorum",
+    "observations_count": 88350,
+    "class_label": "common_carder_bumble_bee"
+  },
+  {
+    "common_name": "american red squirrel",
+    "scientific_name": "Tamiasciurus hudsonicus",
+    "observations_count": 88349,
+    "class_label": "american_red_squirrel"
+  },
+  {
+    "common_name": "vermilion flycatcher",
+    "scientific_name": "Pyrocephalus rubinus",
+    "observations_count": 87592,
+    "class_label": "vermilion_flycatcher"
+  },
+  {
+    "common_name": "silver-spotted skipper",
+    "scientific_name": "Epargyreus clarus",
+    "observations_count": 87449,
+    "class_label": "silver_spotted_skipper"
+  },
+  {
+    "common_name": "pileated woodpecker",
+    "scientific_name": "Dryocopus pileatus",
+    "observations_count": 86639,
+    "class_label": "pileated_woodpecker"
+  },
+  {
+    "common_name": "common chiffchaff",
+    "scientific_name": "Phylloscopus collybita",
+    "observations_count": 86156,
+    "class_label": "common_chiffchaff"
+  },
+  {
+    "common_name": "black redstart",
+    "scientific_name": "Phoenicurus ochruros",
+    "observations_count": 84669,
+    "class_label": "black_redstart"
+  },
+  {
+    "common_name": "common watersnake",
+    "scientific_name": "Nerodia sipedon",
+    "observations_count": 84597,
+    "class_label": "common_watersnake"
+  },
+  {
+    "common_name": "ruby-throated hummingbird",
+    "scientific_name": "Archilochus colubris",
+    "observations_count": 84566,
+    "class_label": "ruby_throated_hummingbird"
+  },
+  {
+    "common_name": "eurasian nuthatch",
+    "scientific_name": "Sitta europaea",
+    "observations_count": 84367,
+    "class_label": "eurasian_nuthatch"
+  },
+  {
+    "common_name": "eurasian red squirrel",
+    "scientific_name": "Sciurus vulgaris",
+    "observations_count": 84007,
+    "class_label": "eurasian_red_squirrel"
+  },
+  {
+    "common_name": "mourning cloak",
+    "scientific_name": "Nymphalis antiopa",
+    "observations_count": 84004,
+    "class_label": "mourning_cloak"
+  },
+  {
+    "common_name": "pipevine swallowtail",
+    "scientific_name": "Battus philenor",
+    "observations_count": 83669,
+    "class_label": "pipevine_swallowtail"
+  },
+  {
+    "common_name": "green iguana",
+    "scientific_name": "Iguana iguana",
+    "observations_count": 83496,
+    "class_label": "green_iguana"
+  },
+  {
+    "common_name": "european common frog",
+    "scientific_name": "Rana temporaria",
+    "observations_count": 83187,
+    "class_label": "european_common_frog"
+  },
+  {
+    "common_name": "great horned owl",
+    "scientific_name": "Bubo virginianus",
+    "observations_count": 82970,
+    "class_label": "great_horned_owl"
+  },
+  {
+    "common_name": "eurasian bullfinch",
+    "scientific_name": "Pyrrhula pyrrhula",
+    "observations_count": 82631,
+    "class_label": "eurasian_bullfinch"
+  },
+  {
+    "common_name": "pacific chorus frog",
+    "scientific_name": "Pseudacris regilla",
+    "observations_count": 82605,
+    "class_label": "pacific_chorus_frog"
+  },
+  {
+    "common_name": "western conifer seed bug",
+    "scientific_name": "Leptoglossus occidentalis",
+    "observations_count": 81645,
+    "class_label": "western_conifer_seed_bug"
+  },
+  {
+    "common_name": "belted kingfisher",
+    "scientific_name": "Megaceryle alcyon",
+    "observations_count": 81336,
+    "class_label": "belted_kingfisher"
+  },
+  {
+    "common_name": "western roe deer",
+    "scientific_name": "Capreolus capreolus",
+    "observations_count": 80599,
+    "class_label": "western_roe_deer"
+  },
+  {
+    "common_name": "egyptian goose",
+    "scientific_name": "Alopochen aegyptiaca",
+    "observations_count": 80573,
+    "class_label": "egyptian_goose"
+  },
+  {
+    "common_name": "american black bear",
+    "scientific_name": "Ursus americanus",
+    "observations_count": 80378,
+    "class_label": "american_black_bear"
+  },
+  {
+    "common_name": "spotted lanternfly",
+    "scientific_name": "Lycorma delicatula",
+    "observations_count": 80158,
+    "class_label": "spotted_lanternfly"
+  },
+  {
+    "common_name": "common side-blotched lizard",
+    "scientific_name": "Uta stansburiana",
+    "observations_count": 80040,
+    "class_label": "common_side_blotched_lizard"
+  },
+  {
+    "common_name": "new zealand pigeon",
+    "scientific_name": "Hemiphaga novaeseelandiae",
+    "observations_count": 79863,
+    "class_label": "new_zealand_pigeon"
+  },
+  {
+    "common_name": "large milkweed bug",
+    "scientific_name": "Oncopeltus fasciatus",
+    "observations_count": 79861,
+    "class_label": "large_milkweed_bug"
+  },
+  {
+    "common_name": "american white pelican",
+    "scientific_name": "Pelecanus erythrorhynchos",
+    "observations_count": 79313,
+    "class_label": "american_white_pelican"
+  },
+  {
+    "common_name": "spotted sandpiper",
+    "scientific_name": "Actitis macularius",
+    "observations_count": 79021,
+    "class_label": "spotted_sandpiper"
+  },
+  {
+    "common_name": "buff-tailed bumble bee",
+    "scientific_name": "Bombus terrestris",
+    "observations_count": 78995,
+    "class_label": "buff_tailed_bumble_bee"
+  },
+  {
+    "common_name": "american wigeon",
+    "scientific_name": "Mareca americana",
+    "observations_count": 78813,
+    "class_label": "american_wigeon"
+  },
+  {
+    "common_name": "gray hairstreak",
+    "scientific_name": "Strymon melinus",
+    "observations_count": 78799,
+    "class_label": "gray_hairstreak"
+  },
+  {
+    "common_name": "small tortoiseshell",
+    "scientific_name": "Aglais urticae",
+    "observations_count": 78622,
+    "class_label": "small_tortoiseshell"
+  },
+  {
+    "common_name": "sanderling",
+    "scientific_name": "Calidris alba",
+    "observations_count": 77982,
+    "class_label": "sanderling"
+  },
+  {
+    "common_name": "black-necked stilt",
+    "scientific_name": "Himantopus mexicanus",
+    "observations_count": 77748,
+    "class_label": "black_necked_stilt"
+  },
+  {
+    "common_name": "hooded merganser",
+    "scientific_name": "Lophodytes cucullatus",
+    "observations_count": 77571,
+    "class_label": "hooded_merganser"
+  },
+  {
+    "common_name": "savannah sparrow",
+    "scientific_name": "Passerculus sandwichensis",
+    "observations_count": 77282,
+    "class_label": "savannah_sparrow"
+  },
+  {
+    "common_name": "tree swallow",
+    "scientific_name": "Tachycineta bicolor",
+    "observations_count": 76695,
+    "class_label": "tree_swallow"
+  },
+  {
+    "common_name": "sandhill crane",
+    "scientific_name": "Antigone canadensis",
+    "observations_count": 76609,
+    "class_label": "sandhill_crane"
+  },
+  {
+    "common_name": "tufted duck",
+    "scientific_name": "Aythya fuligula",
+    "observations_count": 76431,
+    "class_label": "tufted_duck"
+  },
+  {
+    "common_name": "long-tailed tit",
+    "scientific_name": "Aegithalos caudatus",
+    "observations_count": 76320,
+    "class_label": "long_tailed_tit"
+  },
+  {
+    "common_name": "great kiskadee",
+    "scientific_name": "Pitangus sulphuratus",
+    "observations_count": 75699,
+    "class_label": "great_kiskadee"
+  },
+  {
+    "common_name": "eastern newt",
+    "scientific_name": "Notophthalmus viridescens",
+    "observations_count": 75492,
+    "class_label": "eastern_newt"
+  },
+  {
+    "common_name": "common yellowthroat",
+    "scientific_name": "Geothlypis trichas",
+    "observations_count": 75326,
+    "class_label": "common_yellowthroat"
+  },
+  {
+    "common_name": "american beaver",
+    "scientific_name": "Castor canadensis",
+    "observations_count": 74700,
+    "class_label": "american_beaver"
+  },
+  {
+    "common_name": "hairy woodpecker",
+    "scientific_name": "Leuconotopicus villosus",
+    "observations_count": 74038,
+    "class_label": "hairy_woodpecker"
+  },
+  {
+    "common_name": "willet",
+    "scientific_name": "Tringa semipalmata",
+    "observations_count": 73782,
+    "class_label": "willet"
+  },
+  {
+    "common_name": "little blue heron",
+    "scientific_name": "Egretta caerulea",
+    "observations_count": 73727,
+    "class_label": "little_blue_heron"
+  },
+  {
+    "common_name": "gopher snake",
+    "scientific_name": "Pituophis catenifer",
+    "observations_count": 73710,
+    "class_label": "gopher_snake"
+  },
+  {
+    "common_name": "widow skimmer",
+    "scientific_name": "Libellula luctuosa",
+    "observations_count": 73483,
+    "class_label": "widow_skimmer"
+  },
+  {
+    "common_name": "european herring gull",
+    "scientific_name": "Larus argentatus",
+    "observations_count": 73419,
+    "class_label": "european_herring_gull"
+  },
+  {
+    "common_name": "western gull",
+    "scientific_name": "Larus occidentalis",
+    "observations_count": 73192,
+    "class_label": "western_gull"
+  },
+  {
+    "common_name": "yellow-crowned night heron",
+    "scientific_name": "Nyctanassa violacea",
+    "observations_count": 73125,
+    "class_label": "yellow_crowned_night_heron"
+  },
+  {
+    "common_name": "huron skipper",
+    "scientific_name": "Atalopedes huron",
+    "observations_count": 72968,
+    "class_label": "huron_skipper"
+  },
+  {
+    "common_name": "green-veined white",
+    "scientific_name": "Pieris napi",
+    "observations_count": 72835,
+    "class_label": "green_veined_white"
+  },
+  {
+    "common_name": "ochre sea star",
+    "scientific_name": "Pisaster ochraceus",
+    "observations_count": 72672,
+    "class_label": "ochre_sea_star"
+  },
+  {
+    "common_name": "spongy moth",
+    "scientific_name": "Lymantria dispar",
+    "observations_count": 72659,
+    "class_label": "spongy_moth"
+  },
+  {
+    "common_name": "california scrub-jay",
+    "scientific_name": "Aphelocoma californica",
+    "observations_count": 72624,
+    "class_label": "california_scrub_jay"
+  },
+  {
+    "common_name": "white-lined sphinx",
+    "scientific_name": "Hyles lineata",
+    "observations_count": 72589,
+    "class_label": "white_lined_sphinx"
+  },
+  {
+    "common_name": "european comma",
+    "scientific_name": "Polygonia c-album",
+    "observations_count": 72379,
+    "class_label": "european_comma"
+  },
+  {
+    "common_name": "ring-necked duck",
+    "scientific_name": "Aythya collaris",
+    "observations_count": 72247,
+    "class_label": "ring_necked_duck"
+  },
+  {
+    "common_name": "barred owl",
+    "scientific_name": "Strix varia",
+    "observations_count": 72194,
+    "class_label": "barred_owl"
+  },
+  {
+    "common_name": "spotted towhee",
+    "scientific_name": "Pipilo maculatus",
+    "observations_count": 72167,
+    "class_label": "spotted_towhee"
+  },
+  {
+    "common_name": "northern yellow warbler",
+    "scientific_name": "Setophaga aestiva",
+    "observations_count": 71789,
+    "class_label": "northern_yellow_warbler"
+  },
+  {
+    "common_name": "white stork",
+    "scientific_name": "Ciconia ciconia",
+    "observations_count": 71348,
+    "class_label": "white_stork"
+  },
+  {
+    "common_name": "japanese beetle",
+    "scientific_name": "Popillia japonica",
+    "observations_count": 71176,
+    "class_label": "japanese_beetle"
+  },
+  {
+    "common_name": "common gallinule",
+    "scientific_name": "Gallinula galeata",
+    "observations_count": 71014,
+    "class_label": "common_gallinule"
+  },
+  {
+    "common_name": "european hornet",
+    "scientific_name": "Vespa crabro",
+    "observations_count": 70941,
+    "class_label": "european_hornet"
+  },
+  {
+    "common_name": "song thrush",
+    "scientific_name": "Turdus philomelos",
+    "observations_count": 69948,
+    "class_label": "song_thrush"
+  },
+  {
+    "common_name": "red junglefowl",
+    "scientific_name": "Gallus gallus",
+    "observations_count": 69697,
+    "class_label": "red_junglefowl"
+  },
+  {
+    "common_name": "virginia opossum",
+    "scientific_name": "Didelphis virginiana",
+    "observations_count": 69501,
+    "class_label": "virginia_opossum"
+  },
+  {
+    "common_name": "polyphemus moth",
+    "scientific_name": "Antheraea polyphemus",
+    "observations_count": 69457,
+    "class_label": "polyphemus_moth"
+  },
+  {
+    "common_name": "greater yellowlegs",
+    "scientific_name": "Tringa melanoleuca",
+    "observations_count": 69244,
+    "class_label": "greater_yellowlegs"
+  },
+  {
+    "common_name": "yellow-legged gull",
+    "scientific_name": "Larus michahellis",
+    "observations_count": 69233,
+    "class_label": "yellow_legged_gull"
+  },
+  {
+    "common_name": "goldenrod crab spider",
+    "scientific_name": "Misumena vatia",
+    "observations_count": 68314,
+    "class_label": "goldenrod_crab_spider"
+  },
+  {
+    "common_name": "salt marsh moth",
+    "scientific_name": "Estigmene acrea",
+    "observations_count": 68297,
+    "class_label": "salt_marsh_moth"
+  },
+  {
+    "common_name": "carolina chickadee",
+    "scientific_name": "Poecile carolinensis",
+    "observations_count": 67759,
+    "class_label": "carolina_chickadee"
+  },
+  {
+    "common_name": "two-spotted bumble bee",
+    "scientific_name": "Bombus bimaculatus",
+    "observations_count": 67492,
+    "class_label": "two_spotted_bumble_bee"
+  },
+  {
+    "common_name": "marmalade hover fly",
+    "scientific_name": "Episyrphus balteatus",
+    "observations_count": 67128,
+    "class_label": "marmalade_hover_fly"
+  },
+  {
+    "common_name": "leopard slug",
+    "scientific_name": "Limax maximus",
+    "observations_count": 66961,
+    "class_label": "leopard_slug"
+  },
+  {
+    "common_name": "american lady",
+    "scientific_name": "Vanessa virginiensis",
+    "observations_count": 66763,
+    "class_label": "american_lady"
+  },
+  {
+    "common_name": "fall webworm moth",
+    "scientific_name": "Hyphantria cunea",
+    "observations_count": 66728,
+    "class_label": "fall_webworm_moth"
+  },
+  {
+    "common_name": "northern paper wasp",
+    "scientific_name": "Polistes fuscatus",
+    "observations_count": 66425,
+    "class_label": "northern_paper_wasp"
+  },
+  {
+    "common_name": "margined calligrapher",
+    "scientific_name": "Toxomerus marginatus",
+    "observations_count": 66135,
+    "class_label": "margined_calligrapher"
+  },
+  {
+    "common_name": "wood frog",
+    "scientific_name": "Lithobates sylvaticus",
+    "observations_count": 66040,
+    "class_label": "wood_frog"
+  },
+  {
+    "common_name": "spotted orbweaver",
+    "scientific_name": "Neoscona crucifera",
+    "observations_count": 65890,
+    "class_label": "spotted_orbweaver"
+  },
+  {
+    "common_name": "ruddy turnstone",
+    "scientific_name": "Arenaria interpres",
+    "observations_count": 65738,
+    "class_label": "ruddy_turnstone"
+  },
+  {
+    "common_name": "western bluebird",
+    "scientific_name": "Sialia mexicana",
+    "observations_count": 65725,
+    "class_label": "western_bluebird"
+  },
+  {
+    "common_name": "queen",
+    "scientific_name": "Danaus gilippus",
+    "observations_count": 65668,
+    "class_label": "queen"
+  },
+  {
+    "common_name": "northern pintail",
+    "scientific_name": "Anas acuta",
+    "observations_count": 65467,
+    "class_label": "northern_pintail"
+  },
+  {
+    "common_name": "harbor seal",
+    "scientific_name": "Phoca vitulina",
+    "observations_count": 65317,
+    "class_label": "harbor_seal"
+  },
+  {
+    "common_name": "convergent lady beetle",
+    "scientific_name": "Hippodamia convergens",
+    "observations_count": 65153,
+    "class_label": "convergent_lady_beetle"
+  },
+  {
+    "common_name": "ring-necked pheasant",
+    "scientific_name": "Phasianus colchicus",
+    "observations_count": 65076,
+    "class_label": "ring_necked_pheasant"
+  },
+  {
+    "common_name": "baltimore oriole",
+    "scientific_name": "Icterus galbula",
+    "observations_count": 64859,
+    "class_label": "baltimore_oriole"
+  },
+  {
+    "common_name": "wild boar",
+    "scientific_name": "Sus scrofa",
+    "observations_count": 64678,
+    "class_label": "wild_boar"
+  },
+  {
+    "common_name": "small copper",
+    "scientific_name": "Lycaena phlaeas",
+    "observations_count": 64549,
+    "class_label": "small_copper"
+  },
+  {
+    "common_name": "ebony jewelwing",
+    "scientific_name": "Calopteryx maculata",
+    "observations_count": 64091,
+    "class_label": "ebony_jewelwing"
+  },
+  {
+    "common_name": "blue-winged teal",
+    "scientific_name": "Spatula discors",
+    "observations_count": 64048,
+    "class_label": "blue_winged_teal"
+  },
+  {
+    "common_name": "virginian tiger moth",
+    "scientific_name": "Spilosoma virginica",
+    "observations_count": 63812,
+    "class_label": "virginian_tiger_moth"
+  },
+  {
+    "common_name": "northern leopard frog",
+    "scientific_name": "Lithobates pipiens",
+    "observations_count": 63715,
+    "class_label": "northern_leopard_frog"
+  },
+  {
+    "common_name": "least sandpiper",
+    "scientific_name": "Calidris minutilla",
+    "observations_count": 63657,
+    "class_label": "least_sandpiper"
+  },
+  {
+    "common_name": "neotropic cormorant",
+    "scientific_name": "Nannopterum brasilianum",
+    "observations_count": 63485,
+    "class_label": "neotropic_cormorant"
+  },
+  {
+    "common_name": "spring peeper",
+    "scientific_name": "Pseudacris crucifer",
+    "observations_count": 63184,
+    "class_label": "spring_peeper"
+  },
+  {
+    "common_name": "eurasian blackcap",
+    "scientific_name": "Sylvia atricapilla",
+    "observations_count": 62969,
+    "class_label": "eurasian_blackcap"
+  },
+  {
+    "common_name": "chinese mantis",
+    "scientific_name": "Tenodera sinensis",
+    "observations_count": 62868,
+    "class_label": "chinese_mantis"
+  },
+  {
+    "common_name": "acorn woodpecker",
+    "scientific_name": "Melanerpes formicivorus",
+    "observations_count": 62749,
+    "class_label": "acorn_woodpecker"
+  },
+  {
+    "common_name": "anhinga",
+    "scientific_name": "Anhinga anhinga",
+    "observations_count": 62513,
+    "class_label": "anhinga"
+  },
+  {
+    "common_name": "european rabbit",
+    "scientific_name": "Oryctolagus cuniculus",
+    "observations_count": 62296,
+    "class_label": "european_rabbit"
+  },
+  {
+    "common_name": "green shield bug",
+    "scientific_name": "Palomena prasina",
+    "observations_count": 62265,
+    "class_label": "green_shield_bug"
+  },
+  {
+    "common_name": "dekay's brownsnake",
+    "scientific_name": "Storeria dekayi",
+    "observations_count": 62244,
+    "class_label": "dekay's_brownsnake"
+  },
+  {
+    "common_name": "orange sulphur",
+    "scientific_name": "Colias eurytheme",
+    "observations_count": 62121,
+    "class_label": "orange_sulphur"
+  },
+  {
+    "common_name": "common myna",
+    "scientific_name": "Acridotheres tristis",
+    "observations_count": 61943,
+    "class_label": "common_myna"
+  },
+  {
+    "common_name": "common loon",
+    "scientific_name": "Gavia immer",
+    "observations_count": 61683,
+    "class_label": "common_loon"
+  },
+  {
+    "common_name": "crested caracara",
+    "scientific_name": "Caracara plancus",
+    "observations_count": 61543,
+    "class_label": "crested_caracara"
+  },
+  {
+    "common_name": "eastern tailed-blue",
+    "scientific_name": "Cupido comyntas",
+    "observations_count": 61036,
+    "class_label": "eastern_tailed_blue"
+  },
+  {
+    "common_name": "hermit thrush",
+    "scientific_name": "Catharus guttatus",
+    "observations_count": 60959,
+    "class_label": "hermit_thrush"
+  },
+  {
+    "common_name": "moose",
+    "scientific_name": "Alces alces",
+    "observations_count": 60841,
+    "class_label": "moose"
+  },
+  {
+    "common_name": "roman snail",
+    "scientific_name": "Helix pomatia",
+    "observations_count": 60711,
+    "class_label": "roman_snail"
+  },
+  {
+    "common_name": "golden silk spider",
+    "scientific_name": "Trichonephila clavipes",
+    "observations_count": 60560,
+    "class_label": "golden_silk_spider"
+  },
+  {
+    "common_name": "eastern kingbird",
+    "scientific_name": "Tyrannus tyrannus",
+    "observations_count": 60399,
+    "class_label": "eastern_kingbird"
+  },
+  {
+    "common_name": "common rough woodlouse",
+    "scientific_name": "Porcellio scaber",
+    "observations_count": 60100,
+    "class_label": "common_rough_woodlouse"
+  },
+  {
+    "common_name": "zebra jumping spider",
+    "scientific_name": "Salticus scenicus",
+    "observations_count": 59968,
+    "class_label": "zebra_jumping_spider"
+  },
+  {
+    "common_name": "spotted cucumber beetle",
+    "scientific_name": "Diabrotica undecimpunctata",
+    "observations_count": 59779,
+    "class_label": "spotted_cucumber_beetle"
+  },
+  {
+    "common_name": "north american luna moth",
+    "scientific_name": "Actias luna",
+    "observations_count": 59439,
+    "class_label": "north_american_luna_moth"
+  },
+  {
+    "common_name": "northern lapwing",
+    "scientific_name": "Vanellus vanellus",
+    "observations_count": 59302,
+    "class_label": "northern_lapwing"
+  },
+  {
+    "common_name": "australian magpie",
+    "scientific_name": "Gymnorhina tibicen",
+    "observations_count": 59254,
+    "class_label": "australian_magpie"
+  },
+  {
+    "common_name": "lesser black-backed gull",
+    "scientific_name": "Larus fuscus",
+    "observations_count": 59206,
+    "class_label": "lesser_black_backed_gull"
+  },
+  {
+    "common_name": "blue-gray gnatcatcher",
+    "scientific_name": "Polioptila caerulea",
+    "observations_count": 59102,
+    "class_label": "blue_gray_gnatcatcher"
+  },
+  {
+    "common_name": "tropical kingbird",
+    "scientific_name": "Tyrannus melancholicus",
+    "observations_count": 59082,
+    "class_label": "tropical_kingbird"
+  },
+  {
+    "common_name": "american bumble bee",
+    "scientific_name": "Bombus pensylvanicus",
+    "observations_count": 58988,
+    "class_label": "american_bumble_bee"
+  },
+  {
+    "common_name": "variegated fritillary",
+    "scientific_name": "Euptoieta claudia",
+    "observations_count": 58962,
+    "class_label": "variegated_fritillary"
+  },
+  {
+    "common_name": "european stonechat",
+    "scientific_name": "Saxicola rubicola",
+    "observations_count": 58659,
+    "class_label": "european_stonechat"
+  },
+  {
+    "common_name": "bald-faced hornet",
+    "scientific_name": "Dolichovespula maculata",
+    "observations_count": 58181,
+    "class_label": "bald_faced_hornet"
+  },
+  {
+    "common_name": "little grebe",
+    "scientific_name": "Tachybaptus ruficollis",
+    "observations_count": 58132,
+    "class_label": "little_grebe"
+  },
+  {
+    "common_name": "common kingfisher",
+    "scientific_name": "Alcedo atthis",
+    "observations_count": 57919,
+    "class_label": "common_kingfisher"
+  },
+  {
+    "common_name": "north american wheel bug",
+    "scientific_name": "Arilus cristatus",
+    "observations_count": 57896,
+    "class_label": "north_american_wheel_bug"
+  },
+  {
+    "common_name": "ailanthus webworm moth",
+    "scientific_name": "Atteva aurea",
+    "observations_count": 57794,
+    "class_label": "ailanthus_webworm_moth"
+  },
+  {
+    "common_name": "northern harrier",
+    "scientific_name": "Circus hudsonius",
+    "observations_count": 57647,
+    "class_label": "northern_harrier"
+  },
+  {
+    "common_name": "california ground squirrel",
+    "scientific_name": "Otospermophilus beecheyi",
+    "observations_count": 57497,
+    "class_label": "california_ground_squirrel"
+  },
+  {
+    "common_name": "carolina mantis",
+    "scientific_name": "Stagmomantis carolina",
+    "observations_count": 57432,
+    "class_label": "carolina_mantis"
+  },
+  {
+    "common_name": "yellow-bellied sapsucker",
+    "scientific_name": "Sphyrapicus varius",
+    "observations_count": 57236,
+    "class_label": "yellow_bellied_sapsucker"
+  },
+  {
+    "common_name": "common sandpiper",
+    "scientific_name": "Actitis hypoleucos",
+    "observations_count": 57112,
+    "class_label": "common_sandpiper"
+  },
+  {
+    "common_name": "old world swallowtail",
+    "scientific_name": "Papilio machaon",
+    "observations_count": 57083,
+    "class_label": "old_world_swallowtail"
+  },
+  {
+    "common_name": "peregrine falcon",
+    "scientific_name": "Falco peregrinus",
+    "observations_count": 57060,
+    "class_label": "peregrine_falcon"
+  },
+  {
+    "common_name": "european striped shield bug",
+    "scientific_name": "Graphosoma italicum",
+    "observations_count": 57000,
+    "class_label": "european_striped_shield_bug"
+  },
+  {
+    "common_name": "monk parakeet",
+    "scientific_name": "Myiopsitta monachus",
+    "observations_count": 56887,
+    "class_label": "monk_parakeet"
+  },
+  {
+    "common_name": "banded tussock moth",
+    "scientific_name": "Halysidota tessellaris",
+    "observations_count": 56762,
+    "class_label": "banded_tussock_moth"
+  },
+  {
+    "common_name": "ruddy duck",
+    "scientific_name": "Oxyura jamaicensis",
+    "observations_count": 56752,
+    "class_label": "ruddy_duck"
+  },
+  {
+    "common_name": "silver-washed fritillary",
+    "scientific_name": "Argynnis paphia",
+    "observations_count": 56734,
+    "class_label": "silver_washed_fritillary"
+  },
+  {
+    "common_name": "great green bush-cricket",
+    "scientific_name": "Tettigonia viridissima",
+    "observations_count": 56503,
+    "class_label": "great_green_bush_cricket"
+  },
+  {
+    "common_name": "common green darner",
+    "scientific_name": "Anax junius",
+    "observations_count": 56467,
+    "class_label": "common_green_darner"
+  },
+  {
+    "common_name": "green treefrog",
+    "scientific_name": "Dryophytes cinereus",
+    "observations_count": 56442,
+    "class_label": "green_treefrog"
+  },
+  {
+    "common_name": "common red soldier beetle",
+    "scientific_name": "Rhagonycha fulva",
+    "observations_count": 56045,
+    "class_label": "common_red_soldier_beetle"
+  },
+  {
+    "common_name": "common tern",
+    "scientific_name": "Sterna hirundo",
+    "observations_count": 55992,
+    "class_label": "common_tern"
+  },
+  {
+    "common_name": "california towhee",
+    "scientific_name": "Melozone crissalis",
+    "observations_count": 55981,
+    "class_label": "california_towhee"
+  },
+  {
+    "common_name": "western marsh harrier",
+    "scientific_name": "Circus aeruginosus",
+    "observations_count": 55887,
+    "class_label": "western_marsh_harrier"
+  },
+  {
+    "common_name": "small heath",
+    "scientific_name": "Coenonympha pamphilus",
+    "observations_count": 55674,
+    "class_label": "small_heath"
+  },
+  {
+    "common_name": "great spangled fritillary",
+    "scientific_name": "Argynnis cybele",
+    "observations_count": 55612,
+    "class_label": "great_spangled_fritillary"
+  },
+  {
+    "common_name": "bluegill",
+    "scientific_name": "Lepomis macrochirus",
+    "observations_count": 55516,
+    "class_label": "bluegill"
+  },
+  {
+    "common_name": "spicebush swallowtail",
+    "scientific_name": "Papilio troilus",
+    "observations_count": 55252,
+    "class_label": "spicebush_swallowtail"
+  },
+  {
+    "common_name": "black-winged stilt",
+    "scientific_name": "Himantopus himantopus",
+    "observations_count": 55236,
+    "class_label": "black_winged_stilt"
+  },
+  {
+    "common_name": "tricolored heron",
+    "scientific_name": "Egretta tricolor",
+    "observations_count": 55166,
+    "class_label": "tricolored_heron"
+  },
+  {
+    "common_name": "steller's jay",
+    "scientific_name": "Cyanocitta stelleri",
+    "observations_count": 55022,
+    "class_label": "steller's_jay"
+  },
+  {
+    "common_name": "eastern forktail",
+    "scientific_name": "Ischnura verticalis",
+    "observations_count": 54898,
+    "class_label": "eastern_forktail"
+  },
+  {
+    "common_name": "differential grasshopper",
+    "scientific_name": "Melanoplus differentialis",
+    "observations_count": 54722,
+    "class_label": "differential_grasshopper"
+  },
+  {
+    "common_name": "eurasian wren",
+    "scientific_name": "Troglodytes troglodytes",
+    "observations_count": 54721,
+    "class_label": "eurasian_wren"
+  },
+  {
+    "common_name": "european nursery web spider",
+    "scientific_name": "Pisaura mirabilis",
+    "observations_count": 54651,
+    "class_label": "european_nursery_web_spider"
+  },
+  {
+    "common_name": "eastern tent caterpillar moth",
+    "scientific_name": "Malacosoma americana",
+    "observations_count": 54627,
+    "class_label": "eastern_tent_caterpillar_moth"
+  },
+  {
+    "common_name": "spotted dove",
+    "scientific_name": "Spilopelia chinensis",
+    "observations_count": 54539,
+    "class_label": "spotted_dove"
+  },
+  {
+    "common_name": "wapiti",
+    "scientific_name": "Cervus canadensis",
+    "observations_count": 54509,
+    "class_label": "wapiti"
+  },
+  {
+    "common_name": "groundhog",
+    "scientific_name": "Marmota monax",
+    "observations_count": 54405,
+    "class_label": "groundhog"
+  },
+  {
+    "common_name": "southern green stink bug",
+    "scientific_name": "Nezara viridula",
+    "observations_count": 54365,
+    "class_label": "southern_green_stink_bug"
+  },
+  {
+    "common_name": "gray treefrog",
+    "scientific_name": "Dryophytes versicolor",
+    "observations_count": 54158,
+    "class_label": "gray_treefrog"
+  },
+  {
+    "common_name": "red-breasted merganser",
+    "scientific_name": "Mergus serrator",
+    "observations_count": 53815,
+    "class_label": "red_breasted_merganser"
+  },
+  {
+    "common_name": "european rose chafer",
+    "scientific_name": "Cetonia aurata",
+    "observations_count": 53748,
+    "class_label": "european_rose_chafer"
+  },
+  {
+    "common_name": "common brimstone",
+    "scientific_name": "Gonepteryx rhamni",
+    "observations_count": 53545,
+    "class_label": "common_brimstone"
+  },
+  {
+    "common_name": "rook",
+    "scientific_name": "Corvus frugilegus",
+    "observations_count": 53541,
+    "class_label": "rook"
+  },
+  {
+    "common_name": "fire salamander",
+    "scientific_name": "Salamandra salamandra",
+    "observations_count": 53483,
+    "class_label": "fire_salamander"
+  },
+  {
+    "common_name": "fragile forktail",
+    "scientific_name": "Ischnura posita",
+    "observations_count": 53358,
+    "class_label": "fragile_forktail"
+  },
+  {
+    "common_name": "green cloverworm moth",
+    "scientific_name": "Hypena scabra",
+    "observations_count": 52887,
+    "class_label": "green_cloverworm_moth"
+  },
+  {
+    "common_name": "autumn meadowhawk",
+    "scientific_name": "Sympetrum vicinum",
+    "observations_count": 52753,
+    "class_label": "autumn_meadowhawk"
+  },
+  {
+    "common_name": "pacific banana slug",
+    "scientific_name": "Ariolimax columbianus",
+    "observations_count": 52722,
+    "class_label": "pacific_banana_slug"
+  },
+  {
+    "common_name": "eastern amberwing",
+    "scientific_name": "Perithemis tenera",
+    "observations_count": 52711,
+    "class_label": "eastern_amberwing"
+  },
+  {
+    "common_name": "black-bellied plover",
+    "scientific_name": "Pluvialis squatarola",
+    "observations_count": 52691,
+    "class_label": "black_bellied_plover"
+  },
+  {
+    "common_name": "orange-crowned warbler",
+    "scientific_name": "Leiothlypis celata",
+    "observations_count": 52648,
+    "class_label": "orange_crowned_warbler"
+  },
+  {
+    "common_name": "yellowhammer",
+    "scientific_name": "Emberiza citrinella",
+    "observations_count": 52533,
+    "class_label": "yellowhammer"
+  },
+  {
+    "common_name": "palm warbler",
+    "scientific_name": "Setophaga palmarum",
+    "observations_count": 52375,
+    "class_label": "palm_warbler"
+  },
+  {
+    "common_name": "north american racer",
+    "scientific_name": "Coluber constrictor",
+    "observations_count": 52290,
+    "class_label": "north_american_racer"
+  },
+  {
+    "common_name": "muskrat",
+    "scientific_name": "Ondatra zibethicus",
+    "observations_count": 51983,
+    "class_label": "muskrat"
+  },
+  {
+    "common_name": "eurasian linnet",
+    "scientific_name": "Linaria cannabina",
+    "observations_count": 51935,
+    "class_label": "eurasian_linnet"
+  },
+  {
+    "common_name": "large white",
+    "scientific_name": "Pieris brassicae",
+    "observations_count": 51699,
+    "class_label": "large_white"
+  },
+  {
+    "common_name": "indigo bunting",
+    "scientific_name": "Passerina cyanea",
+    "observations_count": 51498,
+    "class_label": "indigo_bunting"
+  },
+  {
+    "common_name": "eastern boxelder bug",
+    "scientific_name": "Boisea trivittata",
+    "observations_count": 51413,
+    "class_label": "eastern_boxelder_bug"
+  },
+  {
+    "common_name": "eastern black carpenter ant",
+    "scientific_name": "Camponotus pennsylvanicus",
+    "observations_count": 51391,
+    "class_label": "eastern_black_carpenter_ant"
+  },
+  {
+    "common_name": "bobcat",
+    "scientific_name": "Lynx rufus",
+    "observations_count": 51271,
+    "class_label": "bobcat"
+  },
+  {
+    "common_name": "wasp spider",
+    "scientific_name": "Argiope bruennichi",
+    "observations_count": 51267,
+    "class_label": "wasp_spider"
+  },
+  {
+    "common_name": "mediterranean spotted chafer",
+    "scientific_name": "Oxythyrea funesta",
+    "observations_count": 51129,
+    "class_label": "mediterranean_spotted_chafer"
+  },
+  {
+    "common_name": "desert cottontail",
+    "scientific_name": "Sylvilagus audubonii",
+    "observations_count": 51096,
+    "class_label": "desert_cottontail"
+  },
+  {
+    "common_name": "black-bellied whistling-duck",
+    "scientific_name": "Dendrocygna autumnalis",
+    "observations_count": 51002,
+    "class_label": "black_bellied_whistling_duck"
+  },
+  {
+    "common_name": "green stink bug",
+    "scientific_name": "Chinavia hilaris",
+    "observations_count": 50974,
+    "class_label": "green_stink_bug"
+  },
+  {
+    "common_name": "red-breasted nuthatch",
+    "scientific_name": "Sitta canadensis",
+    "observations_count": 50770,
+    "class_label": "red_breasted_nuthatch"
+  },
+  {
+    "common_name": "northern house wren",
+    "scientific_name": "Troglodytes aedon",
+    "observations_count": 50588,
+    "class_label": "northern_house_wren"
+  },
+  {
+    "common_name": "domestic cattle",
+    "scientific_name": "Bos taurus",
+    "observations_count": 50498,
+    "class_label": "domestic_cattle"
+  },
+  {
+    "common_name": "lesser scaup",
+    "scientific_name": "Aythya affinis",
+    "observations_count": 50350,
+    "class_label": "lesser_scaup"
+  },
+  {
+    "common_name": "european harvestman",
+    "scientific_name": "Phalangium opilio",
+    "observations_count": 50223,
+    "class_label": "european_harvestman"
+  },
+  {
+    "common_name": "dock bug",
+    "scientific_name": "Coreus marginatus",
+    "observations_count": 50145,
+    "class_label": "dock_bug"
+  },
+  {
+    "common_name": "dunlin",
+    "scientific_name": "Calidris alpina",
+    "observations_count": 49976,
+    "class_label": "dunlin"
+  },
+  {
+    "common_name": "long-bodied cellar spider",
+    "scientific_name": "Pholcus phalangioides",
+    "observations_count": 49968,
+    "class_label": "long_bodied_cellar_spider"
+  },
+  {
+    "common_name": "hackberry emperor",
+    "scientific_name": "Asterocampa celtis",
+    "observations_count": 49924,
+    "class_label": "hackberry_emperor"
+  },
+  {
+    "common_name": "question mark",
+    "scientific_name": "Polygonia interrogationis",
+    "observations_count": 49758,
+    "class_label": "question_mark"
+  },
+  {
+    "common_name": "blue-tailed damselfly",
+    "scientific_name": "Ischnura elegans",
+    "observations_count": 49734,
+    "class_label": "blue_tailed_damselfly"
+  },
+  {
+    "common_name": "hickory tussock moth",
+    "scientific_name": "Lophocampa caryae",
+    "observations_count": 49598,
+    "class_label": "hickory_tussock_moth"
+  },
+  {
+    "common_name": "indian peafowl",
+    "scientific_name": "Pavo cristatus",
+    "observations_count": 49518,
+    "class_label": "indian_peafowl"
+  },
+  {
+    "common_name": "mediterranean house gecko",
+    "scientific_name": "Hemidactylus turcicus",
+    "observations_count": 49398,
+    "class_label": "mediterranean_house_gecko"
+  },
+  {
+    "common_name": "common darter",
+    "scientific_name": "Sympetrum striolatum",
+    "observations_count": 49296,
+    "class_label": "common_darter"
+  },
+  {
+    "common_name": "bewick's wren",
+    "scientific_name": "Thryomanes bewickii",
+    "observations_count": 49123,
+    "class_label": "bewick's_wren"
+  },
+  {
+    "common_name": "white peacock",
+    "scientific_name": "Anartia jatrophae",
+    "observations_count": 48695,
+    "class_label": "white_peacock"
+  },
+  {
+    "common_name": "common five-lined skink",
+    "scientific_name": "Plestiodon fasciatus",
+    "observations_count": 48608,
+    "class_label": "common_five_lined_skink"
+  },
+  {
+    "common_name": "eurasian sparrowhawk",
+    "scientific_name": "Accipiter nisus",
+    "observations_count": 48292,
+    "class_label": "eurasian_sparrowhawk"
+  },
+  {
+    "common_name": "yellow-faced bumble bee",
+    "scientific_name": "Bombus vosnesenskii",
+    "observations_count": 48215,
+    "class_label": "yellow_faced_bumble_bee"
+  },
+  {
+    "common_name": "inca dove",
+    "scientific_name": "Columbina inca",
+    "observations_count": 48035,
+    "class_label": "inca_dove"
+  },
+  {
+    "common_name": "cloudless sulphur",
+    "scientific_name": "Phoebis sennae",
+    "observations_count": 48027,
+    "class_label": "cloudless_sulphur"
+  },
+  {
+    "common_name": "summer tanager",
+    "scientific_name": "Piranga rubra",
+    "observations_count": 47946,
+    "class_label": "summer_tanager"
+  },
+  {
+    "common_name": "american redstart",
+    "scientific_name": "Setophaga ruticilla",
+    "observations_count": 47922,
+    "class_label": "american_redstart"
+  },
+  {
+    "common_name": "rose-breasted grosbeak",
+    "scientific_name": "Pheucticus ludovicianus",
+    "observations_count": 47732,
+    "class_label": "rose_breasted_grosbeak"
+  },
+  {
+    "common_name": "spinybacked orbweaver",
+    "scientific_name": "Gasteracantha cancriformis",
+    "observations_count": 47605,
+    "class_label": "spinybacked_orbweaver"
+  },
+  {
+    "common_name": "common european greenbottle fly",
+    "scientific_name": "Lucilia sericata",
+    "observations_count": 47532,
+    "class_label": "common_european_greenbottle_fly"
+  },
+  {
+    "common_name": "woodland dor beetle",
+    "scientific_name": "Anoplotrupes stercorosus",
+    "observations_count": 47466,
+    "class_label": "woodland_dor_beetle"
+  },
+  {
+    "common_name": "six-spotted tiger beetle",
+    "scientific_name": "Cicindela sexguttata",
+    "observations_count": 47416,
+    "class_label": "six_spotted_tiger_beetle"
+  },
+  {
+    "common_name": "trumpeter swan",
+    "scientific_name": "Cygnus buccinator",
+    "observations_count": 47413,
+    "class_label": "trumpeter_swan"
+  },
+  {
+    "common_name": "red kite",
+    "scientific_name": "Milvus milvus",
+    "observations_count": 47113,
+    "class_label": "red_kite"
+  },
+  {
+    "common_name": "say's phoebe",
+    "scientific_name": "Sayornis saya",
+    "observations_count": 47019,
+    "class_label": "say's_phoebe"
+  },
+  {
+    "common_name": "european stag beetle",
+    "scientific_name": "Lucanus cervus",
+    "observations_count": 47002,
+    "class_label": "european_stag_beetle"
+  },
+  {
+    "common_name": "silver garden orbweaver",
+    "scientific_name": "Argiope argentata",
+    "observations_count": 46845,
+    "class_label": "silver_garden_orbweaver"
+  },
+  {
+    "common_name": "california newt",
+    "scientific_name": "Taricha torosa",
+    "observations_count": 46841,
+    "class_label": "california_newt"
+  },
+  {
+    "common_name": "viceroy",
+    "scientific_name": "Limenitis archippus",
+    "observations_count": 46821,
+    "class_label": "viceroy"
+  },
+  {
+    "common_name": "bushtit",
+    "scientific_name": "Psaltriparus minimus",
+    "observations_count": 46811,
+    "class_label": "bushtit"
+  },
+  {
+    "common_name": "grey wagtail",
+    "scientific_name": "Motacilla cinerea",
+    "observations_count": 46732,
+    "class_label": "grey_wagtail"
+  },
+  {
+    "common_name": "california quail",
+    "scientific_name": "Callipepla californica",
+    "observations_count": 46717,
+    "class_label": "california_quail"
+  },
+  {
+    "common_name": "black spiny-tailed iguana",
+    "scientific_name": "Ctenosaura similis",
+    "observations_count": 46705,
+    "class_label": "black_spiny_tailed_iguana"
+  },
+  {
+    "common_name": "silver \u03c5",
+    "scientific_name": "Autographa gamma",
+    "observations_count": 46591,
+    "class_label": "silver_\u03c5"
+  },
+  {
+    "common_name": "brewer's blackbird",
+    "scientific_name": "Euphagus cyanocephalus",
+    "observations_count": 46543,
+    "class_label": "brewer's_blackbird"
+  },
+  {
+    "common_name": "tan jumping spider",
+    "scientific_name": "Platycryptus undatus",
+    "observations_count": 46372,
+    "class_label": "tan_jumping_spider"
+  },
+  {
+    "common_name": "black-and-white warbler",
+    "scientific_name": "Mniotilta varia",
+    "observations_count": 46067,
+    "class_label": "black_and_white_warbler"
+  },
+  {
+    "common_name": "common hoopoe",
+    "scientific_name": "Upupa epops",
+    "observations_count": 45732,
+    "class_label": "common_hoopoe"
+  },
+  {
+    "common_name": "ligated furrow bee",
+    "scientific_name": "Halictus ligatus",
+    "observations_count": 45572,
+    "class_label": "ligated_furrow_bee"
+  },
+  {
+    "common_name": "eurasian wigeon",
+    "scientific_name": "Mareca penelope",
+    "observations_count": 45315,
+    "class_label": "eurasian_wigeon"
+  },
+  {
+    "common_name": "african giant snail",
+    "scientific_name": "Lissachatina fulica",
+    "observations_count": 45268,
+    "class_label": "african_giant_snail"
+  },
+  {
+    "common_name": "gray wall jumping spider",
+    "scientific_name": "Menemerus bivittatus",
+    "observations_count": 45058,
+    "class_label": "gray_wall_jumping_spider"
+  },
+  {
+    "common_name": "gulf coast toad",
+    "scientific_name": "Incilius nebulifer",
+    "observations_count": 44975,
+    "class_label": "gulf_coast_toad"
+  },
+  {
+    "common_name": "saffron finch",
+    "scientific_name": "Sicalis flaveola",
+    "observations_count": 44631,
+    "class_label": "saffron_finch"
+  },
+  {
+    "common_name": "fowler's toad",
+    "scientific_name": "Anaxyrus fowleri",
+    "observations_count": 44618,
+    "class_label": "fowler's_toad"
+  },
+  {
+    "common_name": "german yellowjacket",
+    "scientific_name": "Vespula germanica",
+    "observations_count": 44616,
+    "class_label": "german_yellowjacket"
+  },
+  {
+    "common_name": "marbled white",
+    "scientific_name": "Melanargia galathea",
+    "observations_count": 44581,
+    "class_label": "marbled_white"
+  },
+  {
+    "common_name": "redpoll",
+    "scientific_name": "Acanthis flammea",
+    "observations_count": 44575,
+    "class_label": "redpoll"
+  },
+  {
+    "common_name": "brown thrasher",
+    "scientific_name": "Toxostoma rufum",
+    "observations_count": 44247,
+    "class_label": "brown_thrasher"
+  },
+  {
+    "common_name": "asian house gecko",
+    "scientific_name": "Hemidactylus frenatus",
+    "observations_count": 43945,
+    "class_label": "asian_house_gecko"
+  },
+  {
+    "common_name": "common hedgehog",
+    "scientific_name": "Erinaceus europaeus",
+    "observations_count": 43816,
+    "class_label": "common_hedgehog"
+  },
+  {
+    "common_name": "giant leopard moth",
+    "scientific_name": "Hypercompe scribonia",
+    "observations_count": 43605,
+    "class_label": "giant_leopard_moth"
+  },
+  {
+    "common_name": "red-backed shrike",
+    "scientific_name": "Lanius collurio",
+    "observations_count": 43580,
+    "class_label": "red_backed_shrike"
+  },
+  {
+    "common_name": "brown hare",
+    "scientific_name": "Lepus europaeus",
+    "observations_count": 43472,
+    "class_label": "brown_hare"
+  },
+  {
+    "common_name": "coal tit",
+    "scientific_name": "Periparus ater",
+    "observations_count": 43462,
+    "class_label": "coal_tit"
+  },
+  {
+    "common_name": "large skipper",
+    "scientific_name": "Ochlodes sylvanus",
+    "observations_count": 43409,
+    "class_label": "large_skipper"
+  },
+  {
+    "common_name": "loggerhead shrike",
+    "scientific_name": "Lanius ludovicianus",
+    "observations_count": 43349,
+    "class_label": "loggerhead_shrike"
+  },
+  {
+    "common_name": "laughing kookaburra",
+    "scientific_name": "Dacelo novaeguineae",
+    "observations_count": 43341,
+    "class_label": "laughing_kookaburra"
+  },
+  {
+    "common_name": "striped skunk",
+    "scientific_name": "Mephitis mephitis",
+    "observations_count": 43290,
+    "class_label": "striped_skunk"
+  },
+  {
+    "common_name": "pale green assassin bug",
+    "scientific_name": "Zelus luridus",
+    "observations_count": 43268,
+    "class_label": "pale_green_assassin_bug"
+  },
+  {
+    "common_name": "gray fox",
+    "scientific_name": "Urocyon cinereoargenteus",
+    "observations_count": 43263,
+    "class_label": "gray_fox"
+  },
+  {
+    "common_name": "greenhouse millipede",
+    "scientific_name": "Oxidus gracilis",
+    "observations_count": 43252,
+    "class_label": "greenhouse_millipede"
+  },
+  {
+    "common_name": "zabulon skipper",
+    "scientific_name": "Lon zabulon",
+    "observations_count": 43116,
+    "class_label": "zabulon_skipper"
+  },
+  {
+    "common_name": "ring-necked snake",
+    "scientific_name": "Diadophis punctatus",
+    "observations_count": 43093,
+    "class_label": "ring_necked_snake"
+  },
+  {
+    "common_name": "northern wheatear",
+    "scientific_name": "Oenanthe oenanthe",
+    "observations_count": 42802,
+    "class_label": "northern_wheatear"
+  },
+  {
+    "common_name": "orchard orbweaver",
+    "scientific_name": "Leucauge venusta",
+    "observations_count": 42754,
+    "class_label": "orchard_orbweaver"
+  },
+  {
+    "common_name": "pine siskin",
+    "scientific_name": "Spinus pinus",
+    "observations_count": 42751,
+    "class_label": "pine_siskin"
+  },
+  {
+    "common_name": "green sea turtle",
+    "scientific_name": "Chelonia mydas",
+    "observations_count": 42717,
+    "class_label": "green_sea_turtle"
+  },
+  {
+    "common_name": "great black-backed gull",
+    "scientific_name": "Larus marinus",
+    "observations_count": 42711,
+    "class_label": "great_black_backed_gull"
+  },
+  {
+    "common_name": "red milkweed beetle",
+    "scientific_name": "Tetraopes tetrophthalmus",
+    "observations_count": 42666,
+    "class_label": "red_milkweed_beetle"
+  },
+  {
+    "common_name": "rose-ringed parakeet",
+    "scientific_name": "Psittacula krameri",
+    "observations_count": 42560,
+    "class_label": "rose_ringed_parakeet"
+  },
+  {
+    "common_name": "rufous-collared sparrow",
+    "scientific_name": "Zonotrichia capensis",
+    "observations_count": 42502,
+    "class_label": "rufous_collared_sparrow"
+  },
+  {
+    "common_name": "domestic horse",
+    "scientific_name": "Equus caballus",
+    "observations_count": 42289,
+    "class_label": "domestic_horse"
+  },
+  {
+    "common_name": "reed bunting",
+    "scientific_name": "Emberiza schoeniclus",
+    "observations_count": 42259,
+    "class_label": "reed_bunting"
+  },
+  {
+    "common_name": "burrowing owl",
+    "scientific_name": "Athene cunicularia",
+    "observations_count": 42230,
+    "class_label": "burrowing_owl"
+  },
+  {
+    "common_name": "dark fishing spider",
+    "scientific_name": "Dolomedes tenebrosus",
+    "observations_count": 42151,
+    "class_label": "dark_fishing_spider"
+  },
+  {
+    "common_name": "bathroom moth fly",
+    "scientific_name": "Clogmia albipunctata",
+    "observations_count": 42075,
+    "class_label": "bathroom_moth_fly"
+  },
+  {
+    "common_name": "western toad",
+    "scientific_name": "Anaxyrus boreas",
+    "observations_count": 42057,
+    "class_label": "western_toad"
+  },
+  {
+    "common_name": "caspian tern",
+    "scientific_name": "Hydroprogne caspia",
+    "observations_count": 41821,
+    "class_label": "caspian_tern"
+  },
+  {
+    "common_name": "western yellow wagtail",
+    "scientific_name": "Motacilla flava",
+    "observations_count": 41748,
+    "class_label": "western_yellow_wagtail"
+  },
+  {
+    "common_name": "banded garden spider",
+    "scientific_name": "Argiope trifasciata",
+    "observations_count": 41642,
+    "class_label": "banded_garden_spider"
+  },
+  {
+    "common_name": "morning-glory plume moth",
+    "scientific_name": "Emmelina monodactyla",
+    "observations_count": 41592,
+    "class_label": "morning_glory_plume_moth"
+  },
+  {
+    "common_name": "koala",
+    "scientific_name": "Phascolarctos cinereus",
+    "observations_count": 41493,
+    "class_label": "koala"
+  },
+  {
+    "common_name": "house centipede",
+    "scientific_name": "Scutigera coleoptrata",
+    "observations_count": 41417,
+    "class_label": "house_centipede"
+  },
+  {
+    "common_name": "royal tern",
+    "scientific_name": "Thalasseus maximus",
+    "observations_count": 41408,
+    "class_label": "royal_tern"
+  },
+  {
+    "common_name": "golden-crowned sparrow",
+    "scientific_name": "Zonotrichia atricapilla",
+    "observations_count": 41334,
+    "class_label": "golden_crowned_sparrow"
+  },
+  {
+    "common_name": "dunnock",
+    "scientific_name": "Prunella modularis",
+    "observations_count": 41162,
+    "class_label": "dunnock"
+  },
+  {
+    "common_name": "familiar bluet",
+    "scientific_name": "Enallagma civile",
+    "observations_count": 41154,
+    "class_label": "familiar_bluet"
+  },
+  {
+    "common_name": "common gull",
+    "scientific_name": "Larus canus",
+    "observations_count": 41142,
+    "class_label": "common_gull"
+  },
+  {
+    "common_name": "fourteen-spotted lady beetle",
+    "scientific_name": "Propylea quatuordecimpunctata",
+    "observations_count": 40859,
+    "class_label": "fourteen_spotted_lady_beetle"
+  },
+  {
+    "common_name": "eurasian hummingbird hawkmoth",
+    "scientific_name": "Macroglossum stellatarum",
+    "observations_count": 40768,
+    "class_label": "eurasian_hummingbird_hawkmoth"
+  },
+  {
+    "common_name": "clouded sulphur",
+    "scientific_name": "Colias philodice",
+    "observations_count": 40759,
+    "class_label": "clouded_sulphur"
+  },
+  {
+    "common_name": "plain tiger butterfly",
+    "scientific_name": "Danaus chrysippus",
+    "observations_count": 40714,
+    "class_label": "plain_tiger_butterfly"
+  },
+  {
+    "common_name": "eastern towhee",
+    "scientific_name": "Pipilo erythrophthalmus",
+    "observations_count": 40481,
+    "class_label": "eastern_towhee"
+  },
+  {
+    "common_name": "common pochard",
+    "scientific_name": "Aythya ferina",
+    "observations_count": 40371,
+    "class_label": "common_pochard"
+  },
+  {
+    "common_name": "common shiny woodlouse",
+    "scientific_name": "Oniscus asellus",
+    "observations_count": 40356,
+    "class_label": "common_shiny_woodlouse"
+  },
+  {
+    "common_name": "eurasian oystercatcher",
+    "scientific_name": "Haematopus ostralegus",
+    "observations_count": 40228,
+    "class_label": "eurasian_oystercatcher"
+  },
+  {
+    "common_name": "yellow-legged mud-dauber wasp",
+    "scientific_name": "Sceliphron caementarium",
+    "observations_count": 40219,
+    "class_label": "yellow_legged_mud_dauber_wasp"
+  },
+  {
+    "common_name": "wall brown",
+    "scientific_name": "Lasiommata megera",
+    "observations_count": 40174,
+    "class_label": "wall_brown"
+  },
+  {
+    "common_name": "holly blue",
+    "scientific_name": "Celastrina argiolus",
+    "observations_count": 40026,
+    "class_label": "holly_blue"
+  },
+  {
+    "common_name": "sloe bug",
+    "scientific_name": "Dolycoris baccarum",
+    "observations_count": 40002,
+    "class_label": "sloe_bug"
+  },
+  {
+    "common_name": "spotted salamander",
+    "scientific_name": "Ambystoma maculatum",
+    "observations_count": 39936,
+    "class_label": "spotted_salamander"
+  },
+  {
+    "common_name": "milkweed tussock moth",
+    "scientific_name": "Euchaetes egle",
+    "observations_count": 39888,
+    "class_label": "milkweed_tussock_moth"
+  },
+  {
+    "common_name": "common redshank",
+    "scientific_name": "Tringa totanus",
+    "observations_count": 39874,
+    "class_label": "common_redshank"
+  },
+  {
+    "common_name": "moorish gecko",
+    "scientific_name": "Tarentola mauritanica",
+    "observations_count": 39867,
+    "class_label": "moorish_gecko"
+  },
+  {
+    "common_name": "american cockroach",
+    "scientific_name": "Periplaneta americana",
+    "observations_count": 39841,
+    "class_label": "american_cockroach"
+  },
+  {
+    "common_name": "common slowworm",
+    "scientific_name": "Anguis fragilis",
+    "observations_count": 39739,
+    "class_label": "common_slowworm"
+  },
+  {
+    "common_name": "goldenrod soldier beetle",
+    "scientific_name": "Chauliognathus pensylvanicus",
+    "observations_count": 39686,
+    "class_label": "goldenrod_soldier_beetle"
+  },
+  {
+    "common_name": "eastern calligrapher",
+    "scientific_name": "Toxomerus geminatus",
+    "observations_count": 39618,
+    "class_label": "eastern_calligrapher"
+  },
+  {
+    "common_name": "black slug",
+    "scientific_name": "Arion ater",
+    "observations_count": 39601,
+    "class_label": "black_slug"
+  },
+  {
+    "common_name": "greater roadrunner",
+    "scientific_name": "Geococcyx californianus",
+    "observations_count": 39496,
+    "class_label": "greater_roadrunner"
+  },
+  {
+    "common_name": "armyworm moth",
+    "scientific_name": "Pseudaletia unipuncta",
+    "observations_count": 39481,
+    "class_label": "armyworm_moth"
+  },
+  {
+    "common_name": "forest bug",
+    "scientific_name": "Pentatoma rufipes",
+    "observations_count": 39160,
+    "class_label": "forest_bug"
+  },
+  {
+    "common_name": "noble false widow",
+    "scientific_name": "Steatoda nobilis",
+    "observations_count": 39069,
+    "class_label": "noble_false_widow"
+  },
+  {
+    "common_name": "american avocet",
+    "scientific_name": "Recurvirostra americana",
+    "observations_count": 39037,
+    "class_label": "american_avocet"
+  },
+  {
+    "common_name": "bohemian waxwing",
+    "scientific_name": "Bombycilla garrulus",
+    "observations_count": 39036,
+    "class_label": "bohemian_waxwing"
+  },
+  {
+    "common_name": "eurasian siskin",
+    "scientific_name": "Spinus spinus",
+    "observations_count": 39016,
+    "class_label": "eurasian_siskin"
+  },
+  {
+    "common_name": "giant golden orbweaver",
+    "scientific_name": "Nephila pilipes",
+    "observations_count": 38989,
+    "class_label": "giant_golden_orbweaver"
+  },
+  {
+    "common_name": "southern alligator lizard",
+    "scientific_name": "Elgaria multicarinata",
+    "observations_count": 38984,
+    "class_label": "southern_alligator_lizard"
+  },
+  {
+    "common_name": "lesser stag beetle",
+    "scientific_name": "Dorcus parallelipipedus",
+    "observations_count": 38929,
+    "class_label": "lesser_stag_beetle"
+  },
+  {
+    "common_name": "azure damselfly",
+    "scientific_name": "Coenagrion puella",
+    "observations_count": 38890,
+    "class_label": "azure_damselfly"
+  },
+  {
+    "common_name": "t\u016b\u012b",
+    "scientific_name": "Prosthemadera novaeseelandiae",
+    "observations_count": 38845,
+    "class_label": "t\u016b\u012b"
+  },
+  {
+    "common_name": "halloween pennant",
+    "scientific_name": "Celithemis eponina",
+    "observations_count": 38787,
+    "class_label": "halloween_pennant"
+  },
+  {
+    "common_name": "superb fairywren",
+    "scientific_name": "Malurus cyaneus",
+    "observations_count": 38678,
+    "class_label": "superb_fairywren"
+  },
+  {
+    "common_name": "black-billed magpie",
+    "scientific_name": "Pica hudsonia",
+    "observations_count": 38564,
+    "class_label": "black_billed_magpie"
+  },
+  {
+    "common_name": "golden-fronted woodpecker",
+    "scientific_name": "Melanerpes aurifrons",
+    "observations_count": 38327,
+    "class_label": "golden_fronted_woodpecker"
+  }
+]

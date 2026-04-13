@@ -24,7 +24,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, ColorScheme } from '../constants/theme';
 import { useTheme } from '../utils/ThemeContext';
-import { getSightings, getLocalSightings, Sighting, updateSightingLocation, deleteSighting } from '../utils/storage';
+import { getSightings, getLocalSightings, Sighting, updateSightingLocation, updateSightingLabel, deleteSighting } from '../utils/storage';
 import { getAnimalProfile, AnimalInfo, AnimalStats } from '../utils/claude';
 import { getRarityFromConservationStatus, RarityInfo } from '../utils/rarity';
 import { WorldMap } from '../components/WorldMap';
@@ -199,6 +199,9 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
   const [editSearch, setEditSearch] = useState('');
   const [editSuggestions, setEditSuggestions] = useState<{ city: string; region: string; country: string }[]>([]);
   const [editCoords, setEditCoords] = useState<{ latitude: number; longitude: number }[]>([]);
+  const [editLabelText, setEditLabelText] = useState('');
+  const [editingLabelExpanded, setEditingLabelExpanded] = useState(false);
+  const [savingLabel, setSavingLabel] = useState(false);
   const editTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const modalScrollRef = useRef<ScrollView>(null);
@@ -340,6 +343,25 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
     setEditSuggestions([]);
   };
 
+  const saveEditLabel = async () => {
+    if (!editingSighting || !editLabelText.trim()) return;
+    setSavingLabel(true);
+    try {
+      await updateSightingLabel(editingSighting.photoUri, editLabelText.trim());
+      const normalized = editLabelText.trim().toLowerCase().replace(/\s+/g, '_');
+      setSightings((prev) =>
+        prev.map((sg) => sg.photoUri === editingSighting.photoUri ? { ...sg, label: normalized } : sg)
+      );
+      setEditingSighting(null);
+      setEditingLabelExpanded(false);
+      showToast();
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setSavingLabel(false);
+    }
+  };
+
   const openDetail = (item: { label: string; photoUri: string }) => {
     setSelected(item);
     setDetailTab('info');
@@ -441,7 +463,7 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
           removeClippedSubviews
           maxToRenderPerBatch={10}
           initialNumToRender={15}
-          renderItem={({ item }) => <SightingRow item={item} onEdit={() => { setEditingSighting(item); setEditSearch(item.location ?? ''); setEditSuggestions([]); }} onDelete={() => handleDelete(item.photoUri, item.timestamp)} />}
+          renderItem={({ item }) => <SightingRow item={item} onEdit={() => { setEditingSighting(item); setEditSearch(item.location ?? ''); setEditSuggestions([]); setEditLabelText(item.label.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')); setEditingLabelExpanded(false); }} onDelete={() => handleDelete(item.photoUri, item.timestamp)} />}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       )}
@@ -452,7 +474,37 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
           <TouchableOpacity style={styles.editOverlay} activeOpacity={1} onPress={() => { setEditingSighting(null); setEditSearch(''); setEditSuggestions([]); }}>
             <TouchableOpacity activeOpacity={1} onPress={() => {}}>
             <View style={styles.editSheet}>
-              <Text style={styles.editTitle}>Edit Location</Text>
+              <Text style={styles.editTitle}>Edit Sighting</Text>
+
+              {/* Name edit */}
+              <TouchableOpacity
+                style={styles.incorrectRow}
+                onPress={() => setEditingLabelExpanded((v) => !v)}
+              >
+                <Ionicons name="alert-circle-outline" size={15} color={COLORS.grey} />
+                <Text style={styles.incorrectText}>Identified incorrectly?</Text>
+                <Ionicons name={editingLabelExpanded ? 'chevron-up' : 'chevron-down'} size={14} color={COLORS.grey} />
+              </TouchableOpacity>
+              {editingLabelExpanded && (
+                <View style={styles.editInputRow}>
+                  <Ionicons name="paw-outline" size={16} color={COLORS.darkGrey} style={{ marginLeft: 12 }} />
+                  <TextInput
+                    style={styles.editInput}
+                    placeholder="Correct animal name..."
+                    placeholderTextColor={COLORS.darkGrey}
+                    value={editLabelText}
+                    onChangeText={setEditLabelText}
+                    autoCapitalize="words"
+                    returnKeyType="done"
+                    onSubmitEditing={saveEditLabel}
+                  />
+                  <TouchableOpacity onPress={saveEditLabel} disabled={savingLabel} style={{ marginRight: 12 }}>
+                    <Text style={styles.saveText}>Save</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              <Text style={styles.locationLabel}>Location</Text>
               <View style={styles.editInputRow}>
                 <Ionicons name="search" size={16} color={COLORS.darkGrey} style={{ marginLeft: 12 }} />
                 <TextInput
@@ -705,6 +757,10 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   editDropdownDivider: { borderTopWidth: 1, borderTopColor: COLORS.cardBorder },
   dropdownLine1: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
   dropdownLine2: { color: COLORS.grey, fontSize: 12, marginTop: 1 },
+  incorrectRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  incorrectText: { flex: 1, color: COLORS.grey, fontSize: 13, fontWeight: '500' },
+  locationLabel: { color: COLORS.grey, fontSize: 12, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginTop: 4 },
+  saveText: { color: COLORS.yellow, fontWeight: '700', fontSize: 14 },
   editCancel: { alignItems: 'center', paddingVertical: 12, borderTopWidth: 1, borderTopColor: COLORS.cardBorder, marginTop: 4 },
   toast: {
     position: 'absolute',

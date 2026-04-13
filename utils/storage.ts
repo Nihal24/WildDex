@@ -151,6 +151,27 @@ export async function updateSightingLocation(
   await AsyncStorage.setItem(SIGHTINGS_KEY, JSON.stringify(updated));
 }
 
+export async function updateSightingLabel(
+  photoUri: string,
+  label: string,
+): Promise<void> {
+  const normalized = label.toLowerCase().trim().replace(/\s+/g, '_');
+  const userId = await getCurrentUserId();
+  if (userId) {
+    const { error } = await supabase
+      .from('sightings')
+      .update({ label: normalized })
+      .eq('user_id', userId)
+      .eq('photo_url', photoUri);
+    if (error) throw new Error(error.message);
+  }
+  const local = await getLocalSightings();
+  const updated = local.map((s) =>
+    s.photoUri === photoUri ? { ...s, label: normalized } : s
+  );
+  await AsyncStorage.setItem(SIGHTINGS_KEY, JSON.stringify(updated));
+}
+
 export async function deleteSighting(photoUri: string, timestamp?: number): Promise<void> {
   const userId = await getCurrentUserId();
   if (userId) {

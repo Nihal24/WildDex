@@ -166,6 +166,7 @@ const CameraScreen: React.FC = () => {
         { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG }
       );
       const compressedUri = resized.uri;
+
       const result = await identifyAnimal(compressedUri);
 
       if (result?.error === 'not_animal') {
@@ -191,30 +192,27 @@ const CameraScreen: React.FC = () => {
       // Start fetching animal profile immediately — will be cached by the time user opens WildDex modal
       prefetchAnimalProfile(finalResult.label);
 
-      {
-        if (fromGallery) {
-          setPendingSighting({ ...finalResult, photoUri: compressedUri });
-        } else {
-          // Camera shot — navigate immediately, fetch location in background
-          const timestamp = Date.now();
-          retake();
-          navigation.navigate('Catch', { label: finalResult.label, photoUri: compressedUri });
-          setSaved(true);
-          // Save with location in background — don't block navigation
-          (async () => {
-            let latitude: number | undefined;
-            let longitude: number | undefined;
-            try {
-              const { status } = await Location.requestForegroundPermissionsAsync();
-              if (status === 'granted') {
-                const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-                latitude = loc.coords.latitude;
-                longitude = loc.coords.longitude;
-              }
-            } catch {}
-            await saveSighting({ ...finalResult, photoUri: compressedUri, timestamp, latitude, longitude, visibility });
-          })();
-        }
+      if (fromGallery) {
+        setPendingSighting({ ...finalResult, photoUri: compressedUri });
+      } else {
+        // Camera shot — navigate immediately, fetch location in background
+        const timestamp = Date.now();
+        retake();
+        navigation.navigate('Catch', { label: finalResult.label, photoUri: compressedUri });
+        setSaved(true);
+        (async () => {
+          let latitude: number | undefined;
+          let longitude: number | undefined;
+          try {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status === 'granted') {
+              const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+              latitude = loc.coords.latitude;
+              longitude = loc.coords.longitude;
+            }
+          } catch {}
+          await saveSighting({ ...finalResult, photoUri: compressedUri, timestamp, latitude, longitude, visibility });
+        })();
       }
     } catch (e) {
       console.error('Inference error:', e);
