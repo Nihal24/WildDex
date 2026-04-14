@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, StatusBar, ActivityIndicator, Image, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, StatusBar, ActivityIndicator, TouchableOpacity, Animated } from 'react-native';
+import { Image } from 'expo-image';
 import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useFocusEffect } from '@react-navigation/native';
@@ -7,7 +8,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { ColorScheme } from '../constants/theme';
 import { useTheme } from '../utils/ThemeContext';
 import { getSightings, purgeBrokenPhotoSightings, Sighting, getFollowingMapSightings, MapSighting } from '../utils/storage';
-import { BlurView } from 'expo-blur';
 
 const formatLabel = (label: string) =>
   label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -35,6 +35,7 @@ const AnimalMarker = ({ photoUri, isMine }: { photoUri: string; isMine: boolean 
           <Image
             source={{ uri: photoUri }}
             style={styles_marker.photo}
+            contentFit="cover"
             onError={() => setFailed(true)}
           />
         ) : (
@@ -87,11 +88,15 @@ const ExploreScreen: React.FC = () => {
   const mapRef = useRef<MapView>(null);
   const savedRegion = useRef<Region | null>(null);
   const prevLocatedCount = useRef(0);
+  const hasPurged = useRef(false);
 
   useFocusEffect(useCallback(() => {
     const load = async () => {
       setLoading(true);
-      await purgeBrokenPhotoSightings();
+      if (!hasPurged.current) {
+        await purgeBrokenPhotoSightings();
+        hasPurged.current = true;
+      }
       const [all, communityData, { status }] = await Promise.all([
         getSightings(),
         getFollowingMapSightings(),
@@ -254,14 +259,14 @@ const ExploreScreen: React.FC = () => {
       borderRadius: 18,
       overflow: 'hidden',
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.15)',
+      borderColor: 'rgba(255,255,255,0.12)',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.45,
       shadowRadius: 12,
       elevation: 10,
     },
-    floatingBlur: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 12 },
+    floatingBlur: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 12, backgroundColor: 'rgba(18,18,18,0.97)' },
     floatingPhoto: { width: 68, height: 68, borderRadius: 12 },
     floatingInfo: { flex: 1, gap: 2 },
     floatingLabel: { color: '#fff', fontSize: 15, fontWeight: '800' },
@@ -333,8 +338,8 @@ const ExploreScreen: React.FC = () => {
           {/* Selected sighting card */}
           {selectedItem && (
             <View style={styles.floatingCard} onStartShouldSetResponder={() => true}>
-              <BlurView intensity={75} tint="dark" style={styles.floatingBlur}>
-                <Image source={{ uri: selectedItem.photoUri }} style={styles.floatingPhoto} />
+              <View style={styles.floatingBlur}>
+                <Image source={{ uri: selectedItem.photoUri }} style={styles.floatingPhoto} contentFit="cover" />
                 <View style={styles.floatingInfo}>
                   <Text style={styles.floatingLabel}>{formatLabel(selectedItem.label)}</Text>
                   {!selectedItem.isMine && selectedItem.displayName ? (
@@ -351,7 +356,7 @@ const ExploreScreen: React.FC = () => {
                 <TouchableOpacity style={styles.floatingClose} onPress={() => setSelectedItem(null)}>
                   <Ionicons name="close" size={18} color="rgba(255,255,255,0.6)" />
                 </TouchableOpacity>
-              </BlurView>
+              </View>
             </View>
           )}
 

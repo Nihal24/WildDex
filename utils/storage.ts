@@ -401,6 +401,21 @@ export async function setProfileStatsCache(stats: ProfileStatsCache): Promise<vo
   await AsyncStorage.setItem(PROFILE_STATS_CACHE_KEY, JSON.stringify(stats));
 }
 
+const FEED_CACHE_KEY = 'wilddex_feed_cache_v2';
+
+export async function getFeedCache(): Promise<FeedSighting[] | null> {
+  try {
+    const v = await AsyncStorage.getItem(FEED_CACHE_KEY);
+    return v ? JSON.parse(v) : null;
+  } catch { return null; }
+}
+
+export async function setFeedCache(feed: FeedSighting[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(FEED_CACHE_KEY, JSON.stringify(feed.slice(0, 30)));
+  } catch {}
+}
+
 function mapSighting(row: any): FeedSighting {
   return {
     sightingId: row.id,

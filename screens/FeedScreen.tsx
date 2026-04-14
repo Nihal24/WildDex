@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, StatusBar,
-  FlatList, Image, ImageBackground, TouchableOpacity, ActivityIndicator, RefreshControl, Share,
+  FlatList, ImageBackground, TouchableOpacity, ActivityIndicator, RefreshControl, Share,
   Modal, ScrollView, KeyboardAvoidingView, Platform, TextInput, Keyboard, TouchableWithoutFeedback,
   Animated, PanResponder,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
@@ -19,6 +20,7 @@ import {
   likeSighting, unlikeSighting, getComments, addComment, deleteComment,
   getCurrentUserId_public, FeedSighting, LeaderboardEntry, Comment,
   getUnreadNotificationCount, updateSightingVisibility, updateSightingCaption,
+  getFeedCache, setFeedCache,
 } from '../utils/storage';
 import { RootStackParamList } from '../navigation/RootNavigator';
 
@@ -41,7 +43,7 @@ const Avatar = ({ name, photoUri, size = 36 }: { name: string; photoUri?: string
   return (
   <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }]}>
     {photoUri
-      ? <Image source={{ uri: photoUri }} style={{ width: size, height: size, borderRadius: size / 2 }} resizeMode="cover" />
+      ? <Image source={{ uri: photoUri }} style={{ width: size, height: size, borderRadius: size / 2 }} contentFit="cover" />
       : <Text style={[styles.avatarLetter, { fontSize: size * 0.4 }]}>{name.charAt(0).toUpperCase()}</Text>
     }
   </View>
@@ -310,7 +312,7 @@ const FeedCard = ({
     <View style={styles.card}>
       {/* Photo with header overlaid */}
       <View style={styles.photoWrapper}>
-        <Image source={{ uri: item.photoUrl }} style={styles.cardPhoto} resizeMode="cover" />
+        <Image source={{ uri: item.photoUrl }} style={styles.cardPhoto} contentFit="cover" />
         {/* Top gradient scrim for avatar readability */}
         <LinearGradient
           colors={['rgba(0,0,0,0.6)', 'transparent']}
@@ -647,24 +649,23 @@ const FeedScreen: React.FC = () => {
     setMyFeed(update);
   };
 
-  const load = useCallback(async () => {
-    const [feedData, lbData, followIds, userId, myData, unread] = await Promise.all([
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+
+    const [feedData, followIds, userId, myData, unread] = await Promise.all([
       getFeedSightings(),
-      getLeaderboard(),
       getFollowingIds(),
       getCurrentUserId_public(),
       getMyFeedSightings(),
       getUnreadNotificationCount(),
     ]);
 
-    // Fire these immediately now that we have feedData and followIds
     const [likedIds, followingFeedData] = await Promise.all([
       feedData.length > 0 ? getLikedSightingIds(feedData.map((s) => s.sightingId).filter(Boolean)) : Promise.resolve(new Set<string>()),
       followIds.length > 0 ? getFollowingFeed() : Promise.resolve([]),
     ]);
 
     setFeed(feedData);
-    setLeaderboard(lbData);
     setFollowingIds(new Set(followIds));
     setMyId(userId);
     setMyFeed(myData);
@@ -673,9 +674,23 @@ const FeedScreen: React.FC = () => {
     setFollowingFeed(followingFeedData);
     setLoading(false);
     setRefreshing(false);
+    setFeedCache(feedData);
   }, []);
 
-  useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
+  // Hydrate from cache instantly, then refresh in background
+  useEffect(() => {
+    getFeedCache().then((cached) => {
+      if (cached && cached.length > 0) {
+        setFeed(cached);
+        setLoading(false);
+        load(true);
+      } else {
+        load(false);
+      }
+    });
+  }, []);
+
+  useFocusEffect(useCallback(() => { load(true); }, [load]));
 
   // Scroll to highlighted sighting when navigating from a notification
   useEffect(() => {
@@ -754,6 +769,10 @@ const FeedScreen: React.FC = () => {
     const idx = TAB_ORDER.indexOf(t);
     Animated.spring(tabAnim, { toValue: idx, useNativeDriver: false, friction: 8, tension: 80 }).start();
     setActiveTab(t);
+    // Lazy-load leaderboard only when Top tab is first opened
+    if (t === 'top' && leaderboard.length === 0) {
+      getLeaderboard().then(setLeaderboard);
+    }
   };
   const activeFeed = activeTab === 'following' ? followingFeed : activeTab === 'mine' ? myFeed : feed;
 
@@ -846,6 +865,10 @@ const FeedScreen: React.FC = () => {
                 contentContainerStyle={styles.feedList}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.yellow} />}
                 showsVerticalScrollIndicator={false}
+                windowSize={5}
+                maxToRenderPerBatch={4}
+                initialNumToRender={4}
+                removeClippedSubviews
               />
               <CommentsModal
                 sightingId={commentSightingId ?? ''}

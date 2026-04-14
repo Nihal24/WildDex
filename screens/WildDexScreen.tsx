@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  Image,
   SafeAreaView,
   StatusBar,
   TouchableOpacity,
@@ -18,11 +17,13 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, ColorScheme } from '../constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../utils/ThemeContext';
 import { getSightings, getLocalSightings, Sighting, updateSightingLocation, updateSightingLabel, deleteSighting } from '../utils/storage';
 import { getAnimalProfile, AnimalInfo, AnimalStats } from '../utils/claude';
@@ -34,23 +35,35 @@ import { BADGES, Badge } from '../utils/badges';
 const formatLabel = (label: string) =>
   label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-// --- Segmented Control ---
+// --- Segmented Control (underline tab style) ---
 const SegmentedControl: React.FC<{ active: 'collection' | 'sightings'; onChange: (v: 'collection' | 'sightings') => void }> = ({ active, onChange }) => {
   const { colors: COLORS } = useTheme();
   const styles = makeStyles(COLORS);
+  const slideAnim = useRef(new Animated.Value(active === 'collection' ? 0 : 1)).current;
+
+  const handleChange = (v: 'collection' | 'sightings') => {
+    Animated.spring(slideAnim, { toValue: v === 'collection' ? 0 : 1, useNativeDriver: false, friction: 8, tension: 80 }).start();
+    onChange(v);
+  };
+
+  const tabWidth = (Dimensions.get('window').width - 32) / 2;
+  const indicatorLeft = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [0, tabWidth] });
+
   return (
     <View style={styles.segmentWrapper}>
-      <TouchableOpacity style={[styles.segment, active === 'collection' && styles.segmentActive]} onPress={() => onChange('collection')}>
-        <Text style={[styles.segmentText, active === 'collection' && styles.segmentTextActive]}>Collection</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={[styles.segment, active === 'sightings' && styles.segmentActive]} onPress={() => onChange('sightings')}>
-        <Text style={[styles.segmentText, active === 'sightings' && styles.segmentTextActive]}>Sightings</Text>
-      </TouchableOpacity>
+      <Animated.View style={[styles.segmentIndicator, { width: tabWidth, left: indicatorLeft }]} />
+      {(['collection', 'sightings'] as const).map((v) => (
+        <TouchableOpacity key={v} style={styles.segment} onPress={() => handleChange(v)} activeOpacity={0.7}>
+          <Text style={[styles.segmentText, active === v && styles.segmentTextActive]}>
+            {v.charAt(0).toUpperCase() + v.slice(1)}
+          </Text>
+        </TouchableOpacity>
+      ))}
     </View>
   );
 };
 
-// --- Discovered Card ---
+// --- Discovered Card (2-col full-bleed) ---
 const DiscoveredCard: React.FC<{ label: string; photoUri: string; number: string; rarityColor?: string; glow?: boolean; onPress: () => void }> = ({ label, photoUri, number, rarityColor, glow, onPress }) => {
   const { colors: COLORS } = useTheme();
   const styles = makeStyles(COLORS);
@@ -69,18 +82,23 @@ const DiscoveredCard: React.FC<{ label: string; photoUri: string; number: string
 
   const borderColor = glowAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [COLORS.cardBorder, COLORS.yellow],
+    outputRange: ['transparent', COLORS.yellow],
   });
 
   return (
-    <TouchableOpacity activeOpacity={0.75} onPress={onPress}>
+    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.cardWrapper}>
       <Animated.View style={[styles.card, glow && { borderColor, borderWidth: 2 }]}>
-        <Image source={{ uri: photoUri }} style={styles.cardImage} />
-        {rarityColor && <View style={[styles.rarityDot, { backgroundColor: rarityColor }]} />}
-        <View style={styles.cardFooter}>
+        <Image source={{ uri: photoUri }} style={styles.cardImage} contentFit="cover" />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.72)']}
+          style={styles.cardGradient}
+        >
+          {rarityColor && (
+            <View style={[styles.rarityPill, { backgroundColor: rarityColor + 'CC' }]} />
+          )}
           <Text style={styles.cardNumber}>{number}</Text>
           <Text style={styles.cardName} numberOfLines={1}>{formatLabel(label)}</Text>
-        </View>
+        </LinearGradient>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -98,29 +116,39 @@ const SightingRow: React.FC<{ item: Sighting; onEdit: () => void; onDelete: () =
   }, [item.photoUri]);
 
   return (
-    <View style={styles.row}>
+    <View style={styles.sightingCard}>
       {photoExists ? (
-        <Image source={{ uri: item.photoUri }} style={styles.thumb} />
+        <Image source={{ uri: item.photoUri }} style={styles.sightingPhoto} contentFit="cover" />
       ) : (
-        <View style={styles.thumbPlaceholder}>
-          <Ionicons name="image-outline" size={24} color={COLORS.darkGrey} />
+        <View style={[styles.sightingPhoto, styles.sightingPhotoPlaceholder]}>
+          <Ionicons name="image-outline" size={32} color={COLORS.darkGrey} />
         </View>
       )}
-      <View style={styles.rowInfo}>
-        <Text style={styles.rowLabel}>{formatLabel(item.label)}</Text>
-        {item.location ? (
-          <Text style={styles.rowLocation} numberOfLines={1}>
-            <Ionicons name="location-outline" size={11} color={COLORS.grey} /> {item.location}
-          </Text>
-        ) : null}
-        <Text style={styles.rowDate}>{new Date(item.timestamp).toLocaleDateString()}</Text>
+      <View style={styles.sightingFooter}>
+        <View style={styles.sightingInfo}>
+          <Text style={styles.sightingLabel}>{formatLabel(item.label)}</Text>
+          <View style={styles.sightingMeta}>
+            {item.location ? (
+              <View style={styles.sightingMetaItem}>
+                <Ionicons name="location-outline" size={11} color={COLORS.grey} />
+                <Text style={styles.sightingMetaText} numberOfLines={1}>{item.location}</Text>
+              </View>
+            ) : null}
+            <View style={styles.sightingMetaItem}>
+              <Ionicons name="calendar-outline" size={11} color={COLORS.grey} />
+              <Text style={styles.sightingMetaText}>{new Date(item.timestamp).toLocaleDateString()}</Text>
+            </View>
+          </View>
+        </View>
+        <View style={styles.sightingActions}>
+          <TouchableOpacity onPress={onEdit} style={styles.sightingActionBtn}>
+            <Ionicons name="pencil-outline" size={15} color={COLORS.grey} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onDelete} style={styles.sightingActionBtn}>
+            <Ionicons name="trash-outline" size={15} color={COLORS.grey} />
+          </TouchableOpacity>
+        </View>
       </View>
-      <TouchableOpacity onPress={onEdit} style={{ padding: 6 }}>
-        <Ionicons name="pencil-outline" size={16} color={COLORS.grey} />
-      </TouchableOpacity>
-      <TouchableOpacity onPress={onDelete} style={{ padding: 6 }}>
-        <Ionicons name="trash-outline" size={16} color={COLORS.grey} />
-      </TouchableOpacity>
     </View>
   );
 };
@@ -170,8 +198,9 @@ const StatBar: React.FC<{ label: string; value: number; color: string }> = ({ la
 
 // --- Main Screen ---
 const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, navigation }) => {
-  const { colors: COLORS } = useTheme();
+  const { colors: COLORS, isDark } = useTheme();
   const styles = makeStyles(COLORS);
+  const statNumColor = isDark ? COLORS.yellow : COLORS.primary;
   const newLabel = route?.params?.newLabel as string | undefined;
   const [newBadge, setNewBadge] = useState<Badge | null>(null);
 
@@ -391,8 +420,18 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
       <StatusBar barStyle="light-content" />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>WildDex</Text>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{discoveredCount} species</Text>
+      </View>
+
+      {/* Stats banner */}
+      <View style={styles.statsBanner}>
+        <View style={styles.statItem}>
+          <Text style={[styles.statNumber, { color: statNumColor }]}>{discoveredCount}</Text>
+          <Text style={styles.statLabel}>Species</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Text style={[styles.statNumber, { color: statNumColor }]}>{sightings.length}</Text>
+          <Text style={styles.statLabel}>Sightings</Text>
         </View>
       </View>
 
@@ -429,12 +468,12 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
             key="collection"
             data={collectionSpecies.filter(s => formatLabel(s.label).toLowerCase().includes(searchQuery.toLowerCase()))}
             keyExtractor={(item) => item.label}
-            numColumns={3}
+            numColumns={2}
             contentContainerStyle={styles.grid}
             windowSize={8}
             removeClippedSubviews
-            maxToRenderPerBatch={12}
-            initialNumToRender={18}
+            maxToRenderPerBatch={8}
+            initialNumToRender={12}
             renderItem={({ item }) => (
               <DiscoveredCard
                 label={item.label}
@@ -700,52 +739,94 @@ export default WildDexScreen;
 const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 2,
-    borderBottomColor: COLORS.primary,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
-  headerTitle: { fontSize: 18, fontWeight: '900', color: COLORS.yellow, letterSpacing: 3, textTransform: 'uppercase' },
-  badge: { backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
-  badgeText: { color: COLORS.white, fontWeight: '700', fontSize: 14 },
+  headerTitle: { fontSize: 20, fontWeight: '900', color: COLORS.yellow, letterSpacing: 3, textTransform: 'uppercase' },
 
-  // Segmented control
+  // Stats banner
+  statsBanner: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    paddingVertical: 14,
+  },
+  statItem: { flex: 1, alignItems: 'center' },
+  statNumber: { fontSize: 28, fontWeight: '900', color: COLORS.yellow, letterSpacing: -0.5 },
+  statLabel: { fontSize: 11, fontWeight: '600', color: COLORS.grey, textTransform: 'uppercase', letterSpacing: 1, marginTop: 1 },
+  statDivider: { width: 1, backgroundColor: COLORS.cardBorder, marginVertical: 4 },
+
+  // Segmented control (underline style)
   segmentWrapper: {
     flexDirection: 'row',
-    margin: 12,
-    backgroundColor: COLORS.card,
-    borderRadius: 10,
-    padding: 3,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.cardBorder,
+    position: 'relative',
   },
-  segment: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
-  segmentActive: { backgroundColor: COLORS.primary },
-  segmentText: { fontSize: 13, fontWeight: '700', color: COLORS.grey },
-  segmentTextActive: { color: COLORS.white },
+  segmentIndicator: {
+    position: 'absolute',
+    bottom: -1,
+    height: 2,
+    backgroundColor: COLORS.primary,
+    borderRadius: 1,
+  },
+  segment: { flex: 1, paddingVertical: 10, alignItems: 'center' },
+  segmentText: { fontSize: 14, fontWeight: '600', color: COLORS.grey },
+  segmentTextActive: { color: COLORS.primary, fontWeight: '800' },
 
-  // Collection grid
-  grid: { padding: 12 },
-  card: { width: (Dimensions.get('window').width - 60) / 3, margin: 6, borderRadius: 10, overflow: 'hidden', borderWidth: 1, backgroundColor: COLORS.card, borderColor: COLORS.cardBorder },
-  cardImage: { width: '100%', aspectRatio: 1 },
-  rarityDot: { position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4 },
-  cardFooter: { padding: 6, alignItems: 'center' },
-  cardNumber: { fontSize: 9, color: COLORS.yellow, fontWeight: '700', letterSpacing: 0.5 },
-  cardName: { fontSize: 11, color: COLORS.white, fontWeight: '700', textTransform: 'capitalize' },
+  // Collection grid (2-col)
+  grid: { padding: 6 },
+  cardWrapper: { width: '50%', padding: 6 },
+  card: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    aspectRatio: 0.85,
+  },
+  cardImage: { position: 'absolute', width: '100%', height: '100%' },
+  cardGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+    paddingTop: 40,
+    justifyContent: 'flex-end',
+  },
+  rarityPill: { position: 'absolute', top: 8, right: 8, width: 10, height: 10, borderRadius: 5 },
+  cardNumber: { fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: '700', letterSpacing: 0.5 },
+  cardName: { fontSize: 13, color: '#fff', fontWeight: '800', textTransform: 'capitalize', marginTop: 1 },
 
-  // Sightings list
-  list: { padding: 16 },
-  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.card, borderRadius: 12, padding: 12, gap: 12 },
-  thumb: { width: 56, height: 56, borderRadius: 8 },
-  thumbPlaceholder: { width: 56, height: 56, borderRadius: 8, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center' },
-  rowInfo: { flex: 1 },
-  rowLabel: { color: COLORS.white, fontSize: 16, fontWeight: '700', textTransform: 'capitalize' },
-  rowConfidence: { color: COLORS.grey, fontSize: 12, marginTop: 2 },
-  rowLocation: { color: COLORS.grey, fontSize: 12, marginTop: 2 },
-  rowDate: { color: COLORS.darkGrey, fontSize: 11, marginTop: 2 },
+  // Sightings (photo-first cards)
+  list: { padding: 12 },
+  sightingCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+  sightingPhoto: { width: '100%', height: 140 },
+  sightingPhotoPlaceholder: { backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center' },
+  sightingFooter: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 8 },
+  sightingInfo: { flex: 1 },
+  sightingLabel: { color: COLORS.white, fontSize: 16, fontWeight: '800', textTransform: 'capitalize' },
+  sightingMeta: { flexDirection: 'row', gap: 12, marginTop: 4, flexWrap: 'wrap' },
+  sightingMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  sightingMetaText: { color: COLORS.grey, fontSize: 11 },
+  sightingActions: { flexDirection: 'row', gap: 4 },
+  sightingActionBtn: { padding: 8, backgroundColor: COLORS.background, borderRadius: 8 },
   separator: { height: 10 },
-  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.card, borderRadius: 10, marginHorizontal: 16, marginBottom: 8, paddingHorizontal: 12, paddingVertical: 9, gap: 8, borderWidth: 1, borderColor: COLORS.cardBorder },
+  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.card, borderRadius: 12, marginHorizontal: 16, marginBottom: 10, paddingHorizontal: 12, paddingVertical: 10, gap: 8, borderWidth: 1, borderColor: COLORS.cardBorder },
   searchInput: { flex: 1, color: COLORS.white, fontSize: 14, padding: 0, letterSpacing: 0 },
   editOverlay: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 24 },
   editSheet: { backgroundColor: COLORS.card, borderRadius: 24, padding: 24, gap: 16 },

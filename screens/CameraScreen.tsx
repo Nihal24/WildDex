@@ -30,7 +30,6 @@ import Constants from 'expo-constants';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, ColorScheme } from '../constants/theme';
 import { useTheme } from '../utils/ThemeContext';
-import { LinearGradient } from 'expo-linear-gradient';
 import { saveSighting, getDefaultVisibility } from '../utils/storage';
 import { prefetchAnimalProfile } from '../utils/claude';
 import * as Location from 'expo-location';
@@ -194,7 +193,7 @@ const CameraScreen: React.FC = () => {
       prefetchAnimalProfile(finalResult.label);
 
       if (fromGallery) {
-        setPendingSighting({ ...finalResult, photoUri: compressedUri, _showSheet: true } as any);
+        setPendingSighting({ ...finalResult, photoUri: compressedUri });
       } else {
         // Camera shot — navigate immediately, fetch location in background
         const timestamp = Date.now();
@@ -399,67 +398,83 @@ const CameraScreen: React.FC = () => {
       <StatusBar barStyle="light-content" />
 
       {capturedPhoto ? (
-        <View style={{ flex: 1 }}>
-          {/* Full-screen photo */}
-          <Image source={{ uri: capturedPhoto.uri }} style={styles.previewImage} resizeMode="cover" />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <ScrollView
+            contentContainerStyle={styles.previewContainer}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+          <Image source={{ uri: capturedPhoto.uri }} style={styles.previewImage} />
 
-          {/* Top scrim + retake */}
-          <LinearGradient colors={['rgba(0,0,0,0.55)', 'transparent']} style={styles.previewTopScrim} pointerEvents="none" />
-          <TouchableOpacity style={styles.retakeButton} onPress={retake}>
-            <Ionicons name="arrow-back" size={20} color="#fff" />
-          </TouchableOpacity>
-
-          {/* Gradient fade from photo into panel */}
-          <LinearGradient
-            colors={['transparent', 'rgba(8,8,8,0.92)']}
-            style={styles.panelFade}
-            pointerEvents="none"
-          />
-
-          {/* Bottom result panel */}
-          <View style={styles.resultPanelWrapper}>
-            <View style={styles.resultPanel}>
-              {isRunning && (
-                <View style={styles.resultRow}>
-                  <ActivityIndicator color={COLORS.yellow} size="small" />
-                  <Text style={styles.resultText}>Identifying...</Text>
-                </View>
-              )}
-
-              {!isRunning && prediction && (() => {
-                if (isNotAnimal) {
-                  return (
-                    <View style={styles.unrecognizedContent}>
-                      <Ionicons name="paw-outline" size={24} color="rgba(255,255,255,0.3)" />
-                      <View>
-                        <Text style={styles.unrecognizedLabel}>No animal detected</Text>
-                        <Text style={styles.unrecognizedSub}>Try a photo with a clearer subject</Text>
-                      </View>
-                    </View>
-                  );
-                }
-                const recognized = prediction.confidence >= 0 && prediction.label !== '';
-                return (
-                  <>
-                    {recognized ? (
-                      <Text style={styles.resultLabel}>
-                        {prediction.label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                      </Text>
-                    ) : (
-                      <View style={styles.unrecognizedContent}>
-                        <Ionicons name="help-circle-outline" size={24} color="rgba(255,255,255,0.3)" />
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.unrecognizedLabel}>API Error</Text>
-                          <Text style={styles.unrecognizedSub} numberOfLines={2}>{prediction.label}</Text>
-                        </View>
-                      </View>
-                    )}
-                  </>
-                );
-              })()}
+          {isRunning && (
+            <View style={[styles.resultBox, { flexDirection: 'row', alignItems: 'center' }]}>
+              <ActivityIndicator color={COLORS.yellow} />
+              <Text style={styles.resultText}>Identifying...</Text>
             </View>
-          </View>
-        </View>
+          )}
+
+          {!isRunning && prediction && (() => {
+            if (isNotAnimal) {
+              return (
+                <View style={[styles.resultBox, styles.resultBoxUnrecognized]}>
+                  <View style={styles.unrecognizedContent}>
+                    <Ionicons name="paw-outline" size={28} color={COLORS.darkGrey} />
+                    <View>
+                      <Text style={styles.unrecognizedLabel}>No animal detected</Text>
+                      <Text style={styles.unrecognizedSub}>Try a photo with a clear animal subject</Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            }
+            const recognized = prediction.confidence >= 0 && prediction.label !== '';
+            return (
+              <View style={[styles.resultBox, !recognized && styles.resultBoxUnrecognized]}>
+                {recognized ? (
+                  <View style={{ alignItems: 'center' }}>
+                    <Text style={styles.resultLabel}>
+                      {prediction.label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.unrecognizedContent}>
+                    <Ionicons name="help-circle-outline" size={28} color={COLORS.darkGrey} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.unrecognizedLabel}>API Error</Text>
+                      <Text style={styles.unrecognizedSub} numberOfLines={3}>{prediction.label}</Text>
+                    </View>
+                  </View>
+                )}
+                {pendingSighting && !saved && (
+                  <>
+                    <TextInput
+                      style={styles.captionInput}
+                      placeholder="Add a caption..."
+                      placeholderTextColor={COLORS.darkGrey}
+                      value={caption}
+                      onChangeText={setCaption}
+                      maxLength={200}
+                      returnKeyType="done"
+                      blurOnSubmit
+                    />
+                    <TouchableOpacity style={styles.saveButton} onPress={() => setPendingSighting({ ...pendingSighting, _showSheet: true } as any)}>
+                      <Text style={styles.saveButtonText}>Save to WildDex →</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            );
+          })()}
+
+          <TouchableOpacity style={styles.retakeButton} onPress={retake}>
+            <Ionicons name="arrow-back" size={18} color={COLORS.white} />
+            <Text style={styles.retakeText}>Retake</Text>
+          </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
       ) : (
         <View
           style={styles.cameraContainer}
@@ -555,7 +570,7 @@ const CameraScreen: React.FC = () => {
 export default CameraScreen;
 
 const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: COLORS.background },
   toast: {
     position: 'absolute',
     top: 12,
@@ -628,71 +643,43 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
     padding: 10,
     borderRadius: 25,
   },
-  previewImage: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  previewTopScrim: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 120,
-  },
-  retakeButton: {
-    position: 'absolute',
-    top: 56,
-    left: 20,
-    backgroundColor: 'rgba(0,0,0,0.38)',
-    borderRadius: 22,
-    width: 38,
-    height: 38,
+  previewContainer: {
+    flexGrow: 1,
+    backgroundColor: COLORS.background,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 16,
+    paddingBottom: 32,
+  },
+  previewImage: {
+    width: '100%',
+    height: '60%',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: COLORS.cardBorder,
+  },
+  resultBox: {
+    marginTop: 20,
+    width: '100%',
+    backgroundColor: COLORS.card,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: COLORS.cardBorder,
+    padding: 16,
+    gap: 8,
+    flexDirection: 'column',
   },
-  panelFade: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 280,
-  },
-  resultPanelWrapper: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  resultPanel: {
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 44,
-    gap: 14,
-    backgroundColor: 'rgba(8,8,8,0.92)',
-  },
-  resultRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+  resultBoxUnrecognized: {
+    borderColor: COLORS.darkGrey,
+    backgroundColor: COLORS.background,
   },
   resultLabel: {
-    color: '#fff',
-    fontSize: 30,
-    fontWeight: '900',
+    color: COLORS.yellow,
+    fontSize: 24,
+    fontWeight: '800',
     textTransform: 'capitalize',
-    letterSpacing: 0.3,
-  },
-  identifiedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: -8,
-  },
-  identifiedText: {
-    color: 'rgba(255,255,255,0.35)',
-    fontSize: 11,
-    fontWeight: '500',
+    letterSpacing: 1,
+    textAlign: 'center',
   },
   unrecognizedContent: {
     flexDirection: 'row',
@@ -700,43 +687,53 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
     gap: 12,
   },
   unrecognizedLabel: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 16,
+    color: COLORS.grey,
+    fontSize: 18,
     fontWeight: '700',
   },
   unrecognizedSub: {
-    color: 'rgba(255,255,255,0.35)',
+    color: COLORS.darkGrey,
     fontSize: 12,
     marginTop: 2,
   },
   resultText: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 15,
-  },
-  captionWrapper: {
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.12)',
-    paddingBottom: 2,
+    color: COLORS.white,
+    fontSize: 16,
+    marginLeft: 10,
   },
   saveButton: {
     backgroundColor: COLORS.primary,
-    borderRadius: 16,
-    paddingVertical: 16,
-    flexDirection: 'row',
+    borderRadius: 10,
+    paddingVertical: 12,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    marginTop: 4,
   },
-  saveButtonText: { color: '#fff', fontWeight: '800', fontSize: 16, letterSpacing: 0.2 },
+  saveButtonText: { color: COLORS.white, fontWeight: '800', fontSize: 15 },
   savedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    marginTop: 4,
   },
   savedText: {
     color: COLORS.yellow,
     fontSize: 13,
     fontWeight: '600',
+  },
+  retakeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 20,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    borderRadius: 30,
+  },
+  retakeText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '700',
   },
   permissionContainer: {
     flex: 1,
@@ -862,9 +859,14 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   },
   locationSkipText: { color: COLORS.grey, fontSize: 15, fontWeight: '600' },
   captionInput: {
-    color: '#fff',
-    fontSize: 15,
-    paddingVertical: 8,
-    paddingHorizontal: 0,
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    padding: 10,
+    color: COLORS.white,
+    fontSize: 14,
+    minHeight: 36,
+    textAlignVertical: 'top',
   },
 });

@@ -8,9 +8,9 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  Image,
   ActivityIndicator,
 } from 'react-native';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, ColorScheme } from '../constants/theme';
@@ -20,7 +20,8 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { supabase } from '../utils/supabase';
 import { getSightings, getDiscoveredLabels, getMyDisplayName, updateAvatarUrl, getMyAvatarUrl, calculateSightingStreak, getMyFollowCounts, getProfileStatsCache, setProfileStatsCache } from '../utils/storage';
-import { BADGES, getNextBadge } from '../utils/badges';
+import { BADGES, BadgeCounts, isBadgeEarned, getNextBadge } from '../utils/badges';
+import { getTaxonomyClass, TaxonomyClass } from '../utils/taxonomy';
 import { RootStackParamList } from '../navigation/RootNavigator';
 
 const ProfileScreen: React.FC = () => {
@@ -36,6 +37,7 @@ const ProfileScreen: React.FC = () => {
   const [followingCount, setFollowingCount] = useState(0);
   const [myId, setMyId] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [badgeCounts, setBadgeCounts] = useState<BadgeCounts>({ species: 0, byCategory: {} });
 
   // Hydrate from cache immediately so there's no flicker on nav
   useEffect(() => {
@@ -71,6 +73,20 @@ const ProfileScreen: React.FC = () => {
       setFollowersCount(fc);
       setFollowingCount(fg);
       setMyId(authData.data.user?.id ?? null);
+
+      // Compute unique species per taxonomy category
+      const byCategory: Partial<Record<TaxonomyClass, Set<string>>> = {};
+      for (const label of discovered) {
+        const cls = getTaxonomyClass(label);
+        if (!byCategory[cls]) byCategory[cls] = new Set();
+        byCategory[cls]!.add(label);
+      }
+      const byCategoryCount: Partial<Record<TaxonomyClass, number>> = {};
+      for (const [cls, set] of Object.entries(byCategory)) {
+        byCategoryCount[cls as TaxonomyClass] = set.size;
+      }
+      setBadgeCounts({ species: discovered.size, byCategory: byCategoryCount });
+
       // Save to cache for instant next-nav render
       setProfileStatsCache({ sightingCount: sc, streak: st, followersCount: fc, followingCount: fg, username: name, avatarUrl: avatar });
     });
@@ -122,7 +138,7 @@ const ProfileScreen: React.FC = () => {
 
 
   const avatarLetter = username.charAt(0).toUpperCase();
-  const nextBadge = getNextBadge(discoveredCount);
+  const nextBadge = getNextBadge(badgeCounts);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -147,7 +163,7 @@ const ProfileScreen: React.FC = () => {
               {avatarUploading
                 ? <ActivityIndicator color={COLORS.white} />
                 : avatarUrl
-                ? <Image source={{ uri: avatarUrl }} style={{ width: 84, height: 84, borderRadius: 42 }} resizeMode="cover" />
+                ? <Image source={{ uri: avatarUrl }} style={{ width: 84, height: 84, borderRadius: 42 }} contentFit="cover" />
                 : <Text style={styles.avatarLetter}>{avatarLetter}</Text>
               }
             </View>
@@ -196,7 +212,7 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.cardTitle}>BADGES</Text>
           <View style={styles.badgeGrid}>
             {BADGES.map((badge) => {
-              const earned = discoveredCount >= badge.threshold;
+              const earned = isBadgeEarned(badge, badgeCounts);
               return (
                 <View key={badge.id} style={styles.badgeSlot}>
                   <View style={[styles.badgeCircle, earned ? { backgroundColor: badge.color, shadowColor: badge.color } : styles.badgeCircleLocked]}>
@@ -212,7 +228,9 @@ const ProfileScreen: React.FC = () => {
             <View style={styles.nextBadgeRow}>
               <Ionicons name="arrow-up-circle-outline" size={13} color={COLORS.grey} />
               <Text style={styles.nextBadgeText}>
-                Next: {nextBadge.label} — {nextBadge.threshold - discoveredCount} more species
+                Next: {nextBadge.label} — {nextBadge.type === 'species'
+                  ? `${nextBadge.threshold - badgeCounts.species} more species`
+                  : `${nextBadge.threshold - (badgeCounts.byCategory[nextBadge.category!] ?? 0)} more ${nextBadge.category} species`}
               </Text>
             </View>
           )}
