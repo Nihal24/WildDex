@@ -194,7 +194,7 @@ const CameraScreen: React.FC = () => {
       prefetchAnimalProfile(finalResult.label);
 
       if (fromGallery) {
-        setPendingSighting({ ...finalResult, photoUri: compressedUri });
+        setPendingSighting({ ...finalResult, photoUri: compressedUri, _showSheet: true } as any);
       } else {
         // Camera shot — navigate immediately, fetch location in background
         const timestamp = Date.now();
@@ -453,29 +453,6 @@ const CameraScreen: React.FC = () => {
                           <Text style={styles.unrecognizedSub} numberOfLines={2}>{prediction.label}</Text>
                         </View>
                       </View>
-                    )}
-                    {pendingSighting && !saved && (
-                      <>
-                        <View style={styles.captionWrapper}>
-                          <TextInput
-                            style={styles.captionInput}
-                            placeholder="Add a caption..."
-                            placeholderTextColor="rgba(255,255,255,0.28)"
-                            value={caption}
-                            onChangeText={setCaption}
-                            maxLength={200}
-                            returnKeyType="done"
-                            blurOnSubmit
-                          />
-                        </View>
-                        <TouchableOpacity
-                          style={styles.saveButton}
-                          onPress={() => setPendingSighting({ ...pendingSighting, _showSheet: true } as any)}
-                        >
-                          <Text style={styles.saveButtonText}>Save to WildDex</Text>
-                          <Ionicons name="arrow-forward" size={16} color="#fff" />
-                        </TouchableOpacity>
-                      </>
                     )}
                   </>
                 );
