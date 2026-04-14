@@ -153,11 +153,6 @@ const ProfileScreen: React.FC = () => {
 
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
-              <Text style={styles.statNum}>{discoveredCount}</Text>
-              <Text style={styles.statLabel}>Species</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statBox}>
               <Text style={styles.statNum}>{sightingCount}</Text>
               <Text style={styles.statLabel}>Sightings</Text>
             </View>

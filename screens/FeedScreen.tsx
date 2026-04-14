@@ -556,8 +556,8 @@ const FeedScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<any>();
   const flatListRef = useRef<FlatList>(null);
-  const [tab, setTab] = useState<'feed' | 'top'>('feed');
-  const [feedFilter, setFeedFilter] = useState<'global' | 'following' | 'mine'>('global');
+  const [activeTab, setActiveTab] = useState<'global' | 'following' | 'mine' | 'top'>('global');
+  const tabAnim = useRef(new Animated.Value(0)).current;
   const [feed, setFeed] = useState<FeedSighting[]>([]);
   const [followingFeed, setFollowingFeed] = useState<FeedSighting[]>([]);
   const [myFeed, setMyFeed] = useState<FeedSighting[]>([]);
@@ -683,11 +683,18 @@ const FeedScreen: React.FC = () => {
 
   const goToUser = (userId: string) => navigation.navigate('UserProfile', { userId });
 
-  const activeFeed = feedFilter === 'following' ? followingFeed : feedFilter === 'mine' ? myFeed : feed;
+  const TAB_ORDER = ['global', 'following', 'mine', 'top'] as const;
+  const switchTab = (t: typeof TAB_ORDER[number]) => {
+    const idx = TAB_ORDER.indexOf(t);
+    Animated.spring(tabAnim, { toValue: idx, useNativeDriver: false, friction: 8, tension: 80 }).start();
+    setActiveTab(t);
+  };
+  const activeFeed = activeTab === 'following' ? followingFeed : activeTab === 'mine' ? myFeed : feed;
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Community</Text>
         <View style={styles.headerRight}>
@@ -706,61 +713,45 @@ const FeedScreen: React.FC = () => {
         </View>
       </View>
 
-      <View style={styles.tabRow}>
-        <TouchableOpacity
-          style={[styles.tabBtn, tab === 'feed' && styles.tabBtnActive]}
-          onPress={() => setTab('feed')}
-        >
-          <Text style={[styles.tabText, tab === 'feed' && styles.tabTextActive]}>Feed</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabBtn, tab === 'top' && styles.tabBtnActive]}
-          onPress={() => setTab('top')}
-        >
-          <Text style={[styles.tabText, tab === 'top' && styles.tabTextActive]}>Top Spotters</Text>
-        </TouchableOpacity>
+      {/* Unified underline tab bar */}
+      <View style={styles.tabBar}>
+        {([
+          { key: 'global', label: 'Global' },
+          { key: 'following', label: 'Following' },
+          { key: 'mine', label: 'Mine' },
+          { key: 'top', label: 'Top Spotters' },
+        ] as const).map(({ key, label }) => (
+          <TouchableOpacity
+            key={key}
+            style={styles.tabBarItem}
+            onPress={() => switchTab(key)}
+          >
+            <Text style={[styles.tabBarText, activeTab === key && styles.tabBarTextActive]}>{label}</Text>
+            {activeTab === key && <View style={styles.tabBarIndicator} />}
+          </TouchableOpacity>
+        ))}
       </View>
 
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator color={COLORS.yellow} size="large" />
         </View>
-      ) : tab === 'feed' ? (
+      ) : activeTab !== 'top' ? (
         <>
-          <View style={styles.filterRow}>
-            <TouchableOpacity
-              style={[styles.filterBtn, feedFilter === 'global' && styles.filterBtnActive]}
-              onPress={() => setFeedFilter('global')}
-            >
-              <Text style={[styles.filterText, feedFilter === 'global' && styles.filterTextActive]}>Global</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.filterBtn, feedFilter === 'following' && styles.filterBtnActive]}
-              onPress={() => setFeedFilter('following')}
-            >
-              <Text style={[styles.filterText, feedFilter === 'following' && styles.filterTextActive]}>Following</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.filterBtn, feedFilter === 'mine' && styles.filterBtnActive]}
-              onPress={() => setFeedFilter('mine')}
-            >
-              <Text style={[styles.filterText, feedFilter === 'mine' && styles.filterTextActive]}>Mine</Text>
-            </TouchableOpacity>
-          </View>
           {activeFeed.length === 0 ? (
             <View style={styles.center}>
               <Ionicons name="leaf-outline" size={48} color={COLORS.darkGrey} />
               <Text style={styles.emptyTitle}>
-                {feedFilter === 'following'
+                {activeTab === 'following'
                   ? 'No sightings from people you follow'
-                  : feedFilter === 'mine'
+                  : activeTab === 'mine'
                   ? 'No sightings yet'
                   : 'No sightings yet'}
               </Text>
               <Text style={styles.emptySub}>
-                {feedFilter === 'following'
-                  ? 'Find people to follow in the Top Spotters tab'
-                  : feedFilter === 'mine'
+                {activeTab === 'following'
+                  ? 'Find people to follow in Top Spotters'
+                  : activeTab === 'mine'
                   ? 'Identify an animal to log your first sighting'
                   : 'Be the first to spot something!'}
               </Text>
@@ -876,44 +867,45 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
     borderRadius: 20,
   },
   inviteBtnText: { color: COLORS.white, fontWeight: '600', fontSize: 13 },
-  tabRow: {
+  tabBar: {
     flexDirection: 'row',
-    marginHorizontal: 16,
-    marginVertical: 12,
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    padding: 4,
-    gap: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.cardBorder,
   },
-  tabBtn: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 9 },
-  tabBtnActive: { backgroundColor: COLORS.primary },
-  tabText: { color: COLORS.grey, fontWeight: '500', fontSize: 13, letterSpacing: 0.3 },
-  tabTextActive: { color: COLORS.white, fontWeight: '600' },
-  filterRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 8,
-    marginBottom: 8,
+  tabBarItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    position: 'relative',
   },
-  filterBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+  tabBarText: {
+    color: COLORS.grey,
+    fontWeight: '500',
+    fontSize: 13,
   },
-  filterBtnActive: { borderColor: COLORS.amber, backgroundColor: 'rgba(245,166,35,0.1)' },
-  filterText: { color: COLORS.grey, fontSize: 13, fontWeight: '500' },
-  filterTextActive: { color: COLORS.amber, fontWeight: '600' },
+  tabBarTextActive: {
+    color: COLORS.white,
+    fontWeight: '700',
+  },
+  tabBarIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: '15%',
+    right: '15%',
+    height: 2,
+    backgroundColor: COLORS.yellow,
+    borderRadius: 1,
+  },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
   emptyTitle: { fontSize: 17, fontWeight: '700', color: COLORS.white, textAlign: 'center', paddingHorizontal: 32 },
   emptySub: { fontSize: 13, color: COLORS.grey },
-  feedList: { paddingHorizontal: 0, paddingBottom: 20, gap: 12 },
+  feedList: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 20, gap: 14 },
   card: {
     backgroundColor: COLORS.card,
+    borderRadius: 16,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
   photoWrapper: { position: 'relative' },
   cardPhoto: { width: '100%', height: 340 },

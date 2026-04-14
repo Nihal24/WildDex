@@ -311,6 +311,45 @@ export interface LeaderboardEntry {
   totalSightings: number;
 }
 
+export interface MapSighting {
+  id: string;
+  label: string;
+  photoUrl: string;
+  latitude: number;
+  longitude: number;
+  location?: string;
+  timestamp: number;
+  userId: string;
+  displayName: string;
+  avatarUrl?: string;
+}
+
+export async function getCommunityMapSightings(): Promise<MapSighting[]> {
+  const { data, error } = await supabase
+    .from('sightings')
+    .select('id, label, photo_url, latitude, longitude, location, timestamp, user_id, profiles(username, avatar_url)')
+    .eq('visibility', 'public')
+    .like('photo_url', 'http%')
+    .not('latitude', 'is', null)
+    .not('longitude', 'is', null)
+    .order('timestamp', { ascending: false })
+    .limit(300);
+
+  if (error || !data) return [];
+  return data.map((row: any) => ({
+    id: row.id,
+    label: row.label,
+    photoUrl: row.photo_url,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    location: row.location,
+    timestamp: row.timestamp,
+    userId: row.user_id,
+    displayName: row.profiles?.username ?? '',
+    avatarUrl: row.profiles?.avatar_url ?? undefined,
+  }));
+}
+
 function mapSighting(row: any): FeedSighting {
   return {
     sightingId: row.id,
