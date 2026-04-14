@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, ColorScheme } from '../constants/theme';
 import { useTheme } from '../utils/ThemeContext';
+import { BlurView } from 'expo-blur';
 import { getSightings, purgeBrokenPhotoSightings, Sighting } from '../utils/storage';
 
 const formatLabel = (label: string) =>
@@ -140,47 +141,51 @@ const ExploreScreen: React.FC = () => {
             ))}
           </MapView>
 
-          {/* Custom floating card */}
+          {/* Custom floating glass card */}
           {selectedSighting && (
             <View style={styles.floatingCard} onStartShouldSetResponder={() => true}>
-              <Image source={{ uri: selectedSighting.photoUri }} style={styles.floatingPhoto} />
-              <View style={styles.floatingInfo}>
-                <Text style={styles.floatingLabel}>{formatLabel(selectedSighting.label)}</Text>
-                <Text style={styles.floatingDate}>{new Date(selectedSighting.timestamp).toLocaleDateString()}</Text>
-                {selectedSighting.location && (
-                  <View style={styles.floatingLocationRow}>
-                    <Ionicons name="location-outline" size={11} color={COLORS.grey} />
-                    <Text style={styles.floatingLocation}>{selectedSighting.location}</Text>
-                  </View>
-                )}
-              </View>
-              <TouchableOpacity style={styles.floatingClose} onPress={() => setSelectedSighting(null)}>
-                <Ionicons name="close" size={18} color={COLORS.grey} />
-              </TouchableOpacity>
+              <BlurView intensity={75} tint="dark" style={styles.floatingBlur}>
+                <Image source={{ uri: selectedSighting.photoUri }} style={styles.floatingPhoto} />
+                <View style={styles.floatingInfo}>
+                  <Text style={styles.floatingLabel}>{formatLabel(selectedSighting.label)}</Text>
+                  <Text style={styles.floatingDate}>{new Date(selectedSighting.timestamp).toLocaleDateString()}</Text>
+                  {selectedSighting.location && (
+                    <View style={styles.floatingLocationRow}>
+                      <Ionicons name="location-outline" size={11} color="rgba(255,255,255,0.5)" />
+                      <Text style={styles.floatingLocation}>{selectedSighting.location}</Text>
+                    </View>
+                  )}
+                </View>
+                <TouchableOpacity style={styles.floatingClose} onPress={() => setSelectedSighting(null)}>
+                  <Ionicons name="close" size={18} color="rgba(255,255,255,0.6)" />
+                </TouchableOpacity>
+              </BlurView>
             </View>
           )}
 
           <View style={styles.zoomControls}>
-            <TouchableOpacity style={styles.zoomButton} onPress={() => {
-              const r = savedRegion.current ?? initialRegion;
-              mapRef.current?.animateToRegion({ ...r, latitudeDelta: r.latitudeDelta / 2, longitudeDelta: r.longitudeDelta / 2 }, 300);
-            }}>
-              <Ionicons name="add" size={22} color={COLORS.white} />
-            </TouchableOpacity>
-            <View style={styles.zoomDivider} />
-            <TouchableOpacity style={styles.zoomButton} onPress={() => {
-              const r = savedRegion.current ?? initialRegion;
-              mapRef.current?.animateToRegion({ ...r, latitudeDelta: Math.min(r.latitudeDelta * 2, 90), longitudeDelta: Math.min(r.longitudeDelta * 2, 180) }, 300);
-            }}>
-              <Ionicons name="remove" size={22} color={COLORS.white} />
-            </TouchableOpacity>
-            <View style={styles.zoomDivider} />
-            <TouchableOpacity style={styles.zoomButton} onPress={() => {
-              const r = savedRegion.current ?? initialRegion;
-              mapRef.current?.animateToRegion({ ...r, latitudeDelta: 180, longitudeDelta: 360 }, 500);
-            }}>
-              <Ionicons name="earth-outline" size={20} color={COLORS.white} />
-            </TouchableOpacity>
+            <BlurView intensity={70} tint="dark" style={styles.zoomBlur}>
+              <TouchableOpacity style={styles.zoomButton} onPress={() => {
+                const r = savedRegion.current ?? initialRegion;
+                mapRef.current?.animateToRegion({ ...r, latitudeDelta: r.latitudeDelta / 2, longitudeDelta: r.longitudeDelta / 2 }, 300);
+              }}>
+                <Ionicons name="add" size={22} color="rgba(255,255,255,0.9)" />
+              </TouchableOpacity>
+              <View style={styles.zoomDivider} />
+              <TouchableOpacity style={styles.zoomButton} onPress={() => {
+                const r = savedRegion.current ?? initialRegion;
+                mapRef.current?.animateToRegion({ ...r, latitudeDelta: Math.min(r.latitudeDelta * 2, 90), longitudeDelta: Math.min(r.longitudeDelta * 2, 180) }, 300);
+              }}>
+                <Ionicons name="remove" size={22} color="rgba(255,255,255,0.9)" />
+              </TouchableOpacity>
+              <View style={styles.zoomDivider} />
+              <TouchableOpacity style={styles.zoomButton} onPress={() => {
+                const r = savedRegion.current ?? initialRegion;
+                mapRef.current?.animateToRegion({ ...r, latitudeDelta: 180, longitudeDelta: 360 }, 500);
+              }}>
+                <Ionicons name="earth-outline" size={20} color="rgba(255,255,255,0.9)" />
+              </TouchableOpacity>
+            </BlurView>
           </View>
         </View>
       )}
@@ -210,19 +215,19 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
     position: 'absolute',
     right: 16,
     top: 16,
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderRadius: 14,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
+  zoomBlur: { borderRadius: 14, overflow: 'hidden' },
   zoomButton: {
     width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  zoomDivider: { height: 1, backgroundColor: COLORS.cardBorder },
+  zoomDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.12)' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: COLORS.white },
   emptySub: { fontSize: 13, color: COLORS.grey, textAlign: 'center', paddingHorizontal: 40 },
@@ -264,25 +269,27 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
     bottom: 36,
     left: 16,
     right: 16,
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
+    borderRadius: 18,
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: 'rgba(255,255,255,0.15)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  floatingBlur: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
     gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
   },
-  floatingPhoto: { width: 64, height: 64, borderRadius: 10 },
+  floatingPhoto: { width: 68, height: 68, borderRadius: 12 },
   floatingInfo: { flex: 1, gap: 2 },
-  floatingLabel: { color: COLORS.white, fontSize: 15, fontWeight: '700' },
-  floatingDate: { color: COLORS.grey, fontSize: 12 },
+  floatingLabel: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  floatingDate: { color: 'rgba(255,255,255,0.55)', fontSize: 12 },
   floatingLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 1 },
-  floatingLocation: { color: COLORS.grey, fontSize: 12 },
+  floatingLocation: { color: 'rgba(255,255,255,0.55)', fontSize: 12 },
   floatingClose: { padding: 4 },
 });

@@ -6,7 +6,10 @@ import {
   Image,
   TouchableOpacity,
   Animated,
+  StatusBar,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ColorScheme } from '../constants/theme';
@@ -30,12 +33,12 @@ const CatchScreen: React.FC = () => {
     .join(' ');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.88)).current;
+  const panelAnim = useRef(new Animated.Value(80)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
-      Animated.spring(scaleAnim, { toValue: 1, friction: 8, tension: 70, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.spring(panelAnim, { toValue: 0, friction: 9, tension: 65, useNativeDriver: true }),
     ]).start();
 
     getSightings().then((sightings) => {
@@ -49,21 +52,35 @@ const CatchScreen: React.FC = () => {
   const dismiss = () => navigation.goBack();
 
   return (
-    <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
-      {/* Tap outside to dismiss */}
+    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+      <StatusBar barStyle="light-content" />
+
+      {/* Full-screen photo */}
+      <Image source={{ uri: photoUri }} style={styles.fullPhoto} resizeMode="cover" />
+
+      {/* Tap outside glass panel to dismiss */}
       <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={dismiss} />
 
-      <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
-        {/* Photo */}
-        <Image source={{ uri: photoUri }} style={styles.photo} resizeMode="cover" />
+      {/* Top scrim for close button */}
+      <LinearGradient
+        colors={['rgba(0,0,0,0.55)', 'transparent']}
+        style={styles.topScrim}
+        pointerEvents="none"
+      />
 
-        {/* Close button */}
-        <TouchableOpacity style={styles.closeBtn} onPress={dismiss}>
-          <Ionicons name="close" size={18} color={COLORS.white} />
-        </TouchableOpacity>
+      {/* Close button */}
+      <TouchableOpacity style={styles.closeBtn} onPress={dismiss}>
+        <BlurView intensity={60} tint="dark" style={styles.closeBtnInner}>
+          <Ionicons name="close" size={18} color="#fff" />
+        </BlurView>
+      </TouchableOpacity>
 
-        {/* Body */}
-        <View style={styles.body}>
+      {/* Glass panel at bottom */}
+      <Animated.View style={[styles.panelWrapper, { transform: [{ translateY: panelAnim }] }]}>
+        <BlurView intensity={85} tint="dark" style={styles.glassPanel}>
+          {/* Handle */}
+          <View style={styles.handle} />
+
           {isNew && (
             <View style={styles.discoveryBadge}>
               <Ionicons name="star" size={11} color={COLORS.yellow} />
@@ -93,9 +110,9 @@ const CatchScreen: React.FC = () => {
             }}
           >
             <Text style={styles.learnMoreBtnText}>Learn More</Text>
-            <Ionicons name="arrow-forward" size={17} color={COLORS.white} />
+            <Ionicons name="arrow-forward" size={17} color="#fff" />
           </TouchableOpacity>
-        </View>
+        </BlurView>
       </Animated.View>
     </Animated.View>
   );
@@ -104,56 +121,65 @@ const CatchScreen: React.FC = () => {
 export default CatchScreen;
 
 const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
-  overlay: {
+  container: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 28,
+    backgroundColor: '#000',
   },
-  card: {
-    width: '100%',
-    backgroundColor: COLORS.card,
-    borderRadius: 24,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+  fullPhoto: {
+    ...StyleSheet.absoluteFillObject,
   },
-  photo: {
-    width: '100%',
-    height: 220,
+  topScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
   },
   closeBtn: {
     position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    borderRadius: 16,
-    padding: 6,
+    top: 56,
+    right: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
   },
-  body: {
+  closeBtnInner: {
+    width: 36,
+    height: 36,
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: 28,
+    justifyContent: 'center',
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  panelWrapper: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: 'hidden',
+  },
+  glassPanel: {
+    alignItems: 'center',
+    paddingHorizontal: 28,
+    paddingTop: 16,
+    paddingBottom: 40,
     gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.12)',
   },
-  loggedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 8,
-  },
-  loggedText: {
-    color: '#4CAF50',
-    fontSize: 13,
-    fontWeight: '600',
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    marginBottom: 8,
   },
   discoveryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: COLORS.yellow + '18',
+    backgroundColor: COLORS.yellow + '20',
     borderRadius: 20,
     paddingVertical: 4,
     paddingHorizontal: 12,
@@ -170,26 +196,37 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   name: {
     fontSize: 28,
     fontWeight: '900',
-    color: COLORS.white,
+    color: '#fff',
     textAlign: 'center',
     letterSpacing: 0.3,
   },
+  loggedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 4,
+  },
+  loggedText: {
+    color: '#4CAF50',
+    fontSize: 13,
+    fontWeight: '600',
+  },
   statsLine: {
     fontSize: 12,
-    color: COLORS.grey,
+    color: 'rgba(255,255,255,0.55)',
     textAlign: 'center',
     marginTop: 2,
   },
   learnMoreBtn: {
     backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: 14,
+    paddingVertical: 15,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     width: '100%',
-    marginTop: 8,
+    marginTop: 12,
   },
-  learnMoreBtnText: { color: COLORS.white, fontWeight: '800', fontSize: 15 },
+  learnMoreBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
 });

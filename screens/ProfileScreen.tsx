@@ -15,6 +15,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, ColorScheme } from '../constants/theme';
 import { useTheme } from '../utils/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { supabase } from '../utils/supabase';
@@ -108,8 +109,12 @@ const ProfileScreen: React.FC = () => {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* Hero card */}
+        {/* Hero card with gradient banner */}
         <View style={styles.heroCard}>
+          <LinearGradient
+            colors={[COLORS.primary + 'CC', COLORS.primary + '44', 'transparent']}
+            style={styles.heroBanner}
+          />
           <TouchableOpacity onPress={pickAvatar} style={styles.avatarWrapper} disabled={avatarUploading}>
             <View style={styles.avatarCircle}>
               {avatarUploading
@@ -208,9 +213,17 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
 
   heroCard: {
     backgroundColor: COLORS.card, borderRadius: 20, borderWidth: 1,
-    borderColor: COLORS.cardBorder, alignItems: 'center', padding: 24, gap: 8,
+    borderColor: COLORS.cardBorder, alignItems: 'center', paddingHorizontal: 24,
+    paddingBottom: 24, gap: 8, overflow: 'hidden',
   },
-  avatarWrapper: { position: 'relative' },
+  heroBanner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 70,
+  },
+  avatarWrapper: { position: 'relative', marginTop: 24 },
   avatarCircle: { width: 84, height: 84, borderRadius: 42, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
   avatarEditBadge: {
     position: 'absolute', bottom: 0, right: 0,

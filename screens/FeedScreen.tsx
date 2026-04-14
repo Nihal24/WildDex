@@ -10,6 +10,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, ColorScheme } from '../constants/theme';
 import { useTheme } from '../utils/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   getFeedSightings, getFollowingFeed, getMyFeedSightings, getLeaderboard,
   followUser, unfollowUser, getFollowingIds, getLikedSightingIds,
@@ -282,43 +283,70 @@ const FeedCard = ({
 
   return (
     <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <TouchableOpacity onPress={() => onUserPress(item.userId)} style={styles.cardHeaderLeft}>
-          <Avatar name={item.displayName} photoUri={item.avatarUrl} />
-          <View style={styles.cardHeaderInfo}>
-            <Text style={styles.cardUser}>{item.displayName || 'unknown'}</Text>
-            <View style={styles.cardTimeRow}>
-              <Text style={styles.cardTime}>{timeAgo(item.timestamp)}</Text>
-              <Ionicons
-                name={item.visibility === 'private' ? 'lock-closed-outline' : item.visibility === 'followers' ? 'people-outline' : 'earth-outline'}
-                size={13}
-                color={COLORS.grey}
-              />
+      {/* Photo with header overlaid */}
+      <View style={styles.photoWrapper}>
+        <Image source={{ uri: item.photoUrl }} style={styles.cardPhoto} resizeMode="cover" />
+        {/* Top gradient scrim for avatar readability */}
+        <LinearGradient
+          colors={['rgba(0,0,0,0.6)', 'transparent']}
+          style={styles.photoTopScrim}
+          pointerEvents="none"
+        />
+        {/* Bottom gradient scrim for animal name */}
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.72)']}
+          style={styles.photoBottomScrim}
+          pointerEvents="none"
+        />
+        {/* Header overlaid on photo */}
+        <View style={styles.cardHeaderOverlay}>
+          <TouchableOpacity onPress={() => onUserPress(item.userId)} style={styles.cardHeaderLeft}>
+            <Avatar name={item.displayName} photoUri={item.avatarUrl} />
+            <View style={styles.cardHeaderInfo}>
+              <Text style={styles.cardUser}>{item.displayName || 'unknown'}</Text>
+              <View style={styles.cardTimeRow}>
+                <Text style={styles.cardTime}>{timeAgo(item.timestamp)}</Text>
+                <Ionicons
+                  name={item.visibility === 'private' ? 'lock-closed-outline' : item.visibility === 'followers' ? 'people-outline' : 'earth-outline'}
+                  size={13}
+                  color="rgba(255,255,255,0.6)"
+                />
+              </View>
             </View>
-          </View>
-        </TouchableOpacity>
-        {!isOwn ? (
-          <TouchableOpacity
-            style={[styles.followBtn, isFollowed && styles.followingBtn]}
-            onPress={toggleFollow}
-            disabled={followLoading}
-          >
-            {followLoading
-              ? <ActivityIndicator size="small" color={COLORS.white} />
-              : <Text style={[styles.followBtnText, isFollowed && styles.followingBtnText]}>
-                  {isFollowed ? 'Following' : 'Follow'}
-                </Text>
-            }
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.menuBtn} onPress={onMenuPress}>
-            <Ionicons name="ellipsis-horizontal" size={20} color={COLORS.grey} />
-          </TouchableOpacity>
-        )}
+          {!isOwn ? (
+            <TouchableOpacity
+              style={[styles.followBtn, isFollowed && styles.followingBtn]}
+              onPress={toggleFollow}
+              disabled={followLoading}
+            >
+              {followLoading
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={[styles.followBtnText, isFollowed && styles.followingBtnText]}>
+                    {isFollowed ? 'Following' : 'Follow'}
+                  </Text>
+              }
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.menuBtn} onPress={onMenuPress}>
+              <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255,255,255,0.8)" />
+            </TouchableOpacity>
+          )}
+        </View>
+        {/* Animal name at bottom of photo */}
+        <View style={styles.photoLabel}>
+          <Text style={styles.cardAnimal}>{formatLabel(item.label)}</Text>
+          {item.location ? (
+            <View style={styles.photoLocationRow}>
+              <Ionicons name="location-outline" size={11} color="rgba(255,255,255,0.6)" />
+              <Text style={styles.cardLocation} numberOfLines={1}>{item.location}</Text>
+            </View>
+          ) : null}
+        </View>
       </View>
-      <Image source={{ uri: item.photoUrl }} style={styles.cardPhoto} resizeMode="cover" />
+
+      {/* Footer: caption + actions */}
       <View style={styles.cardFooter}>
-        <Text style={styles.cardAnimal}>{formatLabel(item.label)}</Text>
         {item.caption ? <Text style={styles.cardCaption}>{item.caption}</Text> : null}
         <View style={styles.cardActions}>
           <TouchableOpacity style={styles.actionBtn} onPress={toggleLike} disabled={likeLoading}>
@@ -339,12 +367,6 @@ const FeedCard = ({
             >
               <Ionicons name="share-outline" size={18} color={COLORS.grey} />
             </TouchableOpacity>
-          )}
-          {item.location && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1, justifyContent: 'flex-end', minWidth: 0 }}>
-              <Ionicons name="location-outline" size={13} color={COLORS.grey} flexShrink={0} />
-              <Text style={styles.cardLocation} numberOfLines={1} ellipsizeMode="tail">{item.location}</Text>
-            </View>
           )}
         </View>
       </View>
@@ -888,15 +910,32 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
   emptyTitle: { fontSize: 17, fontWeight: '700', color: COLORS.white, textAlign: 'center', paddingHorizontal: 32 },
   emptySub: { fontSize: 13, color: COLORS.grey },
-  feedList: { paddingHorizontal: 16, paddingBottom: 20, gap: 16 },
+  feedList: { paddingHorizontal: 0, paddingBottom: 20, gap: 12 },
   card: {
     backgroundColor: COLORS.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
     overflow: 'hidden',
   },
-  cardHeader: {
+  photoWrapper: { position: 'relative' },
+  cardPhoto: { width: '100%', height: 340 },
+  photoTopScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+  },
+  photoBottomScrim: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+  },
+  cardHeaderOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -906,28 +945,40 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   avatar: { backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
   avatarLetter: { color: COLORS.white, fontWeight: '700' },
   cardHeaderInfo: { flex: 1 },
-  cardUser: { color: COLORS.yellow, fontWeight: '700', fontSize: 14 },
+  cardUser: { color: '#fff', fontWeight: '700', fontSize: 14 },
   cardTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 1 },
-  cardTime: { color: COLORS.grey, fontSize: 11 },
+  cardTime: { color: 'rgba(255,255,255,0.65)', fontSize: 11 },
   followBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    minWidth: 80,
+    minWidth: 72,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
   },
-  followingBtn: { backgroundColor: 'transparent', borderWidth: 1, borderColor: COLORS.cardBorder },
-  followBtnText: { color: COLORS.white, fontSize: 12, fontWeight: '600' },
-  followingBtnText: { color: COLORS.grey },
-  cardPhoto: { width: '100%', height: 260 },
-  cardFooter: { padding: 12, gap: 6 },
-  cardAnimal: { color: COLORS.white, fontSize: 16, fontWeight: '700' },
-  cardCaption: { color: COLORS.grey, fontSize: 13, lineHeight: 19 },
-  cardActions: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 4 },
+  followingBtn: { backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.2)' },
+  followBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  followingBtnText: { color: 'rgba(255,255,255,0.7)' },
+  menuBtn: { padding: 4 },
+  photoLabel: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    gap: 2,
+  },
+  cardAnimal: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 0.2 },
+  photoLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  cardLocation: { color: 'rgba(255,255,255,0.6)', fontSize: 12, flexShrink: 1 },
+  cardFooter: { padding: 12, paddingTop: 10, gap: 4, backgroundColor: COLORS.card },
+  cardCaption: { color: COLORS.grey, fontSize: 13, lineHeight: 19, marginBottom: 4 },
+  cardActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   actionCount: { color: COLORS.grey, fontSize: 13 },
-  cardLocation: { color: COLORS.grey, fontSize: 12, flexShrink: 1 },
   // Comments modal
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalSheet: {

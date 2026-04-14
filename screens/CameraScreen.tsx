@@ -30,6 +30,8 @@ import Constants from 'expo-constants';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, ColorScheme } from '../constants/theme';
 import { useTheme } from '../utils/ThemeContext';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { saveSighting, getDefaultVisibility } from '../utils/storage';
 import { prefetchAnimalProfile } from '../utils/claude';
 import * as Location from 'expo-location';
@@ -402,78 +404,75 @@ const CameraScreen: React.FC = () => {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
         >
-          <ScrollView
-            contentContainerStyle={styles.previewContainer}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-          <Image source={{ uri: capturedPhoto.uri }} style={styles.previewImage} />
+          {/* Full-screen photo */}
+          <Image source={{ uri: capturedPhoto.uri }} style={styles.previewImage} resizeMode="cover" />
 
-          {isRunning && (
-            <View style={[styles.resultBox, { flexDirection: 'row', alignItems: 'center' }]}>
-              <ActivityIndicator color={COLORS.yellow} />
-              <Text style={styles.resultText}>Identifying...</Text>
-            </View>
-          )}
-
-          {!isRunning && prediction && (() => {
-            if (isNotAnimal) {
-              return (
-                <View style={[styles.resultBox, styles.resultBoxUnrecognized]}>
-                  <View style={styles.unrecognizedContent}>
-                    <Ionicons name="paw-outline" size={28} color={COLORS.darkGrey} />
-                    <View>
-                      <Text style={styles.unrecognizedLabel}>No animal detected</Text>
-                      <Text style={styles.unrecognizedSub}>Try a photo with a clear animal subject</Text>
-                    </View>
-                  </View>
-                </View>
-              );
-            }
-            const recognized = prediction.confidence >= 0 && prediction.label !== '';
-            return (
-              <View style={[styles.resultBox, !recognized && styles.resultBoxUnrecognized]}>
-                {recognized ? (
-                  <View style={{ alignItems: 'center' }}>
-                    <Text style={styles.resultLabel}>
-                      {prediction.label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                    </Text>
-                  </View>
-                ) : (
-                  <View style={styles.unrecognizedContent}>
-                    <Ionicons name="help-circle-outline" size={28} color={COLORS.darkGrey} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.unrecognizedLabel}>API Error</Text>
-                      <Text style={styles.unrecognizedSub} numberOfLines={3}>{prediction.label}</Text>
-                    </View>
-                  </View>
-                )}
-                {pendingSighting && !saved && (
-                  <>
-                    <TextInput
-                      style={styles.captionInput}
-                      placeholder="Add a caption..."
-                      placeholderTextColor={COLORS.darkGrey}
-                      value={caption}
-                      onChangeText={setCaption}
-                      maxLength={200}
-                      returnKeyType="done"
-                      blurOnSubmit
-                    />
-                    <TouchableOpacity style={styles.saveButton} onPress={() => setPendingSighting({ ...pendingSighting, _showSheet: true } as any)}>
-                      <Text style={styles.saveButtonText}>Save to WildDex →</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-              </View>
-            );
-          })()}
-
+          {/* Top scrim + retake */}
+          <LinearGradient colors={['rgba(0,0,0,0.55)', 'transparent']} style={styles.previewTopScrim} pointerEvents="none" />
           <TouchableOpacity style={styles.retakeButton} onPress={retake}>
-            <Ionicons name="arrow-back" size={18} color={COLORS.white} />
-            <Text style={styles.retakeText}>Retake</Text>
+            <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
-          </ScrollView>
+
+          {/* Bottom glass result panel */}
+          <View style={styles.resultPanelWrapper}>
+            <BlurView intensity={80} tint="dark" style={styles.resultPanel}>
+              {isRunning && (
+                <View style={styles.resultRow}>
+                  <ActivityIndicator color={COLORS.yellow} />
+                  <Text style={styles.resultText}>Identifying...</Text>
+                </View>
+              )}
+
+              {!isRunning && prediction && (() => {
+                if (isNotAnimal) {
+                  return (
+                    <View style={styles.unrecognizedContent}>
+                      <Ionicons name="paw-outline" size={24} color="rgba(255,255,255,0.4)" />
+                      <View>
+                        <Text style={styles.unrecognizedLabel}>No animal detected</Text>
+                        <Text style={styles.unrecognizedSub}>Try a photo with a clear animal subject</Text>
+                      </View>
+                    </View>
+                  );
+                }
+                const recognized = prediction.confidence >= 0 && prediction.label !== '';
+                return (
+                  <>
+                    {recognized ? (
+                      <Text style={styles.resultLabel}>
+                        {prediction.label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                      </Text>
+                    ) : (
+                      <View style={styles.unrecognizedContent}>
+                        <Ionicons name="help-circle-outline" size={24} color="rgba(255,255,255,0.4)" />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.unrecognizedLabel}>API Error</Text>
+                          <Text style={styles.unrecognizedSub} numberOfLines={2}>{prediction.label}</Text>
+                        </View>
+                      </View>
+                    )}
+                    {pendingSighting && !saved && (
+                      <>
+                        <TextInput
+                          style={styles.captionInput}
+                          placeholder="Add a caption..."
+                          placeholderTextColor="rgba(255,255,255,0.4)"
+                          value={caption}
+                          onChangeText={setCaption}
+                          maxLength={200}
+                          returnKeyType="done"
+                          blurOnSubmit
+                        />
+                        <TouchableOpacity style={styles.saveButton} onPress={() => setPendingSighting({ ...pendingSighting, _showSheet: true } as any)}>
+                          <Text style={styles.saveButtonText}>Save to WildDex →</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
+                  </>
+                );
+              })()}
+            </BlurView>
+          </View>
         </KeyboardAvoidingView>
       ) : (
         <View
@@ -570,7 +569,7 @@ const CameraScreen: React.FC = () => {
 export default CameraScreen;
 
 const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: '#000' },
   toast: {
     position: 'absolute',
     top: 12,
@@ -643,42 +642,55 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
     padding: 10,
     borderRadius: 25,
   },
-  previewContainer: {
-    flexGrow: 1,
-    backgroundColor: COLORS.background,
+  previewImage: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  previewTopScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+  },
+  retakeButton: {
+    position: 'absolute',
+    top: 56,
+    left: 20,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 22,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
-    paddingBottom: 32,
   },
-  previewImage: {
-    width: '100%',
-    height: '60%',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: COLORS.cardBorder,
+  resultPanelWrapper: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.12)',
   },
-  resultBox: {
-    marginTop: 20,
-    width: '100%',
-    backgroundColor: COLORS.card,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    padding: 16,
-    gap: 8,
-    flexDirection: 'column',
+  resultPanel: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 40,
+    gap: 12,
   },
-  resultBoxUnrecognized: {
-    borderColor: COLORS.darkGrey,
-    backgroundColor: COLORS.background,
+  resultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   resultLabel: {
-    color: COLORS.yellow,
-    fontSize: 24,
-    fontWeight: '800',
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '900',
     textTransform: 'capitalize',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
     textAlign: 'center',
   },
   unrecognizedContent: {
@@ -687,53 +699,35 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
     gap: 12,
   },
   unrecognizedLabel: {
-    color: COLORS.grey,
-    fontSize: 18,
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 16,
     fontWeight: '700',
   },
   unrecognizedSub: {
-    color: COLORS.darkGrey,
+    color: 'rgba(255,255,255,0.4)',
     fontSize: 12,
     marginTop: 2,
   },
   resultText: {
-    color: COLORS.white,
+    color: '#fff',
     fontSize: 16,
-    marginLeft: 10,
   },
   saveButton: {
     backgroundColor: COLORS.primary,
-    borderRadius: 10,
-    paddingVertical: 12,
+    borderRadius: 14,
+    paddingVertical: 15,
     alignItems: 'center',
-    marginTop: 4,
   },
-  saveButtonText: { color: COLORS.white, fontWeight: '800', fontSize: 15 },
+  saveButtonText: { color: '#fff', fontWeight: '800', fontSize: 15 },
   savedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 4,
   },
   savedText: {
     color: COLORS.yellow,
     fontSize: 13,
     fontWeight: '600',
-  },
-  retakeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 20,
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 28,
-    paddingVertical: 12,
-    borderRadius: 30,
-  },
-  retakeText: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: '700',
   },
   permissionContainer: {
     flex: 1,
@@ -859,12 +853,12 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   },
   locationSkipText: { color: COLORS.grey, fontSize: 15, fontWeight: '600' },
   captionInput: {
-    backgroundColor: COLORS.background,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    padding: 10,
-    color: COLORS.white,
+    borderColor: 'rgba(255,255,255,0.15)',
+    padding: 12,
+    color: '#fff',
     fontSize: 14,
     minHeight: 36,
     textAlignVertical: 'top',
