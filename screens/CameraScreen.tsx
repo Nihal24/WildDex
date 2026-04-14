@@ -442,15 +442,9 @@ const CameraScreen: React.FC = () => {
                 return (
                   <>
                     {recognized ? (
-                      <>
-                        <Text style={styles.resultLabel}>
-                          {prediction.label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                        </Text>
-                        <View style={styles.identifiedRow}>
-                          <Ionicons name="sparkles-outline" size={12} color="rgba(255,255,255,0.4)" />
-                          <Text style={styles.identifiedText}>Identified by Claude</Text>
-                        </View>
-                      </>
+                      <Text style={styles.resultLabel}>
+                        {prediction.label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                      </Text>
                     ) : (
                       <View style={styles.unrecognizedContent}>
                         <Ionicons name="help-circle-outline" size={24} color="rgba(255,255,255,0.3)" />
