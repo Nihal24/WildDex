@@ -13,7 +13,7 @@ import {
   getUserProfile, getUserFeedSightings, isFollowing, followUser, unfollowUser,
   getCurrentUserId_public, FeedSighting,
 } from '../utils/storage';
-import { getEarnedBadges, getNextBadge, BADGES } from '../utils/badges';
+import { isBadgeEarned, getNextBadge, BADGES, BadgeCounts } from '../utils/badges';
 
 type RouteParams = { userId: string };
 
@@ -73,8 +73,8 @@ const UserProfileScreen: React.FC = () => {
     setFollowLoading(false);
   };
 
-  const earnedBadges = getEarnedBadges(profile?.speciesCount ?? 0);
-  const nextBadge = getNextBadge(profile?.speciesCount ?? 0);
+  const badgeCounts: BadgeCounts = { species: profile?.speciesCount ?? 0, byCategory: {} };
+  const nextBadge = getNextBadge(badgeCounts);
 
   const listHeader = useMemo(() => (
     <View>
@@ -116,7 +116,7 @@ const UserProfileScreen: React.FC = () => {
         <Text style={styles.sectionTitle}>Badges</Text>
         <View style={styles.badgeGrid}>
           {BADGES.map((badge) => {
-            const earned = (profile?.speciesCount ?? 0) >= badge.threshold;
+            const earned = isBadgeEarned(badge, badgeCounts);
             return (
               <View key={badge.id} style={styles.badgeSlot}>
                 <View style={[styles.badgeCircle, earned ? { backgroundColor: badge.color, shadowColor: badge.color } : styles.badgeCircleLocked]}>
