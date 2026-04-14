@@ -1,10 +1,12 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, StatusBar,
-  FlatList, Image, TouchableOpacity, ActivityIndicator, RefreshControl, Share,
+  FlatList, Image, ImageBackground, TouchableOpacity, ActivityIndicator, RefreshControl, Share,
   Modal, ScrollView, KeyboardAvoidingView, Platform, TextInput, Keyboard, TouchableWithoutFeedback,
   Animated, PanResponder,
 } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -167,57 +169,59 @@ const CommentsModal = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
-        <Animated.View style={[styles.modalSheet, { transform: [{ translateY }] }]}>
-          <View style={styles.modalDragArea} {...panResponder.panHandlers}>
-            <View style={styles.modalHandle} />
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Comments</Text>
-              <TouchableOpacity onPress={onClose}><Ionicons name="close" size={22} color={COLORS.grey} /></TouchableOpacity>
+      {/* Tap backdrop to close */}
+      <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={onClose} />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay} pointerEvents="box-none">
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <Animated.View style={[styles.modalSheet, { transform: [{ translateY }] }]} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalDragArea} {...panResponder.panHandlers}>
+              <View style={styles.modalHandle} />
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Comments</Text>
+                <TouchableOpacity onPress={onClose}><Ionicons name="close" size={22} color={COLORS.grey} /></TouchableOpacity>
+              </View>
             </View>
-          </View>
-          {loading ? (
-            <CommentSkeleton />
-          ) : comments.length === 0 ? (
-            <View style={styles.modalCenter}>
-              <Text style={styles.noComments}>No comments yet. Be the first!</Text>
-            </View>
-          ) : (
-            <ScrollView keyboardShouldPersistTaps="always" contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-              {comments.map((c) => renderComment(c))}
-            </ScrollView>
-          )}
-          {replyTo && (
-            <View style={styles.replyingTo}>
-              <Text style={styles.replyingToText}>Replying to @{replyTo.name}</Text>
-              <TouchableOpacity onPress={() => setReplyTo(null)}>
-                <Ionicons name="close-circle" size={16} color={COLORS.grey} />
+            {loading ? (
+              <CommentSkeleton />
+            ) : comments.length === 0 ? (
+              <View style={styles.modalCenter}>
+                <Text style={styles.noComments}>No comments yet. Be the first!</Text>
+              </View>
+            ) : (
+              <ScrollView keyboardShouldPersistTaps="always" contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+                {comments.map((c) => renderComment(c))}
+              </ScrollView>
+            )}
+            {replyTo && (
+              <View style={styles.replyingTo}>
+                <Text style={styles.replyingToText}>Replying to @{replyTo.name}</Text>
+                <TouchableOpacity onPress={() => setReplyTo(null)}>
+                  <Ionicons name="close-circle" size={16} color={COLORS.grey} />
+                </TouchableOpacity>
+              </View>
+            )}
+            <View style={styles.commentInput}>
+              <TextInput
+                style={styles.commentTextInput}
+                placeholder={replyTo ? `Reply to @${replyTo.name}...` : 'Add a comment...'}
+                placeholderTextColor={COLORS.grey}
+                value={text}
+                onChangeText={setText}
+                maxLength={300}
+                multiline
+                returnKeyType="done"
+                blurOnSubmit
+              />
+              <TouchableOpacity onPress={submit} disabled={submitting || !text.trim()} style={styles.sendBtn}>
+                {submitting
+                  ? <ActivityIndicator size="small" color={COLORS.yellow} />
+                  : <Ionicons name="send" size={18} color={text.trim() ? COLORS.yellow : COLORS.grey} />
+                }
               </TouchableOpacity>
             </View>
-          )}
-          <View style={styles.commentInput}>
-            <TextInput
-              style={styles.commentTextInput}
-              placeholder={replyTo ? `Reply to @${replyTo.name}...` : 'Add a comment...'}
-              placeholderTextColor={COLORS.grey}
-              value={text}
-              onChangeText={setText}
-              maxLength={300}
-              multiline
-              returnKeyType="done"
-              blurOnSubmit
-            />
-            <TouchableOpacity onPress={submit} disabled={submitting || !text.trim()} style={styles.sendBtn}>
-              {submitting
-                ? <ActivityIndicator size="small" color={COLORS.yellow} />
-                : <Ionicons name="send" size={18} color={text.trim() ? COLORS.yellow : COLORS.grey} />
-              }
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
+          </Animated.View>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
     </Modal>
   );
 };
@@ -253,6 +257,9 @@ const FeedCard = ({
   const [localLikeCount, setLocalLikeCount] = useState(item.likeCount);
   const [followLoading, setFollowLoading] = useState(false);
   const [likeLoading, setLikeLoading] = useState(false);
+  const [shareVisible, setShareVisible] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const shareCardRef = useRef<View>(null);
 
   useEffect(() => {
     setLocalLiked(likedIds.has(item.sightingId));
@@ -267,6 +274,24 @@ const FeedCard = ({
     if (isFollowed) { await unfollowUser(item.userId); onFollowChange(item.userId, false); }
     else { await followUser(item.userId); onFollowChange(item.userId, true); }
     setFollowLoading(false);
+  };
+
+  const doShare = async () => {
+    setSharing(true);
+    try {
+      const uri = await captureRef(shareCardRef, { format: 'jpg', quality: 0.95, result: 'tmpfile' });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/jpeg', dialogTitle: `${formatLabel(item.label)} on WildDex` });
+      } else {
+        await Share.share({ url: item.photoUrl, message: `Check out this ${formatLabel(item.label)} I spotted on WildDex! 🦁` });
+      }
+    } catch {
+      await Share.share({ url: item.photoUrl, message: `Check out this ${formatLabel(item.label)} I spotted on WildDex! 🦁` });
+    } finally {
+      setSharing(false);
+      setShareVisible(false);
+    }
   };
 
   const toggleLike = async () => {
@@ -358,16 +383,57 @@ const FeedCard = ({
             {commentCount > 0 && <Text style={styles.actionCount}>{commentCount}</Text>}
           </TouchableOpacity>
           {isOwn && (
-            <TouchableOpacity
-              style={styles.actionBtn}
-              onPress={() => Share.share({
-                url: item.photoUrl,
-                message: `Check out this ${formatLabel(item.label)} I spotted on WildDex! 🦁`,
-              })}
-            >
+            <TouchableOpacity style={styles.actionBtn} onPress={() => setShareVisible(true)}>
               <Ionicons name="share-outline" size={18} color={COLORS.grey} />
             </TouchableOpacity>
           )}
+
+          {/* Share card preview modal */}
+          <Modal visible={shareVisible} transparent animationType="fade" onRequestClose={() => setShareVisible(false)}>
+            <TouchableOpacity style={styles.shareOverlay} activeOpacity={1} onPress={() => setShareVisible(false)}>
+              <TouchableOpacity activeOpacity={1} style={styles.shareContainer} onPress={() => {}}>
+                {/* The card that gets captured */}
+                <View ref={shareCardRef} style={styles.shareCard} collapsable={false}>
+                  <ImageBackground source={{ uri: item.photoUrl }} style={styles.shareCardPhoto} resizeMode="cover">
+                    <LinearGradient
+                      colors={['rgba(0,0,0,0.18)', 'transparent', 'transparent', 'rgba(0,0,0,0.82)']}
+                      style={StyleSheet.absoluteFillObject}
+                    />
+                    {/* WildDex badge top-right */}
+                    <View style={styles.shareWatermark}>
+                      <Ionicons name="paw" size={13} color="rgba(255,255,255,0.9)" />
+                      <Text style={styles.shareWatermarkText}>WildDex</Text>
+                    </View>
+                    {/* Bottom info */}
+                    <View style={styles.shareCardBottom}>
+                      <Text style={styles.shareCardAnimal}>{formatLabel(item.label)}</Text>
+                      {item.location ? (
+                        <View style={styles.shareCardLocationRow}>
+                          <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.65)" />
+                          <Text style={styles.shareCardLocation}>{item.location}</Text>
+                        </View>
+                      ) : null}
+                      <Text style={styles.shareCardMeta}>@{item.displayName} · {timeAgo(item.timestamp)}</Text>
+                    </View>
+                  </ImageBackground>
+                </View>
+
+                {/* Actions */}
+                <TouchableOpacity style={styles.shareBtn} onPress={doShare} disabled={sharing}>
+                  {sharing
+                    ? <ActivityIndicator color="#fff" />
+                    : <>
+                        <Ionicons name="share-outline" size={18} color="#fff" />
+                        <Text style={styles.shareBtnText}>Share</Text>
+                      </>
+                  }
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShareVisible(false)}>
+                  <Text style={styles.shareCancelText}>Cancel</Text>
+                </TouchableOpacity>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </Modal>
         </View>
       </View>
     </View>
@@ -1069,4 +1135,50 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   leaderSpecies: { alignItems: 'center' },
   leaderSpeciesNum: { color: COLORS.yellow, fontSize: 20, fontWeight: '800' },
   leaderSpeciesLabel: { color: COLORS.grey, fontSize: 10 },
+  // Share card
+  shareOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.82)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  shareContainer: { width: '100%', alignItems: 'center', gap: 16 },
+  shareCard: {
+    width: '100%',
+    aspectRatio: 4 / 5,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  shareCardPhoto: { flex: 1, justifyContent: 'space-between' },
+  shareWatermark: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-end',
+    margin: 14,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  shareWatermarkText: { color: '#fff', fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
+  shareCardBottom: { padding: 20, gap: 4 },
+  shareCardAnimal: { color: '#fff', fontSize: 28, fontWeight: '900', letterSpacing: 0.2 },
+  shareCardLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  shareCardLocation: { color: 'rgba(255,255,255,0.7)', fontSize: 13 },
+  shareCardMeta: { color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 },
+  shareBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 28,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  shareBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  shareCancelText: { color: 'rgba(255,255,255,0.5)', fontSize: 14, paddingVertical: 4 },
 });
