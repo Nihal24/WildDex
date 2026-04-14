@@ -409,12 +409,19 @@ const CameraScreen: React.FC = () => {
             <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
 
-          {/* Bottom result panel — solid dark instead of BlurView to avoid layout issues */}
+          {/* Gradient fade from photo into panel */}
+          <LinearGradient
+            colors={['transparent', 'rgba(8,8,8,0.92)']}
+            style={styles.panelFade}
+            pointerEvents="none"
+          />
+
+          {/* Bottom result panel */}
           <View style={styles.resultPanelWrapper}>
             <View style={styles.resultPanel}>
               {isRunning && (
                 <View style={styles.resultRow}>
-                  <ActivityIndicator color={COLORS.yellow} />
+                  <ActivityIndicator color={COLORS.yellow} size="small" />
                   <Text style={styles.resultText}>Identifying...</Text>
                 </View>
               )}
@@ -423,10 +430,10 @@ const CameraScreen: React.FC = () => {
                 if (isNotAnimal) {
                   return (
                     <View style={styles.unrecognizedContent}>
-                      <Ionicons name="paw-outline" size={24} color="rgba(255,255,255,0.4)" />
+                      <Ionicons name="paw-outline" size={24} color="rgba(255,255,255,0.3)" />
                       <View>
                         <Text style={styles.unrecognizedLabel}>No animal detected</Text>
-                        <Text style={styles.unrecognizedSub}>Try a photo with a clear animal subject</Text>
+                        <Text style={styles.unrecognizedSub}>Try a photo with a clearer subject</Text>
                       </View>
                     </View>
                   );
@@ -435,12 +442,18 @@ const CameraScreen: React.FC = () => {
                 return (
                   <>
                     {recognized ? (
-                      <Text style={styles.resultLabel}>
-                        {prediction.label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                      </Text>
+                      <>
+                        <Text style={styles.resultLabel}>
+                          {prediction.label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                        </Text>
+                        <View style={styles.identifiedRow}>
+                          <Ionicons name="sparkles-outline" size={12} color="rgba(255,255,255,0.4)" />
+                          <Text style={styles.identifiedText}>Identified by Claude</Text>
+                        </View>
+                      </>
                     ) : (
                       <View style={styles.unrecognizedContent}>
-                        <Ionicons name="help-circle-outline" size={24} color="rgba(255,255,255,0.4)" />
+                        <Ionicons name="help-circle-outline" size={24} color="rgba(255,255,255,0.3)" />
                         <View style={{ flex: 1 }}>
                           <Text style={styles.unrecognizedLabel}>API Error</Text>
                           <Text style={styles.unrecognizedSub} numberOfLines={2}>{prediction.label}</Text>
@@ -449,18 +462,24 @@ const CameraScreen: React.FC = () => {
                     )}
                     {pendingSighting && !saved && (
                       <>
-                        <TextInput
-                          style={styles.captionInput}
-                          placeholder="Add a caption..."
-                          placeholderTextColor="rgba(255,255,255,0.4)"
-                          value={caption}
-                          onChangeText={setCaption}
-                          maxLength={200}
-                          returnKeyType="done"
-                          blurOnSubmit
-                        />
-                        <TouchableOpacity style={styles.saveButton} onPress={() => setPendingSighting({ ...pendingSighting, _showSheet: true } as any)}>
-                          <Text style={styles.saveButtonText}>Save to WildDex →</Text>
+                        <View style={styles.captionWrapper}>
+                          <TextInput
+                            style={styles.captionInput}
+                            placeholder="Add a caption..."
+                            placeholderTextColor="rgba(255,255,255,0.28)"
+                            value={caption}
+                            onChangeText={setCaption}
+                            maxLength={200}
+                            returnKeyType="done"
+                            blurOnSubmit
+                          />
+                        </View>
+                        <TouchableOpacity
+                          style={styles.saveButton}
+                          onPress={() => setPendingSighting({ ...pendingSighting, _showSheet: true } as any)}
+                        >
+                          <Text style={styles.saveButtonText}>Save to WildDex</Text>
+                          <Ionicons name="arrow-forward" size={16} color="#fff" />
                         </TouchableOpacity>
                       </>
                     )}
@@ -652,43 +671,57 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
     position: 'absolute',
     top: 56,
     left: 20,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(0,0,0,0.38)',
     borderRadius: 22,
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  panelFade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 280,
   },
   resultPanelWrapper: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    overflow: 'hidden',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.12)',
   },
   resultPanel: {
     paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 40,
-    gap: 12,
-    backgroundColor: 'rgba(10,10,10,0.88)',
+    paddingTop: 12,
+    paddingBottom: 44,
+    gap: 14,
+    backgroundColor: 'rgba(8,8,8,0.92)',
   },
   resultRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   resultLabel: {
     color: '#fff',
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '900',
     textTransform: 'capitalize',
-    letterSpacing: 0.5,
-    textAlign: 'center',
+    letterSpacing: 0.3,
+  },
+  identifiedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: -8,
+  },
+  identifiedText: {
+    color: 'rgba(255,255,255,0.35)',
+    fontSize: 11,
+    fontWeight: '500',
   },
   unrecognizedContent: {
     flexDirection: 'row',
@@ -701,21 +734,29 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
     fontWeight: '700',
   },
   unrecognizedSub: {
-    color: 'rgba(255,255,255,0.4)',
+    color: 'rgba(255,255,255,0.35)',
     fontSize: 12,
     marginTop: 2,
   },
   resultText: {
-    color: '#fff',
-    fontSize: 16,
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 15,
+  },
+  captionWrapper: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.12)',
+    paddingBottom: 2,
   },
   saveButton: {
     backgroundColor: COLORS.primary,
-    borderRadius: 14,
-    paddingVertical: 15,
+    borderRadius: 16,
+    paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
-  saveButtonText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+  saveButtonText: { color: '#fff', fontWeight: '800', fontSize: 16, letterSpacing: 0.2 },
   savedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -850,14 +891,9 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   },
   locationSkipText: { color: COLORS.grey, fontSize: 15, fontWeight: '600' },
   captionInput: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-    padding: 12,
     color: '#fff',
-    fontSize: 14,
-    minHeight: 36,
-    textAlignVertical: 'top',
+    fontSize: 15,
+    paddingVertical: 8,
+    paddingHorizontal: 0,
   },
 });
