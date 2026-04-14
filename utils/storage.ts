@@ -273,7 +273,6 @@ export async function migrateLocalSightingsToSupabase(): Promise<void> {
   }
 
   await AsyncStorage.setItem(MIGRATION_KEY, 'true');
-  console.log(`Migrated ${rows.length} sightings to Supabase for user ${userId}`);
 }
 
 export interface FeedSighting {

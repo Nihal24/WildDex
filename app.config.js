@@ -33,8 +33,8 @@ export default {
       buildNumber: '1',
       infoPlist: {
         NSLocationWhenInUseUsageDescription: 'WildDex uses your location to log where you spotted each animal.',
-        NSPhotoLibraryUsageDescription: 'WildDex needs photo access to set your profile picture.',
-        NSCameraUsageDescription: 'WildDex uses your camera to identify and photograph animals.',
+        NSPhotoLibraryUsageDescription: 'WildDex accesses your photo library to identify animals from existing photos and to set your profile picture.',
+        NSCameraUsageDescription: 'WildDex uses your camera to photograph and identify animals in the wild.',
         NSPhotoLibraryAddUsageDescription: 'WildDex saves your sighting cards to Photos.',
         NSPrivacyTracking: false,
         NSPrivacyTrackingDomains: [],

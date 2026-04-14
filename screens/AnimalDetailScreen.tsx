@@ -55,7 +55,6 @@ const AnimalDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         setInfo(profile);
       } catch (e: any) {
         setError('Failed to load animal info. Check your connection.');
-        console.error(e);
       } finally {
         setLoading(false);
       }
