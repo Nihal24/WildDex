@@ -30,7 +30,6 @@ import Constants from 'expo-constants';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, ColorScheme } from '../constants/theme';
 import { useTheme } from '../utils/ThemeContext';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { saveSighting, getDefaultVisibility } from '../utils/storage';
 import { prefetchAnimalProfile } from '../utils/claude';
@@ -400,10 +399,7 @@ const CameraScreen: React.FC = () => {
       <StatusBar barStyle="light-content" />
 
       {capturedPhoto ? (
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
+        <View style={{ flex: 1 }}>
           {/* Full-screen photo */}
           <Image source={{ uri: capturedPhoto.uri }} style={styles.previewImage} resizeMode="cover" />
 
@@ -413,9 +409,9 @@ const CameraScreen: React.FC = () => {
             <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
 
-          {/* Bottom glass result panel */}
+          {/* Bottom result panel — solid dark instead of BlurView to avoid layout issues */}
           <View style={styles.resultPanelWrapper}>
-            <BlurView intensity={80} tint="dark" style={styles.resultPanel}>
+            <View style={styles.resultPanel}>
               {isRunning && (
                 <View style={styles.resultRow}>
                   <ActivityIndicator color={COLORS.yellow} />
@@ -471,9 +467,9 @@ const CameraScreen: React.FC = () => {
                   </>
                 );
               })()}
-            </BlurView>
+            </View>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       ) : (
         <View
           style={styles.cameraContainer}
@@ -679,6 +675,7 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 40,
     gap: 12,
+    backgroundColor: 'rgba(10,10,10,0.88)',
   },
   resultRow: {
     flexDirection: 'row',

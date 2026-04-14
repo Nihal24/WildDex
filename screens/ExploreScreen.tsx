@@ -6,7 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { ColorScheme } from '../constants/theme';
 import { useTheme } from '../utils/ThemeContext';
-import { getSightings, purgeBrokenPhotoSightings, Sighting, getCommunityMapSightings, MapSighting } from '../utils/storage';
+import { getSightings, purgeBrokenPhotoSightings, Sighting, getFollowingMapSightings, MapSighting } from '../utils/storage';
 import { BlurView } from 'expo-blur';
 
 const formatLabel = (label: string) =>
@@ -82,7 +82,7 @@ const ExploreScreen: React.FC = () => {
   const [communitySightings, setCommunitySightings] = useState<MapSighting[]>([]);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [mapMode, setMapMode] = useState<'mine' | 'everyone'>('mine');
+  const [mapMode, setMapMode] = useState<'mine' | 'following'>('mine');
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const mapRef = useRef<MapView>(null);
   const savedRegion = useRef<Region | null>(null);
@@ -94,7 +94,7 @@ const ExploreScreen: React.FC = () => {
       await purgeBrokenPhotoSightings();
       const [all, communityData, { status }] = await Promise.all([
         getSightings(),
-        getCommunityMapSightings(),
+        getFollowingMapSightings(),
         Location.requestForegroundPermissionsAsync(),
       ]);
 
@@ -136,9 +136,8 @@ const ExploreScreen: React.FC = () => {
         isMine: true,
       }));
     }
-    // everyone: community (exclude my own userId from community to avoid duplication)
     return communitySightings.map((s) => ({
-      key: `community-${s.id}`,
+      key: `following-${s.id}`,
       label: s.label,
       photoUri: s.photoUrl,
       latitude: s.latitude,
@@ -317,17 +316,17 @@ const ExploreScreen: React.FC = () => {
                 <Text style={[styles.toggleText, mapMode === 'mine' && styles.toggleTextActive]}>My Sightings</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.toggleOption, mapMode === 'everyone' && styles.toggleOptionActive]}
-                onPress={() => { setMapMode('everyone'); setSelectedItem(null); }}
+                style={[styles.toggleOption, mapMode === 'following' && styles.toggleOptionActive]}
+                onPress={() => { setMapMode('following'); setSelectedItem(null); }}
               >
-                <Text style={[styles.toggleText, mapMode === 'everyone' && styles.toggleTextActive]}>Everyone</Text>
+                <Text style={[styles.toggleText, mapMode === 'following' && styles.toggleTextActive]}>Following</Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Count badge */}
           <View style={styles.countPill}>
-            <Ionicons name="location" size={12} color={mapMode === 'mine' ? COLORS.yellow : '#fff'} />
+            <Ionicons name="location" size={12} color={mapMode === 'mine' ? COLORS.yellow : COLORS.primary} />
             <Text style={styles.countText}>{displaySightings.length}</Text>
           </View>
 

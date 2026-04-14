@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { supabase } from '../utils/supabase';
-import { getSightings, getDiscoveredLabels, getMyDisplayName, updateAvatarUrl, getMyAvatarUrl, calculateSightingStreak, getMyFollowCounts } from '../utils/storage';
+import { getSightings, getDiscoveredLabels, getMyDisplayName, updateAvatarUrl, getMyAvatarUrl, calculateSightingStreak, getMyFollowCounts, getProfileStatsCache, setProfileStatsCache } from '../utils/storage';
 import { BADGES, getNextBadge } from '../utils/badges';
 import { RootStackParamList } from '../navigation/RootNavigator';
 
@@ -37,16 +37,43 @@ const ProfileScreen: React.FC = () => {
   const [myId, setMyId] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
+  // Hydrate from cache immediately so there's no flicker on nav
+  useEffect(() => {
+    getProfileStatsCache().then((cached) => {
+      if (!cached) return;
+      setSightingCount(cached.sightingCount);
+      setStreak(cached.streak);
+      setFollowersCount(cached.followersCount);
+      setFollowingCount(cached.followingCount);
+      if (cached.username) setUsername(cached.username);
+      if (cached.avatarUrl) setAvatarUrl(cached.avatarUrl);
+    });
+  }, []);
+
   useFocusEffect(useCallback(() => {
-    getMyDisplayName().then(setUsername);
-    getMyAvatarUrl().then(setAvatarUrl);
-    getSightings().then((s) => { setSightingCount(s.length); setStreak(calculateSightingStreak(s)); });
-    getDiscoveredLabels().then((d) => setDiscoveredCount(d.size));
-    getMyFollowCounts().then(({ followersCount: fc, followingCount: fg }) => {
+    Promise.all([
+      getMyDisplayName(),
+      getMyAvatarUrl(),
+      getSightings(),
+      getDiscoveredLabels(),
+      getMyFollowCounts(),
+      supabase.auth.getUser(),
+    ]).then(([name, avatar, sightings, discovered, followCounts, authData]) => {
+      const sc = sightings.length;
+      const st = calculateSightingStreak(sightings);
+      const fc = followCounts.followersCount;
+      const fg = followCounts.followingCount;
+      setUsername(name);
+      setAvatarUrl(avatar);
+      setSightingCount(sc);
+      setStreak(st);
+      setDiscoveredCount(discovered.size);
       setFollowersCount(fc);
       setFollowingCount(fg);
+      setMyId(authData.data.user?.id ?? null);
+      // Save to cache for instant next-nav render
+      setProfileStatsCache({ sightingCount: sc, streak: st, followersCount: fc, followingCount: fg, username: name, avatarUrl: avatar });
     });
-    supabase.auth.getUser().then(({ data }) => setMyId(data.user?.id ?? null));
   }, []));
 
   const pickAvatar = async () => {

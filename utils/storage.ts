@@ -350,6 +350,57 @@ export async function getCommunityMapSightings(): Promise<MapSighting[]> {
   }));
 }
 
+export async function getFollowingMapSightings(): Promise<MapSighting[]> {
+  const followingIds = await getFollowingIds();
+  if (followingIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from('sightings')
+    .select('id, label, photo_url, latitude, longitude, location, timestamp, user_id, profiles(username, avatar_url)')
+    .in('user_id', followingIds)
+    .in('visibility', ['public', 'followers'])
+    .like('photo_url', 'http%')
+    .not('latitude', 'is', null)
+    .not('longitude', 'is', null)
+    .order('timestamp', { ascending: false })
+    .limit(300);
+
+  if (error || !data) return [];
+  return data.map((row: any) => ({
+    id: row.id,
+    label: row.label,
+    photoUrl: row.photo_url,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    location: row.location,
+    timestamp: row.timestamp,
+    userId: row.user_id,
+    displayName: row.profiles?.username ?? '',
+    avatarUrl: row.profiles?.avatar_url ?? undefined,
+  }));
+}
+
+const PROFILE_STATS_CACHE_KEY = 'wilddex_profile_stats_cache';
+
+export interface ProfileStatsCache {
+  sightingCount: number;
+  streak: number;
+  followersCount: number;
+  followingCount: number;
+  username: string;
+  avatarUrl: string | null;
+}
+
+export async function getProfileStatsCache(): Promise<ProfileStatsCache | null> {
+  try {
+    const v = await AsyncStorage.getItem(PROFILE_STATS_CACHE_KEY);
+    return v ? JSON.parse(v) : null;
+  } catch { return null; }
+}
+
+export async function setProfileStatsCache(stats: ProfileStatsCache): Promise<void> {
+  await AsyncStorage.setItem(PROFILE_STATS_CACHE_KEY, JSON.stringify(stats));
+}
+
 function mapSighting(row: any): FeedSighting {
   return {
     sightingId: row.id,
