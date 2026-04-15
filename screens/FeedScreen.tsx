@@ -27,100 +27,6 @@ import { RootStackParamList } from '../navigation/RootNavigator';
 const formatLabel = (label: string) =>
   label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-// ── Animal of the Day ────────────────────────────────────────────────────────
-const DAILY_ANIMALS = [
-  { label: 'bald_eagle', emoji: '🦅' },
-  { label: 'red_fox', emoji: '🦊' },
-  { label: 'white_tailed_deer', emoji: '🦌' },
-  { label: 'monarch_butterfly', emoji: '🦋' },
-  { label: 'american_robin', emoji: '🐦' },
-  { label: 'eastern_gray_squirrel', emoji: '🐿️' },
-  { label: 'great_blue_heron', emoji: '🪶' },
-  { label: 'raccoon', emoji: '🦝' },
-  { label: 'painted_turtle', emoji: '🐢' },
-  { label: 'peregrine_falcon', emoji: '🦅' },
-  { label: 'river_otter', emoji: '🦦' },
-  { label: 'black_bear', emoji: '🐻' },
-  { label: 'canada_goose', emoji: '🪿' },
-  { label: 'firefly', emoji: '✨' },
-  { label: 'american_alligator', emoji: '🐊' },
-  { label: 'hummingbird', emoji: '🌸' },
-  { label: 'coyote', emoji: '🐺' },
-  { label: 'osprey', emoji: '🦅' },
-  { label: 'luna_moth', emoji: '🦋' },
-  { label: 'groundhog', emoji: '🦫' },
-  { label: 'snapping_turtle', emoji: '🐢' },
-  { label: 'blue_jay', emoji: '🐦' },
-  { label: 'bobcat', emoji: '🐱' },
-  { label: 'dragonfly', emoji: '🪲' },
-  { label: 'pileated_woodpecker', emoji: '🐦' },
-  { label: 'striped_skunk', emoji: '🦨' },
-  { label: 'bullfrog', emoji: '🐸' },
-  { label: 'red_tailed_hawk', emoji: '🦅' },
-  { label: 'white_pelican', emoji: '🦢' },
-  { label: 'nine_banded_armadillo', emoji: '🦔' },
-];
-
-function getDailyAnimal() {
-  const daysSinceEpoch = Math.floor(Date.now() / 86400000);
-  return DAILY_ANIMALS[daysSinceEpoch % DAILY_ANIMALS.length];
-}
-
-const AnimalOfTheDay: React.FC<{ colors: any }> = ({ colors: C }) => {
-  const animal = getDailyAnimal();
-  const [funFact, setFunFact] = useState<string | null>(null);
-  const [sciName, setSciName] = useState<string | null>(null);
-
-  useEffect(() => {
-    import('../utils/claude').then(({ getAnimalProfile }) => {
-      getAnimalProfile(animal.label)
-        .then((info) => {
-          setFunFact(info.funFact);
-          setSciName(info.scientificName);
-        })
-        .catch(() => {});
-    });
-  }, [animal.label]);
-
-  return (
-    <View style={{
-      marginHorizontal: 14, marginTop: 10, marginBottom: 4,
-      backgroundColor: C.card, borderRadius: 16,
-      borderWidth: 1, borderColor: C.cardBorder,
-      padding: 16,
-    }}>
-      <Text style={{ color: C.yellow, fontSize: 10, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>
-        🌿 Animal of the Day
-      </Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: funFact ? 12 : 0 }}>
-        <View style={{
-          width: 56, height: 56, borderRadius: 28,
-          backgroundColor: C.background, justifyContent: 'center', alignItems: 'center',
-          borderWidth: 1.5, borderColor: C.yellow,
-        }}>
-          <Text style={{ fontSize: 28 }}>{animal.emoji}</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: C.white, fontSize: 17, fontWeight: '800' }}>
-            {formatLabel(animal.label)}
-          </Text>
-          {sciName && (
-            <Text style={{ color: C.grey, fontSize: 12, fontStyle: 'italic', marginTop: 2 }}>{sciName}</Text>
-          )}
-        </View>
-      </View>
-      {funFact && (
-        <View style={{
-          backgroundColor: C.background, borderRadius: 10, padding: 10,
-          borderLeftWidth: 3, borderLeftColor: C.yellow,
-        }}>
-          <Text style={{ color: C.yellow, fontSize: 10, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 3 }}>Fun Fact</Text>
-          <Text style={{ color: C.white, fontSize: 13, lineHeight: 19 }}>{funFact}</Text>
-        </View>
-      )}
-    </View>
-  );
-};
 
 const timeAgo = (timestamp: number): string => {
   const diff = Date.now() - timestamp;
@@ -943,7 +849,6 @@ const FeedScreen: React.FC = () => {
                 data={activeFeed}
                 keyExtractor={(item) => item.sightingId || String(item.timestamp)}
                 extraData={likedIds}
-                ListHeaderComponent={activeTab === 'global' ? <AnimalOfTheDay colors={COLORS} /> : null}
                 renderItem={({ item }) => (
                   <FeedCard
                     item={item}

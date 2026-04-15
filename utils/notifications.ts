@@ -1,9 +1,11 @@
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getDailyAnimal, DAILY_ANIMALS } from './dailyAnimal';
 
 const NOTIF_ENABLED_KEY = 'wilddex_daily_notif_enabled';
 const NOTIF_HOUR_KEY = 'wilddex_daily_notif_hour';
 const DEFAULT_HOUR = 17; // 5pm — after the work day
+const AOTD_HOUR = 9; // 9am — morning discovery
 
 // 14 distinct messages — cycle by day so each day feels fresh
 const MESSAGES = [
@@ -91,10 +93,45 @@ export async function disableDailyNotification(): Promise<void> {
   await AsyncStorage.setItem(NOTIF_ENABLED_KEY, 'false');
 }
 
+function formatLabel(label: string): string {
+  return label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+export async function enableAotdNotifications(): Promise<void> {
+  const { status } = await Notifications.getPermissionsAsync();
+  if (status !== 'granted') return;
+
+  const today = new Date();
+
+  // Schedule 14 days of AOTD morning notifications, each with the correct animal
+  for (let i = 0; i < 14; i++) {
+    const animal = getDailyAnimal(i);
+    const name = formatLabel(animal.label);
+    const triggerDate = new Date(today);
+    triggerDate.setDate(today.getDate() + i);
+    triggerDate.setHours(AOTD_HOUR, 0, 0, 0);
+
+    if (triggerDate.getTime() > Date.now()) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `${animal.emoji} Animal of the Day: ${name}`,
+          body: 'Open WildDex to discover a wild fact!',
+          sound: true,
+          data: { type: 'aotd' },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: triggerDate,
+        },
+      });
+    }
+  }
+}
+
 // Called on app open — always refresh the schedule so messages stay current
 export async function initNotifications(): Promise<void> {
   const enabled = await getNotificationsEnabled();
   if (enabled !== false) {
-    await enableDailyNotification();
+    await Promise.all([enableDailyNotification(), enableAotdNotifications()]);
   }
 }

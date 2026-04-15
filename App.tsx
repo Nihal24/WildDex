@@ -10,10 +10,12 @@ import Constants from 'expo-constants';
 import RootNavigator from './navigation/RootNavigator';
 import AuthScreen from './screens/AuthScreen';
 import OnboardingScreen, { ONBOARDING_KEY } from './screens/OnboardingScreen';
+import AnimalOfTheDayModal from './screens/AnimalOfTheDayModal';
 import { supabase } from './utils/supabase';
 import { migrateLocalSightingsToSupabase, clearUserIdCache } from './utils/storage';
 import { initNotifications } from './utils/notifications';
 import { ThemeProvider, useTheme } from './utils/ThemeContext';
+import { AOTD_SEEN_KEY } from './utils/dailyAnimal';
 
 const sentryDsn = Constants.expoConfig?.extra?.sentryDsn;
 if (sentryDsn) {
@@ -70,6 +72,7 @@ const AppInner: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
   const [hasUsername, setHasUsername] = useState<boolean | null>(null);
+  const [showAotd, setShowAotd] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -93,10 +96,16 @@ const AppInner: React.FC = () => {
       supabase.from('profiles').select('username').eq('id', session.user.id).single().then(({ data }) => {
         setHasUsername(!!data?.username);
       });
+      // Show Animal of the Day modal once per calendar day
+      const today = new Date().toDateString();
+      AsyncStorage.getItem(AOTD_SEEN_KEY).then((lastSeen) => {
+        if (lastSeen !== today) setShowAotd(true);
+      });
     } else {
       clearUserIdCache();
       setOnboardingDone(null);
       setHasUsername(null);
+      setShowAotd(false);
     }
   }, [session]);
 
@@ -118,9 +127,15 @@ const AppInner: React.FC = () => {
     return <OnboardingScreen userId={session.user.id} onDone={() => setOnboardingDone(true)} />;
   }
 
+  const handleAotdDismiss = () => {
+    setShowAotd(false);
+    AsyncStorage.setItem(AOTD_SEEN_KEY, new Date().toDateString());
+  };
+
   return (
     <NavigationContainer>
       <RootNavigator />
+      <AnimalOfTheDayModal visible={showAotd} onDismiss={handleAotdDismiss} />
     </NavigationContainer>
   );
 };
