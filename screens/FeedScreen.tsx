@@ -838,23 +838,38 @@ const FeedScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Unified underline tab bar */}
+      {/* Tab bar */}
       <View style={styles.tabBar}>
-        {([
-          { key: 'global', label: 'Global' },
-          { key: 'following', label: 'Following' },
-          { key: 'mine', label: 'Mine' },
-          { key: 'top', label: 'Top Spotters' },
-        ] as const).map(({ key, label }) => (
-          <TouchableOpacity
-            key={key}
-            style={styles.tabBarItem}
-            onPress={() => switchTab(key)}
-          >
-            <Text style={[styles.tabBarText, activeTab === key && styles.tabBarTextActive]}>{label}</Text>
-            {activeTab === key && <View style={styles.tabBarIndicator} />}
-          </TouchableOpacity>
-        ))}
+        {/* Feed tabs */}
+        <View style={styles.tabPillGroup}>
+          {([
+            { key: 'global', label: 'Global' },
+            { key: 'following', label: 'Following' },
+            { key: 'mine', label: 'Mine' },
+          ] as const).map(({ key, label }) => (
+            <TouchableOpacity
+              key={key}
+              style={[styles.tabPill, activeTab === key && styles.tabPillActive]}
+              onPress={() => switchTab(key)}
+            >
+              <Text style={[styles.tabPillText, activeTab === key && styles.tabPillTextActive]}>
+                {label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Divider + Top Spotters */}
+        <View style={styles.tabDivider} />
+        <TouchableOpacity
+          style={[styles.tabTopBtn, activeTab === 'top' && styles.tabTopBtnActive]}
+          onPress={() => switchTab('top')}
+        >
+          <Text style={styles.tabTopIcon}>🏆</Text>
+          <Text style={[styles.tabTopText, activeTab === 'top' && styles.tabTopTextActive]}>
+            Top
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {loading ? (
@@ -1010,32 +1025,68 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   inviteBtnText: { color: COLORS.white, fontWeight: '600', fontSize: 13 },
   tabBar: {
     flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.cardBorder,
+    gap: 8,
   },
-  tabBarItem: {
+  tabPillGroup: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    padding: 3,
+    gap: 2,
+    flex: 1,
+  },
+  tabPill: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 12,
-    position: 'relative',
+    paddingVertical: 6,
+    borderRadius: 16,
   },
-  tabBarText: {
+  tabPillActive: {
+    backgroundColor: COLORS.yellow,
+  },
+  tabPillText: {
     color: COLORS.grey,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  tabPillTextActive: {
+    color: COLORS.background,
+    fontWeight: '800',
+  },
+  tabDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: COLORS.cardBorder,
+  },
+  tabTopBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+  },
+  tabTopBtnActive: {
+    backgroundColor: COLORS.card,
+  },
+  tabTopIcon: {
     fontSize: 13,
   },
-  tabBarTextActive: {
-    color: COLORS.white,
-    fontWeight: '700',
+  tabTopText: {
+    color: COLORS.grey,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
-  tabBarIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    left: '15%',
-    right: '15%',
-    height: 2,
-    backgroundColor: COLORS.yellow,
-    borderRadius: 1,
+  tabTopTextActive: {
+    color: COLORS.yellow,
+    fontWeight: '800',
   },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
   emptyTitle: { fontSize: 17, fontWeight: '700', color: COLORS.white, textAlign: 'center', paddingHorizontal: 32 },
