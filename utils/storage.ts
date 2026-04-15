@@ -452,13 +452,10 @@ export async function getFeedSightings(): Promise<FeedSighting[]> {
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   const { data, error } = await supabase.rpc('get_leaderboard');
   if (error || !data) return [];
-  const userIds = data.map((row: any) => row.user_id);
-  const { data: profiles } = await supabase.from('profiles').select('id, avatar_url').in('id', userIds);
-  const avatarMap = Object.fromEntries((profiles ?? []).map((p: any) => [p.id, p.avatar_url]));
   return data.map((row: any) => ({
     userId: row.user_id,
     displayName: row.username ?? '',
-    avatarUrl: avatarMap[row.user_id] ?? undefined,
+    avatarUrl: row.avatar_url ?? undefined,
     speciesCount: Number(row.species_count),
     totalSightings: Number(row.total_sightings),
   }));

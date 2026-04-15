@@ -629,6 +629,7 @@ const FeedScreen: React.FC = () => {
   const [followingFeed, setFollowingFeed] = useState<FeedSighting[]>([]);
   const [myFeed, setMyFeed] = useState<FeedSighting[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [myId, setMyId] = useState<string | null>(null);
@@ -782,8 +783,9 @@ const FeedScreen: React.FC = () => {
     Animated.spring(tabAnim, { toValue: idx, useNativeDriver: false, friction: 8, tension: 80 }).start();
     setActiveTab(t);
     // Lazy-load leaderboard only when Top tab is first opened
-    if (t === 'top' && leaderboard.length === 0) {
-      getLeaderboard().then(setLeaderboard);
+    if (t === 'top' && leaderboard.length === 0 && !leaderboardLoading) {
+      setLeaderboardLoading(true);
+      getLeaderboard().then((data) => { setLeaderboard(data); setLeaderboardLoading(false); });
     }
   };
   const activeFeed = activeTab === 'following' ? followingFeed : activeTab === 'mine' ? myFeed : feed;
@@ -908,7 +910,11 @@ const FeedScreen: React.FC = () => {
           )}
         </>
       ) : (
-        leaderboard.length === 0 ? (
+        leaderboardLoading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={COLORS.yellow} size="large" />
+          </View>
+        ) : leaderboard.length === 0 ? (
           <View style={styles.center}>
             <Ionicons name="trophy-outline" size={48} color={COLORS.darkGrey} />
             <Text style={styles.emptyTitle}>No data yet</Text>
