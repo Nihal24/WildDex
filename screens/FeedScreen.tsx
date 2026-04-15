@@ -229,11 +229,11 @@ const CommentsModal = ({
   );
 };
 
-const FeedCard = ({
+const FeedCard = React.memo(({
   item,
   myId,
-  followingIds,
-  likedIds,
+  isFollowed,
+  isLiked,
   commentCount,
   onFollowChange,
   onLikeChange,
@@ -243,20 +243,19 @@ const FeedCard = ({
 }: {
   item: FeedSighting;
   myId: string | null;
-  followingIds: Set<string>;
-  likedIds: Set<string>;
+  isFollowed: boolean;
+  isLiked: boolean;
   commentCount: number;
   onFollowChange: (userId: string, following: boolean) => void;
   onLikeChange: (sightingId: string, liked: boolean, delta: number) => void;
   onUserPress: (userId: string) => void;
-  onCommentPress: () => void;
-  onMenuPress?: () => void;
+  onCommentPress: (sightingId: string) => void;
+  onMenuPress?: (item: FeedSighting) => void;
 }) => {
   const { colors: COLORS } = useTheme();
-  const styles = makeStyles(COLORS);
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
   const isOwn = item.userId === myId;
-  const isFollowed = followingIds.has(item.userId);
-  const [localLiked, setLocalLiked] = useState(likedIds.has(item.sightingId));
+  const [localLiked, setLocalLiked] = useState(isLiked);
   const [localLikeCount, setLocalLikeCount] = useState(item.likeCount);
   const [followLoading, setFollowLoading] = useState(false);
   const [likeLoading, setLikeLoading] = useState(false);
@@ -265,8 +264,8 @@ const FeedCard = ({
   const shareCardRef = useRef<View>(null);
 
   useEffect(() => {
-    setLocalLiked(likedIds.has(item.sightingId));
-  }, [likedIds, item.sightingId]);
+    setLocalLiked(isLiked);
+  }, [isLiked]);
 
   useEffect(() => {
     setLocalLikeCount(item.likeCount);
@@ -313,7 +312,7 @@ const FeedCard = ({
     <View style={styles.card}>
       {/* Photo with header overlaid */}
       <View style={styles.photoWrapper}>
-        <Image source={{ uri: item.photoUrl }} style={styles.cardPhoto} contentFit="cover" />
+        <Image source={{ uri: item.photoUrl }} style={styles.cardPhoto} contentFit="cover" recyclingKey={item.sightingId} />
         {/* Top gradient scrim for avatar readability */}
         <LinearGradient
           colors={['rgba(0,0,0,0.6)', 'transparent']}
@@ -356,7 +355,7 @@ const FeedCard = ({
               }
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity style={styles.menuBtn} onPress={onMenuPress}>
+            <TouchableOpacity style={styles.menuBtn} onPress={() => onMenuPress?.(item)}>
               <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255,255,255,0.8)" />
             </TouchableOpacity>
           )}
@@ -381,7 +380,7 @@ const FeedCard = ({
             <Ionicons name={localLiked ? 'heart' : 'heart-outline'} size={20} color={localLiked ? '#E05C5C' : COLORS.grey} />
             {localLikeCount > 0 && <Text style={[styles.actionCount, localLiked && { color: '#E05C5C' }]}>{localLikeCount}</Text>}
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn} onPress={onCommentPress}>
+          <TouchableOpacity style={styles.actionBtn} onPress={() => onCommentPress(item.sightingId)}>
             <Ionicons name="chatbubble-outline" size={18} color={COLORS.grey} />
             {commentCount > 0 && <Text style={styles.actionCount}>{commentCount}</Text>}
           </TouchableOpacity>
@@ -441,7 +440,7 @@ const FeedCard = ({
       </View>
     </View>
   );
-};
+});
 
 const AUDIENCE_OPTIONS = [
   { v: 'public' as const, label: 'Everyone', sub: 'Visible to all WildDex users', icon: 'earth-outline' as const },
@@ -705,31 +704,39 @@ const FeedScreen: React.FC = () => {
 
   const onRefresh = () => { setRefreshing(true); load(); };
 
-  const handleFollowChange = (userId: string, following: boolean) => {
+  const handleFollowChange = useCallback((userId: string, following: boolean) => {
     setFollowingIds((prev) => {
       const next = new Set(prev);
       if (following) next.add(userId); else next.delete(userId);
       return next;
     });
-  };
+  }, []);
 
-  const handleCommentCountChange = (sightingId: string, delta: number) => {
+  const handleCommentCountChange = useCallback((sightingId: string, delta: number) => {
     setCommentCounts((prev) => {
-      const base = prev[sightingId] ?? (activeFeed.find(s => s.sightingId === sightingId)?.commentCount ?? 0);
+      const base = prev[sightingId] ?? 0;
       return { ...prev, [sightingId]: Math.max(0, base + delta) };
     });
-  };
+  }, []);
 
-  const handleLikeChange = (sightingId: string, liked: boolean, delta: number) => {
+  const handleLikeChange = useCallback((sightingId: string, liked: boolean, delta: number) => {
     setLikedIds((prev) => {
       const next = new Set(prev);
       if (liked) next.add(sightingId); else next.delete(sightingId);
       return next;
     });
     updateLikeCounts(sightingId, delta);
-  };
+  }, []);
 
-  const handleChangeVisibility = (item: FeedSighting, v: 'public' | 'followers' | 'private') => {
+  const handleCommentPress = useCallback((sightingId: string) => {
+    setCommentSightingId(sightingId);
+  }, []);
+
+  const handleMenuPress = useCallback((item: FeedSighting) => {
+    setMenuItem(item);
+  }, []);
+
+  const handleChangeVisibility = useCallback((item: FeedSighting, v: 'public' | 'followers' | 'private') => {
     if (!item.sightingId) return;
     // Update visibility in all feed arrays; remove from global/following if made private
     const updateVis = (items: FeedSighting[]) =>
@@ -747,15 +754,15 @@ const FeedScreen: React.FC = () => {
       setFollowingFeed(updateVis);
     }
     updateSightingVisibility(item.sightingId, v).catch(() => {});
-  };
+  }, []);
 
-  const handleCaptionSaved = (sightingId: string, caption: string) => {
+  const handleCaptionSaved = useCallback((sightingId: string, caption: string) => {
     const update = (items: FeedSighting[]) =>
       items.map((s) => s.sightingId === sightingId ? { ...s, caption } : s);
     setFeed(update);
     setFollowingFeed(update);
     setMyFeed(update);
-  };
+  }, []);
 
   const handleInvite = async () => {
     await Share.share({
@@ -763,7 +770,7 @@ const FeedScreen: React.FC = () => {
     });
   };
 
-  const goToUser = (userId: string) => navigation.navigate('UserProfile', { userId });
+  const goToUser = useCallback((userId: string) => navigation.navigate('UserProfile', { userId }), [navigation]);
 
   const TAB_ORDER = ['global', 'following', 'mine', 'top'] as const;
   const switchTab = (t: typeof TAB_ORDER[number]) => {
@@ -848,24 +855,24 @@ const FeedScreen: React.FC = () => {
                 ref={flatListRef}
                 data={activeFeed}
                 keyExtractor={(item) => item.sightingId || String(item.timestamp)}
-                extraData={likedIds}
                 renderItem={({ item }) => (
                   <FeedCard
                     item={item}
                     myId={myId}
-                    followingIds={followingIds}
-                    likedIds={likedIds}
+                    isFollowed={followingIds.has(item.userId)}
+                    isLiked={likedIds.has(item.sightingId)}
                     commentCount={commentCounts[item.sightingId] ?? item.commentCount}
                     onFollowChange={handleFollowChange}
                     onLikeChange={handleLikeChange}
                     onUserPress={goToUser}
-                    onCommentPress={() => setCommentSightingId(item.sightingId)}
-                    onMenuPress={item.userId === myId ? () => setMenuItem(item) : undefined}
+                    onCommentPress={handleCommentPress}
+                    onMenuPress={handleMenuPress}
                   />
                 )}
                 contentContainerStyle={styles.feedList}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.yellow} />}
                 showsVerticalScrollIndicator={false}
+                scrollEventThrottle={16}
                 windowSize={5}
                 maxToRenderPerBatch={4}
                 initialNumToRender={4}
@@ -876,7 +883,7 @@ const FeedScreen: React.FC = () => {
                 myId={myId}
                 visible={!!commentSightingId}
                 onClose={() => setCommentSightingId(null)}
-                onCommentCountChange={(delta) => commentSightingId && handleCommentCountChange(commentSightingId, delta)}
+                onCommentCountChange={(delta) => { if (commentSightingId) handleCommentCountChange(commentSightingId, delta); }}
               />
               <CaptionEditModal
                 item={editCaptionItem}
