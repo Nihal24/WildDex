@@ -48,13 +48,19 @@ class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError:
 
 async function registerPushToken() {
   if (!Device.isDevice) return;
-  const { status: existing } = await Notifications.getPermissionsAsync();
-  const { status } = existing === 'granted' ? { status: existing } : await Notifications.requestPermissionsAsync();
-  if (status !== 'granted') return;
-  const token = (await Notifications.getExpoPushTokenAsync()).data;
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user) {
-    await supabase.from('profiles').upsert({ id: user.id, push_token: token });
+  try {
+    const { status: existing } = await Notifications.getPermissionsAsync();
+    const { status } = existing === 'granted' ? { status: existing } : await Notifications.requestPermissionsAsync();
+    if (status !== 'granted') return;
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+    if (!token) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from('profiles').upsert({ id: user.id, push_token: token });
+    }
+  } catch {
+    // Push token registration is non-critical — fail silently
   }
 }
 
