@@ -436,14 +436,16 @@ function mapSighting(row: any): FeedSighting {
 // Embed like/comment counts directly in the query — no separate enrichment needed
 const FEED_SELECT = 'id, label, confidence, photo_url, timestamp, location, user_id, caption, visibility, profiles(username, avatar_url), likes(count), comments(count)';
 
-export async function getFeedSightings(): Promise<FeedSighting[]> {
+export const FEED_PAGE_SIZE = 15;
+
+export async function getFeedSightings(offset = 0): Promise<FeedSighting[]> {
   const { data, error } = await supabase
     .from('sightings')
     .select(FEED_SELECT)
     .like('photo_url', 'http%')
     .eq('visibility', 'public')
     .order('timestamp', { ascending: false })
-    .limit(50);
+    .range(offset, offset + FEED_PAGE_SIZE - 1);
 
   if (error || !data) return [];
   return data.map(mapSighting);

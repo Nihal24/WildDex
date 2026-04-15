@@ -15,7 +15,7 @@ import { COLORS, ColorScheme } from '../constants/theme';
 import { useTheme } from '../utils/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  getFeedSightings, getFollowingFeed, getMyFeedSightings, getLeaderboard,
+  getFeedSightings, FEED_PAGE_SIZE, getFollowingFeed, getMyFeedSightings, getLeaderboard,
   followUser, unfollowUser, getFollowingIds, getLikedSightingIds,
   likeSighting, unlikeSighting, getComments, addComment, deleteComment,
   getCurrentUserId_public, FeedSighting, LeaderboardEntry, Comment,
@@ -630,6 +630,9 @@ const FeedScreen: React.FC = () => {
   const [myFeed, setMyFeed] = useState<FeedSighting[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  const [feedOffset, setFeedOffset] = useState(0);
+  const [feedHasMore, setFeedHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [myId, setMyId] = useState<string | null>(null);
@@ -654,7 +657,7 @@ const FeedScreen: React.FC = () => {
     if (!silent) setLoading(true);
 
     const [feedData, followIds, userId, myData, unread] = await Promise.all([
-      getFeedSightings(),
+      getFeedSightings(0),
       getFollowingIds(),
       getCurrentUserId_public(),
       getMyFeedSightings(),
@@ -667,6 +670,8 @@ const FeedScreen: React.FC = () => {
     ]);
 
     setFeed(feedData);
+    setFeedOffset(FEED_PAGE_SIZE);
+    setFeedHasMore(feedData.length === FEED_PAGE_SIZE);
     setFollowingIds(new Set(followIds));
     setMyId(userId);
     setMyFeed(myData);
@@ -677,6 +682,27 @@ const FeedScreen: React.FC = () => {
     setRefreshing(false);
     setFeedCache(feedData);
   }, []);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !feedHasMore) return;
+    setLoadingMore(true);
+    const more = await getFeedSightings(feedOffset);
+    if (more.length > 0) {
+      setFeed((prev) => {
+        const existingIds = new Set(prev.map((s) => s.sightingId));
+        const fresh = more.filter((s) => !existingIds.has(s.sightingId));
+        return [...prev, ...fresh];
+      });
+      const newIds = more.map((s) => s.sightingId).filter(Boolean);
+      if (newIds.length > 0) {
+        const moreLiked = await getLikedSightingIds(newIds);
+        setLikedIds((prev) => new Set([...prev, ...moreLiked]));
+      }
+    }
+    setFeedOffset((prev) => prev + FEED_PAGE_SIZE);
+    setFeedHasMore(more.length === FEED_PAGE_SIZE);
+    setLoadingMore(false);
+  }, [loadingMore, feedHasMore, feedOffset]);
 
   // Hydrate from cache instantly, then refresh in background
   useEffect(() => {
@@ -884,6 +910,12 @@ const FeedScreen: React.FC = () => {
                 maxToRenderPerBatch={4}
                 initialNumToRender={4}
                 removeClippedSubviews
+                onEndReached={activeTab === 'global' ? loadMore : undefined}
+                onEndReachedThreshold={0.5}
+                ListFooterComponent={activeTab === 'global' && loadingMore
+                  ? <ActivityIndicator color={COLORS.yellow} style={{ paddingVertical: 20 }} />
+                  : null
+                }
               />
               <CommentsModal
                 sightingId={commentSightingId ?? ''}
@@ -1017,7 +1049,7 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
     borderColor: COLORS.cardBorder,
   },
   photoWrapper: { position: 'relative' },
-  cardPhoto: { width: '100%', height: 340 },
+  cardPhoto: { width: '100%', height: 260 },
   photoTopScrim: {
     position: 'absolute',
     top: 0,
