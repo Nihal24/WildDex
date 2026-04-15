@@ -38,18 +38,17 @@ const timeAgo = (timestamp: number): string => {
   return days < 7 ? `${days}d ago` : new Date(timestamp).toLocaleDateString();
 };
 
-const Avatar = ({ name, photoUri, size = 36 }: { name: string; photoUri?: string; size?: number }) => {
+const Avatar = React.memo(({ name, photoUri, size = 36 }: { name: string; photoUri?: string; size?: number }) => {
   const { colors: COLORS } = useTheme();
-  const styles = makeStyles(COLORS);
   return (
-  <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }]}>
-    {photoUri
-      ? <Image source={{ uri: photoUri }} style={{ width: size, height: size, borderRadius: size / 2 }} contentFit="cover" />
-      : <Text style={[styles.avatarLetter, { fontSize: size * 0.4 }]}>{name.charAt(0).toUpperCase()}</Text>
-    }
-  </View>
+    <View style={{ width: size, height: size, borderRadius: size / 2, overflow: 'hidden', backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' }}>
+      {photoUri
+        ? <Image source={{ uri: photoUri }} style={{ width: size, height: size, borderRadius: size / 2 }} contentFit="cover" />
+        : <Text style={{ fontSize: size * 0.4, fontWeight: '900', color: COLORS.white }}>{name.charAt(0).toUpperCase()}</Text>
+      }
+    </View>
   );
-};
+});
 
 const CommentSkeleton = () => {
   const { colors: COLORS } = useTheme();
@@ -251,6 +250,7 @@ const FeedCard = React.memo(({
   onUserPress: (userId: string) => void;
   onCommentPress: (sightingId: string) => void;
   onMenuPress?: (item: FeedSighting) => void;
+  onSharePress?: (item: FeedSighting) => void;
 }) => {
   const { colors: COLORS } = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -259,9 +259,6 @@ const FeedCard = React.memo(({
   const [localLikeCount, setLocalLikeCount] = useState(item.likeCount);
   const [followLoading, setFollowLoading] = useState(false);
   const [likeLoading, setLikeLoading] = useState(false);
-  const [shareVisible, setShareVisible] = useState(false);
-  const [sharing, setSharing] = useState(false);
-  const shareCardRef = useRef<View>(null);
 
   useEffect(() => {
     setLocalLiked(isLiked);
@@ -276,24 +273,6 @@ const FeedCard = React.memo(({
     if (isFollowed) { await unfollowUser(item.userId); onFollowChange(item.userId, false); }
     else { await followUser(item.userId); onFollowChange(item.userId, true); }
     setFollowLoading(false);
-  };
-
-  const doShare = async () => {
-    setSharing(true);
-    try {
-      const uri = await captureRef(shareCardRef, { format: 'jpg', quality: 0.95, result: 'tmpfile' });
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(uri, { mimeType: 'image/jpeg', dialogTitle: `${formatLabel(item.label)} on WildDex` });
-      } else {
-        await Share.share({ url: item.photoUrl, message: `Check out this ${formatLabel(item.label)} I spotted on WildDex! 🦁` });
-      }
-    } catch {
-      await Share.share({ url: item.photoUrl, message: `Check out this ${formatLabel(item.label)} I spotted on WildDex! 🦁` });
-    } finally {
-      setSharing(false);
-      setShareVisible(false);
-    }
   };
 
   const toggleLike = async () => {
@@ -385,60 +364,80 @@ const FeedCard = React.memo(({
             {commentCount > 0 && <Text style={styles.actionCount}>{commentCount}</Text>}
           </TouchableOpacity>
           {isOwn && (
-            <TouchableOpacity style={styles.actionBtn} onPress={() => setShareVisible(true)}>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => onSharePress?.(item)}>
               <Ionicons name="share-outline" size={18} color={COLORS.grey} />
             </TouchableOpacity>
           )}
-
-          {/* Share card preview modal */}
-          <Modal visible={shareVisible} transparent animationType="fade" onRequestClose={() => setShareVisible(false)}>
-            <TouchableOpacity style={styles.shareOverlay} activeOpacity={1} onPress={() => setShareVisible(false)}>
-              <TouchableOpacity activeOpacity={1} style={styles.shareContainer} onPress={() => {}}>
-                {/* The card that gets captured */}
-                <View ref={shareCardRef} style={styles.shareCard} collapsable={false}>
-                  <ImageBackground source={{ uri: item.photoUrl }} style={styles.shareCardPhoto} resizeMode="cover">
-                    <LinearGradient
-                      colors={['rgba(0,0,0,0.18)', 'transparent', 'transparent', 'rgba(0,0,0,0.82)']}
-                      style={StyleSheet.absoluteFillObject}
-                    />
-                    {/* WildDex badge top-right */}
-                    <View style={styles.shareWatermark}>
-                      <Ionicons name="paw" size={13} color="rgba(255,255,255,0.9)" />
-                      <Text style={styles.shareWatermarkText}>WildDex</Text>
-                    </View>
-                    {/* Bottom info */}
-                    <View style={styles.shareCardBottom}>
-                      <Text style={styles.shareCardAnimal}>{formatLabel(item.label)}</Text>
-                      {item.location ? (
-                        <View style={styles.shareCardLocationRow}>
-                          <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.65)" />
-                          <Text style={styles.shareCardLocation}>{item.location}</Text>
-                        </View>
-                      ) : null}
-                      <Text style={styles.shareCardMeta}>@{item.displayName} · {timeAgo(item.timestamp)}</Text>
-                    </View>
-                  </ImageBackground>
-                </View>
-
-                {/* Actions */}
-                <TouchableOpacity style={styles.shareBtn} onPress={doShare} disabled={sharing}>
-                  {sharing
-                    ? <ActivityIndicator color="#fff" />
-                    : <>
-                        <Ionicons name="share-outline" size={18} color="#fff" />
-                        <Text style={styles.shareBtnText}>Share</Text>
-                      </>
-                  }
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setShareVisible(false)}>
-                  <Text style={styles.shareCancelText}>Cancel</Text>
-                </TouchableOpacity>
-              </TouchableOpacity>
-            </TouchableOpacity>
-          </Modal>
         </View>
       </View>
     </View>
+  );
+});
+
+const ShareModal = React.memo(({ item, onClose }: { item: FeedSighting | null; onClose: () => void }) => {
+  const { colors: COLORS } = useTheme();
+  const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+  const shareCardRef = useRef<View>(null);
+  const [sharing, setSharing] = useState(false);
+
+  const doShare = async () => {
+    setSharing(true);
+    try {
+      const uri = await captureRef(shareCardRef, { format: 'jpg', quality: 0.95, result: 'tmpfile' });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/jpeg', dialogTitle: `${formatLabel(item!.label)} on WildDex` });
+      } else {
+        await Share.share({ url: item!.photoUrl, message: `Check out this ${formatLabel(item!.label)} I spotted on WildDex! 🦁` });
+      }
+    } catch {
+      if (item) await Share.share({ url: item.photoUrl, message: `Check out this ${formatLabel(item.label)} I spotted on WildDex! 🦁` });
+    } finally {
+      setSharing(false);
+      onClose();
+    }
+  };
+
+  if (!item) return null;
+
+  return (
+    <Modal visible animationType="fade" transparent onRequestClose={onClose}>
+      <TouchableOpacity style={styles.shareOverlay} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} style={styles.shareContainer} onPress={() => {}}>
+          <View ref={shareCardRef} style={styles.shareCard} collapsable={false}>
+            <ImageBackground source={{ uri: item.photoUrl }} style={styles.shareCardPhoto} resizeMode="cover">
+              <LinearGradient
+                colors={['rgba(0,0,0,0.18)', 'transparent', 'transparent', 'rgba(0,0,0,0.82)']}
+                style={StyleSheet.absoluteFillObject}
+              />
+              <View style={styles.shareWatermark}>
+                <Ionicons name="paw" size={13} color="rgba(255,255,255,0.9)" />
+                <Text style={styles.shareWatermarkText}>WildDex</Text>
+              </View>
+              <View style={styles.shareCardBottom}>
+                <Text style={styles.shareCardAnimal}>{formatLabel(item.label)}</Text>
+                {item.location ? (
+                  <View style={styles.shareCardLocationRow}>
+                    <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.65)" />
+                    <Text style={styles.shareCardLocation}>{item.location}</Text>
+                  </View>
+                ) : null}
+                <Text style={styles.shareCardMeta}>@{item.displayName} · {timeAgo(item.timestamp)}</Text>
+              </View>
+            </ImageBackground>
+          </View>
+          <TouchableOpacity style={styles.shareBtn} onPress={doShare} disabled={sharing}>
+            {sharing
+              ? <ActivityIndicator color="#fff" />
+              : <><Ionicons name="share-outline" size={18} color="#fff" /><Text style={styles.shareBtnText}>Share</Text></>
+            }
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onClose}>
+            <Text style={styles.shareCancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
   );
 });
 
@@ -640,6 +639,7 @@ const FeedScreen: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [menuItem, setMenuItem] = useState<FeedSighting | null>(null);
   const [editCaptionItem, setEditCaptionItem] = useState<FeedSighting | null>(null);
+  const [shareItem, setShareItem] = useState<FeedSighting | null>(null);
 
   const updateLikeCounts = (sightingId: string, delta: number) => {
     const update = (items: FeedSighting[]) =>
@@ -734,6 +734,10 @@ const FeedScreen: React.FC = () => {
 
   const handleMenuPress = useCallback((item: FeedSighting) => {
     setMenuItem(item);
+  }, []);
+
+  const handleSharePress = useCallback((item: FeedSighting) => {
+    setShareItem(item);
   }, []);
 
   const handleChangeVisibility = useCallback((item: FeedSighting, v: 'public' | 'followers' | 'private') => {
@@ -867,13 +871,14 @@ const FeedScreen: React.FC = () => {
                     onUserPress={goToUser}
                     onCommentPress={handleCommentPress}
                     onMenuPress={handleMenuPress}
+                    onSharePress={handleSharePress}
                   />
                 )}
                 contentContainerStyle={styles.feedList}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.yellow} />}
                 showsVerticalScrollIndicator={false}
                 scrollEventThrottle={16}
-                windowSize={5}
+                windowSize={3}
                 maxToRenderPerBatch={4}
                 initialNumToRender={4}
                 removeClippedSubviews
@@ -898,6 +903,7 @@ const FeedScreen: React.FC = () => {
                 onEditCaption={() => setEditCaptionItem(menuItem)}
                 onChangeVisibility={(v) => menuItem && handleChangeVisibility(menuItem, v)}
               />
+              <ShareModal item={shareItem} onClose={() => setShareItem(null)} />
             </>
           )}
         </>
