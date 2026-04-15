@@ -30,7 +30,10 @@ import { getAnimalProfile, AnimalInfo, AnimalStats } from '../utils/claude';
 import { getRarityFromConservationStatus, RarityInfo } from '../utils/rarity';
 import { WorldMap } from '../components/WorldMap';
 import { Continent } from '../utils/claude';
-import { BADGES, Badge } from '../utils/badges';
+import { BADGES, Badge, BadgeCounts, getEarnedBadges } from '../utils/badges';
+import { getTaxonomyClass, TaxonomyClass } from '../utils/taxonomy';
+
+const BADGE_NOTIFIED_KEY = 'wilddex_notified_badge_ids';
 
 const formatLabel = (label: string) =>
   label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -198,9 +201,9 @@ const StatBar: React.FC<{ label: string; value: number; color: string }> = ({ la
 
 // --- Main Screen ---
 const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, navigation }) => {
-  const { colors: COLORS, isDark } = useTheme();
+  const { colors: COLORS, theme } = useTheme();
   const styles = makeStyles(COLORS);
-  const statNumColor = isDark ? COLORS.yellow : COLORS.primary;
+  const statNumColor = theme === 'light' ? COLORS.primary : COLORS.yellow;
   const newLabel = route?.params?.newLabel as string | undefined;
   const [newBadge, setNewBadge] = useState<Badge | null>(null);
 
@@ -264,23 +267,38 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
     setSightings(allSightings);
 
     if (checkBadge) {
-      // Use local sightings for badge count — always up to date immediately after a catch
+      // Merge local sightings so we catch badges immediately after a new catch
       const localSightings = await getLocalSightings();
-      const localSeen = new Set<string>();
-      const localCount = localSightings.filter(s => {
+      const allForBadge = [...allSightings, ...localSightings];
+      const seenForBadge = new Set<string>();
+      const uniqueForBadge = allForBadge.filter(s => {
         const key = s.label.toLowerCase().trim();
-        if (localSeen.has(key)) return false;
-        localSeen.add(key);
+        if (seenForBadge.has(key)) return false;
+        seenForBadge.add(key);
         return true;
-      }).length;
-      const badgeCount = Math.max(newCount, localCount);
+      });
 
-      const prevRaw = await AsyncStorage.getItem('wilddex_badge_last_count');
-      const prevCount = prevRaw ? parseInt(prevRaw, 10) : 0;
-      await AsyncStorage.setItem('wilddex_badge_last_count', String(badgeCount));
-      if (badgeCount > prevCount) {
-        const crossed = BADGES.filter(b => b.threshold > prevCount && b.threshold <= badgeCount);
-        if (crossed.length > 0) setTimeout(() => setNewBadge(crossed[crossed.length - 1]), 800);
+      // Build BadgeCounts (species + per-category)
+      const byCat: Partial<Record<TaxonomyClass, number>> = {};
+      for (const s of uniqueForBadge) {
+        const cls = getTaxonomyClass(s.label);
+        if (cls) byCat[cls] = (byCat[cls] ?? 0) + 1;
+      }
+      const counts: BadgeCounts = { species: uniqueForBadge.length, byCategory: byCat };
+
+      // Compare earned badge IDs to already-notified IDs — only show truly new ones
+      const earned = getEarnedBadges(counts).map(b => b.id);
+      const notifiedRaw = await AsyncStorage.getItem(BADGE_NOTIFIED_KEY);
+      const notified = new Set<string>(notifiedRaw ? JSON.parse(notifiedRaw) : []);
+      const newBadges = BADGES.filter(b => earned.includes(b.id) && !notified.has(b.id));
+
+      // Persist all currently earned IDs immediately so re-focus never re-shows
+      await AsyncStorage.setItem(BADGE_NOTIFIED_KEY, JSON.stringify(earned));
+
+      if (newBadges.length > 0) {
+        // Show the highest-threshold new badge
+        const toShow = newBadges[newBadges.length - 1];
+        setTimeout(() => setNewBadge(toShow), 800);
       }
     }
 
