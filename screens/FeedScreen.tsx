@@ -29,36 +29,36 @@ const formatLabel = (label: string) =>
 
 // ── Animal of the Day ────────────────────────────────────────────────────────
 const DAILY_ANIMALS = [
-  { label: 'bald_eagle', emoji: '🦅', prompt: 'Spot any bird of prey today!' },
-  { label: 'red_fox', emoji: '🦊', prompt: 'Keep an eye out at dusk!' },
-  { label: 'white_tailed_deer', emoji: '🦌', prompt: 'Check wooded edges and fields.' },
-  { label: 'monarch_butterfly', emoji: '🦋', prompt: 'Look for them on flowers!' },
-  { label: 'american_robin', emoji: '🐦', prompt: 'Early bird gets the worm!' },
-  { label: 'eastern_gray_squirrel', emoji: '🐿️', prompt: 'They\'re everywhere — catch one!' },
-  { label: 'great_blue_heron', emoji: '🪶', prompt: 'Check near any water source.' },
-  { label: 'raccoon', emoji: '🦝', prompt: 'Night owl special — look at dusk!' },
-  { label: 'painted_turtle', emoji: '🐢', prompt: 'Find them sunning on logs.' },
-  { label: 'peregrine_falcon', emoji: '🦅', prompt: 'The fastest animal on earth!' },
-  { label: 'river_otter', emoji: '🦦', prompt: 'Near rivers and lakes.' },
-  { label: 'black_bear', emoji: '🐻', prompt: 'Keep your distance and snap away!' },
-  { label: 'canada_goose', emoji: '🪿', prompt: 'Common but always worth logging.' },
-  { label: 'firefly', emoji: '✨', prompt: 'After dark — look in open fields!' },
-  { label: 'american_alligator', emoji: '🐊', prompt: 'Near warm swamps and ponds.' },
-  { label: 'hummingbird', emoji: '🌸', prompt: 'Near flowers or a feeder.' },
-  { label: 'coyote', emoji: '🐺', prompt: 'Dawn and dusk are prime time.' },
-  { label: 'osprey', emoji: '🦅', prompt: 'Diving for fish near open water!' },
-  { label: 'luna_moth', emoji: '🦋', prompt: 'Check porch lights after dark.' },
-  { label: 'groundhog', emoji: '🦫', prompt: 'Look near open fields and roadsides.' },
-  { label: 'snapping_turtle', emoji: '🐢', prompt: 'Near freshwater ponds and streams.' },
-  { label: 'blue_jay', emoji: '🐦', prompt: 'Loud and vivid — hard to miss!' },
-  { label: 'bobcat', emoji: '🐱', prompt: 'Rare catch — keep your eyes peeled!' },
-  { label: 'dragonfly', emoji: '🪲', prompt: 'Near any standing water.' },
-  { label: 'pileated_woodpecker', emoji: '🐦', prompt: 'Listen for loud drumming in trees.' },
-  { label: 'striped_skunk', emoji: '🦨', prompt: 'Evening walker — nose first!' },
-  { label: 'bullfrog', emoji: '🐸', prompt: 'Listen for the deep croak near ponds.' },
-  { label: 'red_tailed_hawk', emoji: '🦅', prompt: 'Perched on fence posts and wires.' },
-  { label: 'white_pelican', emoji: '🦢', prompt: 'Near large lakes and coastal areas.' },
-  { label: 'nine_banded_armadillo', emoji: '🦔', prompt: 'Southern states — check roadsides!' },
+  { label: 'bald_eagle', emoji: '🦅' },
+  { label: 'red_fox', emoji: '🦊' },
+  { label: 'white_tailed_deer', emoji: '🦌' },
+  { label: 'monarch_butterfly', emoji: '🦋' },
+  { label: 'american_robin', emoji: '🐦' },
+  { label: 'eastern_gray_squirrel', emoji: '🐿️' },
+  { label: 'great_blue_heron', emoji: '🪶' },
+  { label: 'raccoon', emoji: '🦝' },
+  { label: 'painted_turtle', emoji: '🐢' },
+  { label: 'peregrine_falcon', emoji: '🦅' },
+  { label: 'river_otter', emoji: '🦦' },
+  { label: 'black_bear', emoji: '🐻' },
+  { label: 'canada_goose', emoji: '🪿' },
+  { label: 'firefly', emoji: '✨' },
+  { label: 'american_alligator', emoji: '🐊' },
+  { label: 'hummingbird', emoji: '🌸' },
+  { label: 'coyote', emoji: '🐺' },
+  { label: 'osprey', emoji: '🦅' },
+  { label: 'luna_moth', emoji: '🦋' },
+  { label: 'groundhog', emoji: '🦫' },
+  { label: 'snapping_turtle', emoji: '🐢' },
+  { label: 'blue_jay', emoji: '🐦' },
+  { label: 'bobcat', emoji: '🐱' },
+  { label: 'dragonfly', emoji: '🪲' },
+  { label: 'pileated_woodpecker', emoji: '🐦' },
+  { label: 'striped_skunk', emoji: '🦨' },
+  { label: 'bullfrog', emoji: '🐸' },
+  { label: 'red_tailed_hawk', emoji: '🦅' },
+  { label: 'white_pelican', emoji: '🦢' },
+  { label: 'nine_banded_armadillo', emoji: '🦔' },
 ];
 
 function getDailyAnimal() {
@@ -68,35 +68,56 @@ function getDailyAnimal() {
 
 const AnimalOfTheDay: React.FC<{ colors: any }> = ({ colors: C }) => {
   const animal = getDailyAnimal();
+  const [funFact, setFunFact] = useState<string | null>(null);
+  const [sciName, setSciName] = useState<string | null>(null);
+
+  useEffect(() => {
+    import('../utils/claude').then(({ getAnimalProfile }) => {
+      getAnimalProfile(animal.label)
+        .then((info) => {
+          setFunFact(info.funFact);
+          setSciName(info.scientificName);
+        })
+        .catch(() => {});
+    });
+  }, [animal.label]);
+
   return (
     <View style={{
       marginHorizontal: 14, marginTop: 10, marginBottom: 4,
       backgroundColor: C.card, borderRadius: 16,
       borderWidth: 1, borderColor: C.cardBorder,
-      padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12,
+      padding: 16,
     }}>
-      <View style={{
-        width: 52, height: 52, borderRadius: 26,
-        backgroundColor: C.background, justifyContent: 'center', alignItems: 'center',
-        borderWidth: 1.5, borderColor: C.yellow,
-      }}>
-        <Text style={{ fontSize: 26 }}>{animal.emoji}</Text>
+      <Text style={{ color: C.yellow, fontSize: 10, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>
+        🌿 Animal of the Day
+      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: funFact ? 12 : 0 }}>
+        <View style={{
+          width: 56, height: 56, borderRadius: 28,
+          backgroundColor: C.background, justifyContent: 'center', alignItems: 'center',
+          borderWidth: 1.5, borderColor: C.yellow,
+        }}>
+          <Text style={{ fontSize: 28 }}>{animal.emoji}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: C.white, fontSize: 17, fontWeight: '800' }}>
+            {formatLabel(animal.label)}
+          </Text>
+          {sciName && (
+            <Text style={{ color: C.grey, fontSize: 12, fontStyle: 'italic', marginTop: 2 }}>{sciName}</Text>
+          )}
+        </View>
       </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: C.yellow, fontSize: 10, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 2 }}>
-          Animal of the Day
-        </Text>
-        <Text style={{ color: C.white, fontSize: 15, fontWeight: '800' }}>
-          {formatLabel(animal.label)}
-        </Text>
-        <Text style={{ color: C.grey, fontSize: 12, marginTop: 1 }}>{animal.prompt}</Text>
-      </View>
-      <View style={{
-        backgroundColor: C.primary, borderRadius: 20,
-        paddingHorizontal: 12, paddingVertical: 6,
-      }}>
-        <Text style={{ color: C.white, fontSize: 12, fontWeight: '700' }}>Spot it</Text>
-      </View>
+      {funFact && (
+        <View style={{
+          backgroundColor: C.background, borderRadius: 10, padding: 10,
+          borderLeftWidth: 3, borderLeftColor: C.yellow,
+        }}>
+          <Text style={{ color: C.yellow, fontSize: 10, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 3 }}>Fun Fact</Text>
+          <Text style={{ color: C.white, fontSize: 13, lineHeight: 19 }}>{funFact}</Text>
+        </View>
+      )}
     </View>
   );
 };
