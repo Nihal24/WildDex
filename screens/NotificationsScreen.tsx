@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, StatusBar,
-  FlatList, Image, TouchableOpacity, ActivityIndicator,
+  FlatList, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,14 +11,8 @@ import { COLORS, ColorScheme } from '../constants/theme';
 import { useTheme } from '../utils/ThemeContext';
 import { getNotifications, markAllNotificationsRead, AppNotification } from '../utils/storage';
 
-const timeAgo = (ts: number): string => {
-  const diff = Date.now() - ts;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-};
+import { timeAgo } from '../utils/format';
+
 
 const notifText = (n: AppNotification): string => {
   const name = n.actorName || 'Someone';
@@ -84,7 +79,7 @@ const NotificationsScreen: React.FC = () => {
             >
               <View style={styles.avatar}>
                 {item.actorAvatarUrl
-                  ? <Image source={{ uri: item.actorAvatarUrl }} style={styles.avatarImg} />
+                  ? <Image source={{ uri: item.actorAvatarUrl }} style={styles.avatarImg} contentFit="cover" />
                   : <Text style={styles.avatarLetter}>{(item.actorName || '?').charAt(0).toUpperCase()}</Text>
                 }
               </View>
@@ -93,7 +88,7 @@ const NotificationsScreen: React.FC = () => {
                 <Text style={styles.notifTime}>{timeAgo(item.createdAt)}</Text>
               </View>
               {item.sightingPhotoUrl ? (
-                <Image source={{ uri: item.sightingPhotoUrl }} style={styles.thumb} />
+                <Image source={{ uri: item.sightingPhotoUrl }} style={styles.thumb} contentFit="cover" />
               ) : null}
             </TouchableOpacity>
           )}

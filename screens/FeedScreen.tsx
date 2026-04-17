@@ -24,19 +24,7 @@ import {
 } from '../utils/storage';
 import { RootStackParamList } from '../navigation/RootNavigator';
 
-const formatLabel = (label: string) =>
-  label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-
-
-const timeAgo = (timestamp: number): string => {
-  const diff = Date.now() - timestamp;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return days < 7 ? `${days}d ago` : new Date(timestamp).toLocaleDateString();
-};
+import { formatLabel, timeAgo } from '../utils/format';
 
 const Avatar = React.memo(({ name, photoUri, size = 36 }: { name: string; photoUri?: string; size?: number }) => {
   const { colors: COLORS } = useTheme();
@@ -890,11 +878,20 @@ const FeedScreen: React.FC = () => {
               </Text>
               <Text style={styles.emptySub}>
                 {activeTab === 'following'
-                  ? 'Find people to follow in Top Spotters'
+                  ? 'Follow some explorers to see their sightings here'
                   : activeTab === 'mine'
                   ? 'Identify an animal to log your first sighting'
                   : 'Be the first to spot something!'}
               </Text>
+              {activeTab === 'following' && (
+                <TouchableOpacity
+                  style={styles.emptyCtaBtn}
+                  onPress={() => switchTab('top')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.emptyCtaText}>🏆 Browse Top Spotters</Text>
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
             <>
@@ -1090,7 +1087,15 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
   emptyTitle: { fontSize: 17, fontWeight: '700', color: COLORS.white, textAlign: 'center', paddingHorizontal: 32 },
-  emptySub: { fontSize: 13, color: COLORS.grey },
+  emptySub: { fontSize: 13, color: COLORS.grey, textAlign: 'center', paddingHorizontal: 32 },
+  emptyCtaBtn: {
+    marginTop: 8,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 20,
+  },
+  emptyCtaText: { color: COLORS.white, fontWeight: '700', fontSize: 14 },
   feedList: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 20, gap: 14 },
   card: {
     backgroundColor: COLORS.card,

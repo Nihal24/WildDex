@@ -3,13 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   SafeAreaView,
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
   StatusBar,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, ColorScheme } from '../constants/theme';
 import { useTheme } from '../utils/ThemeContext';
@@ -77,7 +77,7 @@ const AnimalDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Photo */}
         {photoUri ? (
-          <Image source={{ uri: photoUri }} style={styles.photo} />
+          <Image source={{ uri: photoUri }} style={styles.photo} contentFit="cover" />
         ) : (
           <View style={styles.photoPlaceholder}>
             <Ionicons name="image-outline" size={48} color={COLORS.darkGrey} />
@@ -85,7 +85,7 @@ const AnimalDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         )}
 
         {/* Name */}
-        <Text style={styles.name}>{label.charAt(0).toUpperCase() + label.slice(1)}</Text>
+        <Text style={styles.name}>{label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</Text>
         {info && <Text style={styles.sciName}>{info.scientificName}</Text>}
 
         {loading && (

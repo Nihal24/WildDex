@@ -8,9 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ColorScheme } from '../constants/theme';
 import { useTheme } from '../utils/ThemeContext';
 import { getSightings, purgeBrokenPhotoSightings, Sighting, getFollowingMapSightings, MapSighting } from '../utils/storage';
-
-const formatLabel = (label: string) =>
-  label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+import { formatLabel } from '../utils/format';
 
 // Unified marker type for display
 type DisplaySighting = {

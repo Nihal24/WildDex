@@ -3,10 +3,61 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   TouchableOpacity,
   Animated,
 } from 'react-native';
+import { Image } from 'expo-image';
+import { formatLabel } from '../utils/format';
+const CONFETTI_COLORS = ['#FFCB05', '#CC0000', '#4CAF50', '#29B6F6', '#FF7043', '#AB47BC'];
+const PARTICLES = Array.from({ length: 18 }, (_, i) => i);
+
+const ConfettiBurst: React.FC<{ active: boolean }> = ({ active }) => {
+  const anims = useRef(PARTICLES.map(() => ({
+    x: new Animated.Value(0),
+    y: new Animated.Value(0),
+    opacity: new Animated.Value(0),
+    rotate: new Animated.Value(0),
+  }))).current;
+
+  useEffect(() => {
+    if (!active) return;
+    const animations = anims.map((a, i) => {
+      const angle = (i / PARTICLES.length) * 2 * Math.PI;
+      const dist = 80 + Math.random() * 80;
+      a.x.setValue(0); a.y.setValue(0); a.opacity.setValue(1); a.rotate.setValue(0);
+      return Animated.parallel([
+        Animated.timing(a.x, { toValue: Math.cos(angle) * dist, duration: 600, useNativeDriver: true }),
+        Animated.timing(a.y, { toValue: Math.sin(angle) * dist - 40, duration: 600, useNativeDriver: true }),
+        Animated.timing(a.rotate, { toValue: 4, duration: 600, useNativeDriver: true }),
+        Animated.sequence([
+          Animated.timing(a.opacity, { toValue: 1, duration: 100, useNativeDriver: true }),
+          Animated.timing(a.opacity, { toValue: 0, duration: 500, delay: 200, useNativeDriver: true }),
+        ]),
+      ]);
+    });
+    Animated.stagger(20, animations).start();
+  }, [active]);
+
+  if (!active) return null;
+  return (
+    <View style={{ position: 'absolute', top: '40%', left: '50%', zIndex: 10 }} pointerEvents="none">
+      {anims.map((a, i) => (
+        <Animated.View
+          key={i}
+          style={{
+            position: 'absolute',
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+            transform: [{ translateX: a.x }, { translateY: a.y }, { rotate: a.rotate.interpolate({ inputRange: [0, 4], outputRange: ['0deg', '720deg'] }) }],
+            opacity: a.opacity,
+          }}
+        />
+      ))}
+    </View>
+  );
+};
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ColorScheme } from '../constants/theme';
@@ -24,10 +75,7 @@ const CatchScreen: React.FC = () => {
   const [speciesCount, setSpeciesCount] = useState(0);
   const [thisSpeciesCount, setThisSpeciesCount] = useState(1);
 
-  const displayName = label
-    .split('_')
-    .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
+  const displayName = formatLabel(label);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.88)).current;
@@ -53,9 +101,11 @@ const CatchScreen: React.FC = () => {
       {/* Tap outside to dismiss */}
       <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={dismiss} />
 
+      <ConfettiBurst active={isNew} />
+
       <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
         {/* Photo */}
-        <Image source={{ uri: photoUri }} style={styles.photo} resizeMode="cover" />
+        <Image source={{ uri: photoUri }} style={styles.photo} contentFit="cover" />
 
         {/* Close button */}
         <TouchableOpacity style={styles.closeBtn} onPress={dismiss}>

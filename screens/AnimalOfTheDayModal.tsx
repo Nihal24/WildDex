@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Modal, View, Text, TouchableOpacity, ActivityIndicator, Animated, Pressable,
+  Modal, View, Text, TouchableOpacity, ActivityIndicator, Animated, Pressable, Share,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../utils/ThemeContext';
 import { getDailyAnimal, DAILY_ANIMALS } from '../utils/dailyAnimal';
-
-const formatLabel = (label: string) =>
-  label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+import { formatLabel } from '../utils/format';
 
 interface Props {
   visible: boolean;
@@ -23,6 +22,14 @@ const AnimalOfTheDayModal: React.FC<Props> = ({ visible, onDismiss, animalLabel 
   const [funFact, setFunFact] = useState<string | null>(null);
   const [sciName, setSciName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const handleShare = () => {
+    const name = formatLabel(animal.label);
+    const fact = funFact ? ` Did you know? ${funFact}` : '';
+    Share.share({
+      message: `Today's Animal of the Day on WildDex: ${animal.emoji} ${name}!${fact}\n\nDownload WildDex on the App Store.`,
+    });
+  };
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(60)).current;
 
@@ -132,20 +139,38 @@ const AnimalOfTheDayModal: React.FC<Props> = ({ visible, onDismiss, animalLabel 
               <View style={{ marginBottom: 28 }} />
             )}
 
-            {/* Dismiss button */}
-            <TouchableOpacity
-              onPress={onDismiss}
-              style={{
-                backgroundColor: C.primary,
-                borderRadius: 14,
-                paddingVertical: 14,
-                alignItems: 'center',
-              }}
-            >
-              <Text style={{ color: C.white, fontSize: 16, fontWeight: '800' }}>
-                Let's go explore! 🌿
-              </Text>
-            </TouchableOpacity>
+            {/* Action buttons */}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                onPress={handleShare}
+                style={{
+                  backgroundColor: C.card,
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  paddingHorizontal: 18,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 1,
+                  borderColor: C.cardBorder,
+                }}
+              >
+                <Ionicons name="share-outline" size={20} color={C.white} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={onDismiss}
+                style={{
+                  flex: 1,
+                  backgroundColor: C.primary,
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ color: C.white, fontSize: 16, fontWeight: '800' }}>
+                  Let's go explore!
+                </Text>
+              </TouchableOpacity>
+            </View>
           </Pressable>
         </Animated.View>
       </Pressable>

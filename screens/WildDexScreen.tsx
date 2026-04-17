@@ -25,18 +25,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, ColorScheme } from '../constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../utils/ThemeContext';
-import { getSightings, getLocalSightings, Sighting, updateSightingLocation, updateSightingLabel, deleteSighting } from '../utils/storage';
+import { getSightings, getLocalSightings, Sighting, updateSightingLocation, updateSightingLabel, deleteSighting, calculateSightingStreak } from '../utils/storage';
 import { getAnimalProfile, AnimalInfo, AnimalStats } from '../utils/claude';
 import { getRarityFromConservationStatus, RarityInfo } from '../utils/rarity';
 import { WorldMap } from '../components/WorldMap';
 import { Continent } from '../utils/claude';
-import { BADGES, Badge, BadgeCounts, getEarnedBadges } from '../utils/badges';
+import { BADGES, Badge, BadgeCounts, getEarnedBadges, BADGE_NOTIFIED_KEY } from '../utils/badges';
+import { formatLabel } from '../utils/format';
 import { getTaxonomyClass, TaxonomyClass } from '../utils/taxonomy';
 
-const BADGE_NOTIFIED_KEY = 'wilddex_notified_badge_ids';
-
-const formatLabel = (label: string) =>
-  label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
 // --- Segmented Control (underline tab style) ---
 const SegmentedControl: React.FC<{ active: 'collection' | 'sightings'; onChange: (v: 'collection' | 'sightings') => void }> = ({ active, onChange }) => {
@@ -278,13 +275,14 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
         return true;
       });
 
-      // Build BadgeCounts (species + per-category)
+      // Build BadgeCounts (species + per-category + streak)
       const byCat: Partial<Record<TaxonomyClass, number>> = {};
       for (const s of uniqueForBadge) {
         const cls = getTaxonomyClass(s.label);
         if (cls) byCat[cls] = (byCat[cls] ?? 0) + 1;
       }
-      const counts: BadgeCounts = { species: uniqueForBadge.length, byCategory: byCat };
+      const streak = calculateSightingStreak(allForBadge);
+      const counts: BadgeCounts = { species: uniqueForBadge.length, byCategory: byCat, streak };
 
       // Compare earned badge IDs to already-notified IDs — only show truly new ones
       const earned = getEarnedBadges(counts).map(b => b.id);
@@ -616,7 +614,7 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
             <Text style={styles.badgeEarnedLabel}>BADGE EARNED</Text>
             <Text style={styles.badgeEmoji}>{newBadge?.emoji}</Text>
             <Text style={styles.badgeName}>{newBadge?.label}</Text>
-            <Text style={styles.badgeDesc}>{newBadge?.description} discovered</Text>
+            <Text style={styles.badgeDesc}>{newBadge?.description}</Text>
             <TouchableOpacity
               style={[styles.badgeBtn, { backgroundColor: newBadge?.color }]}
               onPress={() => setNewBadge(null)}
