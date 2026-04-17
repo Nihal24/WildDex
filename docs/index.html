@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WildDex — Identify & Collect Wildlife</title>
+  <meta name="description" content="Point your camera at any animal and WildDex instantly identifies it. Build your personal wildlife collection, discover fun facts, and share sightings with explorers worldwide." />
+  <meta property="og:title" content="WildDex — Identify & Collect Wildlife" />
+  <meta property="og:description" content="Point your camera at any animal and WildDex instantly identifies it." />
+  <meta property="og:image" content="https://wilddex.app/screenshots/01_community.png" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0D0505;
+      --card: #1A0808;
+      --border: #6B1515;
+      --yellow: #FFCB05;
+      --white: #F5ECD7;
+      --grey: #8A6060;
+      --red: #CC0000;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--white);
+      line-height: 1.6;
+    }
+
+    /* NAV */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(13,5,5,0.92);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+    .logo { font-size: 20px; font-weight: 900; letter-spacing: 3px; color: var(--white); text-decoration: none; }
+    .logo span { color: var(--yellow); }
+    .nav-links { display: flex; gap: 28px; align-items: center; }
+    .nav-links a { color: var(--grey); font-size: 14px; text-decoration: none; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--white); }
+    .btn-nav {
+      background: var(--red);
+      color: var(--white);
+      padding: 9px 22px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .btn-nav:hover { opacity: 0.85; }
+
+    /* HERO */
+    .hero {
+      text-align: center;
+      padding: 100px 24px 80px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--yellow);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border-radius: 20px;
+      margin-bottom: 28px;
+    }
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -1px;
+      margin-bottom: 20px;
+    }
+    .hero h1 span { color: var(--yellow); }
+    .hero p {
+      font-size: 18px;
+      color: var(--grey);
+      max-width: 520px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+    .hero-cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--yellow);
+      color: #0D0505;
+      padding: 14px 32px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 800;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-secondary {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--white);
+      padding: 14px 32px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .btn-secondary:hover { opacity: 0.8; }
+
+    /* SCREENSHOTS */
+    .screenshots {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      padding: 20px 24px 80px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .screenshots::-webkit-scrollbar { display: none; }
+    .screenshots img {
+      height: 480px;
+      border-radius: 28px;
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+      flex-shrink: 0;
+    }
+
+    /* FEATURES */
+    .section { padding: 80px 24px; max-width: 1000px; margin: 0 auto; }
+    .section-label {
+      color: var(--yellow);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .section h2 {
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 900;
+      line-height: 1.15;
+      margin-bottom: 48px;
+    }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 28px;
+    }
+    .feature-icon { font-size: 32px; margin-bottom: 16px; }
+    .feature-card h3 { font-size: 17px; font-weight: 800; margin-bottom: 8px; }
+    .feature-card p { color: var(--grey); font-size: 14px; line-height: 1.65; }
+
+    /* SOCIAL PROOF */
+    .stats {
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+    }
+    .stat {
+      padding: 40px 48px;
+      text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .stat:last-child { border-right: none; }
+    .stat-num { font-size: 40px; font-weight: 900; color: var(--yellow); }
+    .stat-label { color: var(--grey); font-size: 13px; margin-top: 4px; }
+
+    /* CTA BANNER */
+    .cta-banner {
+      text-align: center;
+      padding: 100px 24px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .cta-banner h2 { font-size: clamp(28px, 4vw, 42px); font-weight: 900; margin-bottom: 16px; }
+    .cta-banner p { color: var(--grey); font-size: 16px; margin-bottom: 36px; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    footer p { color: var(--grey); font-size: 13px; }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a { color: var(--grey); font-size: 13px; text-decoration: none; }
+    .footer-links a:hover { color: var(--white); }
+
+    @media (max-width: 600px) {
+      nav { padding: 16px 20px; }
+      .nav-links { gap: 16px; }
+      .stat { padding: 28px 24px; border-right: none; border-bottom: 1px solid var(--border); width: 100%; }
+      .stat:last-child { border-bottom: none; }
+      footer { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="/" class="logo">WILD<span>DEX</span></a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="/support.html">Support</a>
+      <a href="https://apps.apple.com/app/id6761963752" class="btn-nav">Download</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-badge">🌿 Now on the App Store</div>
+    <h1>Your personal<br /><span>wildlife field guide</span></h1>
+    <p>Point your camera at any animal and WildDex instantly identifies it. Build your collection, earn badges, and share discoveries with explorers worldwide.</p>
+    <div class="hero-cta">
+      <a href="https://apps.apple.com/app/id6761963752" class="btn-primary">Download on the App Store</a>
+      <a href="#features" class="btn-secondary">Learn more</a>
+    </div>
+  </section>
+
+  <div class="screenshots">
+    <img src="screenshots/01_community.png" alt="Community feed" />
+    <img src="screenshots/02_explore.png" alt="Explore screen" />
+    <img src="screenshots/03_collection.png" alt="Collection" />
+    <img src="screenshots/04_camera.png" alt="Camera identification" />
+    <img src="screenshots/05_profile.png" alt="Profile and badges" />
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num">1,000+</div>
+      <div class="stat-label">Animal Species</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">Instant</div>
+      <div class="stat-label">AI Identification</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">Free</div>
+      <div class="stat-label">To Download</div>
+    </div>
+  </div>
+
+  <section class="section" id="features">
+    <div class="section-label">Features</div>
+    <h2>Everything a wildlife<br />explorer needs</h2>
+    <div class="features">
+      <div class="feature-card">
+        <div class="feature-icon">📷</div>
+        <h3>Instant AI Identification</h3>
+        <p>Snap a photo of any animal and get an instant identification with scientific name, fun facts, and conservation status.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📖</div>
+        <h3>Build Your Collection</h3>
+        <p>Every species you spot gets logged in your personal WildDex. Watch your collection grow as you explore new habitats.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏆</div>
+        <h3>Earn Badges</h3>
+        <p>Unlock achievements as you discover more species — from Sprout to Summit, and specialist badges for birds, mammals, reptiles, and aquatic life.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌍</div>
+        <h3>Community Feed</h3>
+        <p>See what animals others are spotting around the world. Follow explorers, like sightings, and share your own discoveries.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌿</div>
+        <h3>Animal of the Day</h3>
+        <p>Every morning, discover a new featured animal with a fun fact and scientific name. A daily reason to get outside.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🗺️</div>
+        <h3>Range Maps</h3>
+        <p>See where each species lives around the world. Explore habitat ranges and plan your next wildlife adventure.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-banner">
+    <h2>Start your collection today</h2>
+    <p>Free to download. No subscription required. Just go outside and start spotting.</p>
+    <a href="https://apps.apple.com/app/id6761963752" class="btn-primary">Download on the App Store</a>
+  </section>
+
+  <footer>
+    <p>© 2026 WildDex. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/privacy.html">Privacy Policy</a>
+      <a href="/support.html">Support</a>
+    </div>
+  </footer>
+
+</body>
+</html>
