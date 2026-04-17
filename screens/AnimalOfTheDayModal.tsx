@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Modal, View, Text, TouchableOpacity, ActivityIndicator, Animated, Pressable, Share,
+  Modal, View, Text, TouchableOpacity, ActivityIndicator, Animated, Pressable,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../utils/ThemeContext';
 import { getDailyAnimal, DAILY_ANIMALS } from '../utils/dailyAnimal';
 import { formatLabel } from '../utils/format';
@@ -139,38 +138,20 @@ const AnimalOfTheDayModal: React.FC<Props> = ({ visible, onDismiss, animalLabel 
               <View style={{ marginBottom: 28 }} />
             )}
 
-            {/* Action buttons */}
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <TouchableOpacity
-                onPress={handleShare}
-                style={{
-                  backgroundColor: C.card,
-                  borderRadius: 14,
-                  paddingVertical: 14,
-                  paddingHorizontal: 18,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderWidth: 1,
-                  borderColor: C.cardBorder,
-                }}
-              >
-                <Ionicons name="share-outline" size={20} color={C.white} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={onDismiss}
-                style={{
-                  flex: 1,
-                  backgroundColor: C.primary,
-                  borderRadius: 14,
-                  paddingVertical: 14,
-                  alignItems: 'center',
-                }}
-              >
-                <Text style={{ color: C.white, fontSize: 16, fontWeight: '800' }}>
-                  Let's go explore!
-                </Text>
-              </TouchableOpacity>
-            </View>
+            {/* Dismiss button */}
+            <TouchableOpacity
+              onPress={onDismiss}
+              style={{
+                backgroundColor: C.primary,
+                borderRadius: 14,
+                paddingVertical: 14,
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ color: C.white, fontSize: 16, fontWeight: '800' }}>
+                Let's go explore!
+              </Text>
+            </TouchableOpacity>
           </Pressable>
         </Animated.View>
       </Pressable>
