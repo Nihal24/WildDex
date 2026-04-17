@@ -51,9 +51,7 @@
       <true/>
     </dict>
     <key>NSCameraUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your camera</string>
-    <key>NSMicrophoneUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your microphone</string>
+    <string>WildDex uses your camera to photograph and identify animals in the wild.</string>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
     <key>UIRequiredDeviceCapabilities</key>
@@ -78,7 +76,7 @@
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>WildDex uses your location to log where you spotted each animal.</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>WildDex needs photo access to set your profile picture.</string>
+    <string>WildDex accesses your photo library to identify animals from existing photos and to set your profile picture.</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
     <string>WildDex saves your sighting cards to Photos.</string>
     <key>LSApplicationQueriesSchemes</key>
