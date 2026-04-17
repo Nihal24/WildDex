@@ -25,7 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, ColorScheme } from '../constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../utils/ThemeContext';
-import { getSightings, getLocalSightings, Sighting, updateSightingLocation, updateSightingLabel, deleteSighting, calculateSightingStreak } from '../utils/storage';
+import { getSightings, getLocalSightings, Sighting, updateSightingLocation, updateSightingLabel, deleteSighting } from '../utils/storage';
 import { getAnimalProfile, AnimalInfo, AnimalStats } from '../utils/claude';
 import { getRarityFromConservationStatus, RarityInfo } from '../utils/rarity';
 import { WorldMap } from '../components/WorldMap';
@@ -275,14 +275,13 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
         return true;
       });
 
-      // Build BadgeCounts (species + per-category + streak)
+      // Build BadgeCounts (species + per-category)
       const byCat: Partial<Record<TaxonomyClass, number>> = {};
       for (const s of uniqueForBadge) {
         const cls = getTaxonomyClass(s.label);
         if (cls) byCat[cls] = (byCat[cls] ?? 0) + 1;
       }
-      const streak = calculateSightingStreak(allForBadge);
-      const counts: BadgeCounts = { species: uniqueForBadge.length, byCategory: byCat, streak };
+      const counts: BadgeCounts = { species: uniqueForBadge.length, byCategory: byCat };
 
       // Compare earned badge IDs to already-notified IDs — only show truly new ones
       const earned = getEarnedBadges(counts).map(b => b.id);
