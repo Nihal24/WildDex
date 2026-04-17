@@ -117,7 +117,7 @@ export async function enableAotdNotifications(): Promise<void> {
           title: `${animal.emoji} Animal of the Day: ${name}`,
           body: 'Open WildDex to discover a wild fact!',
           sound: true,
-          data: { type: 'aotd' },
+          data: { type: 'aotd', animalLabel: animal.label },
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,
@@ -128,10 +128,13 @@ export async function enableAotdNotifications(): Promise<void> {
   }
 }
 
-// Called on app open — always refresh the schedule so messages stay current
+// Called on app open — always refresh the schedule so messages stay current.
+// Run sequentially: enableDailyNotification cancels ALL notifications first,
+// so AOTD must be scheduled after to avoid the race condition.
 export async function initNotifications(): Promise<void> {
   const enabled = await getNotificationsEnabled();
   if (enabled !== false) {
-    await Promise.all([enableDailyNotification(), enableAotdNotifications()]);
+    await enableDailyNotification();
+    await enableAotdNotifications();
   }
 }

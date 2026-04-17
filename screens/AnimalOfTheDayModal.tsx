@@ -3,7 +3,7 @@ import {
   Modal, View, Text, TouchableOpacity, ActivityIndicator, Animated, Pressable,
 } from 'react-native';
 import { useTheme } from '../utils/ThemeContext';
-import { getDailyAnimal } from '../utils/dailyAnimal';
+import { getDailyAnimal, DAILY_ANIMALS } from '../utils/dailyAnimal';
 
 const formatLabel = (label: string) =>
   label.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -11,11 +11,15 @@ const formatLabel = (label: string) =>
 interface Props {
   visible: boolean;
   onDismiss: () => void;
+  animalLabel?: string; // override from notification tap — shows the exact animal the notif mentioned
 }
 
-const AnimalOfTheDayModal: React.FC<Props> = ({ visible, onDismiss }) => {
+const AnimalOfTheDayModal: React.FC<Props> = ({ visible, onDismiss, animalLabel }) => {
   const { colors: C } = useTheme();
-  const animal = getDailyAnimal();
+  const baseAnimal = getDailyAnimal();
+  const animal = animalLabel
+    ? (DAILY_ANIMALS.find(a => a.label === animalLabel) ?? baseAnimal)
+    : baseAnimal;
   const [funFact, setFunFact] = useState<string | null>(null);
   const [sciName, setSciName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

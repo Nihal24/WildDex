@@ -73,6 +73,7 @@ const AppInner: React.FC = () => {
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
   const [hasUsername, setHasUsername] = useState<boolean | null>(null);
   const [showAotd, setShowAotd] = useState(false);
+  const [aotdAnimalLabel, setAotdAnimalLabel] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -82,6 +83,14 @@ const AppInner: React.FC = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+    });
+
+    // Check if app was launched by tapping an AOTD notification
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      const data = response?.notification?.request?.content?.data as any;
+      if (data?.type === 'aotd' && data?.animalLabel) {
+        setAotdAnimalLabel(data.animalLabel);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -96,7 +105,7 @@ const AppInner: React.FC = () => {
       supabase.from('profiles').select('username').eq('id', session.user.id).single().then(({ data }) => {
         setHasUsername(!!data?.username);
       });
-      // Show Animal of the Day modal once per calendar day
+      // Show AOTD modal once per calendar day, or always when launched from notification
       const today = new Date().toDateString();
       AsyncStorage.getItem(AOTD_SEEN_KEY).then((lastSeen) => {
         if (lastSeen !== today) setShowAotd(true);
@@ -106,6 +115,7 @@ const AppInner: React.FC = () => {
       setOnboardingDone(null);
       setHasUsername(null);
       setShowAotd(false);
+      setAotdAnimalLabel(undefined);
     }
   }, [session]);
 
@@ -135,7 +145,7 @@ const AppInner: React.FC = () => {
   return (
     <NavigationContainer>
       <RootNavigator />
-      <AnimalOfTheDayModal visible={showAotd} onDismiss={handleAotdDismiss} />
+      <AnimalOfTheDayModal visible={showAotd} onDismiss={handleAotdDismiss} animalLabel={aotdAnimalLabel} />
     </NavigationContainer>
   );
 };
