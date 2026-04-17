@@ -1,0 +1,39 @@
+{
+  "$schema": "https://www.expo.dev/static/schemas/metadata.json",
+  "configVersion": 0,
+  "apple": {
+    "info": {
+      "en-US": {
+        "title": "WildDex - Animal Identifier",
+        "subtitle": "Spot, identify & collect wildlife",
+        "description": "WildDex turns every hike, backyard visit, or safari into a wildlife discovery experience.\n\nPoint your camera at any animal and WildDex identifies it instantly — birds, mammals, reptiles, insects, and more. Build your personal collection, log where you spotted each species, and explore a community of wildlife enthusiasts around the world.\n\n──── FEATURES ────\n\n🦁 INSTANT IDENTIFICATION\nSnap a photo or upload from your library. WildDex recognizes thousands of species and logs the sighting to your personal collection.\n\n📍 LOCATION LOGGING\nPin every sighting on the map. Browse your discoveries on the Explore map and see where others are spotting wildlife near you.\n\n📖 WILDDEX COLLECTION\nYour personal wildlife Pokédex. Every new species you discover gets added to your collection with photos, stats, habitat info, and fun facts.\n\n🏆 BADGES & STREAKS\nEarn badges for discovering bird species, mammals, reptiles, and aquatic life. Keep your daily sighting streak alive.\n\n🌍 COMMUNITY FEED\nSee what animals people are spotting globally. Follow friends, like sightings, and leave comments. Check the Top Spotters leaderboard to see who's found the most species.\n\n🗺️ EXPLORE MAP\nBrowse sightings from people you follow pinned on a live map. Discover hotspots for rare wildlife in your area.\n\n──── PERFECT FOR ────\n• Birdwatchers and nature enthusiasts\n• Hikers and outdoor adventurers\n• Students learning about wildlife\n• Anyone curious about the animals around them\n\nWildDex is free to use. No ads.",
+        "keywords": [
+          "wildlife",
+          "animal identifier",
+          "bird watching",
+          "nature",
+          "species",
+          "field guide",
+          "birdwatching",
+          "hiking",
+          "animal recognition",
+          "nature journal"
+        ],
+        "releaseNotes": "• New badge system: earn Wing, Roar, Scale, and Wave badges by discovering bird, mammal, reptile, and aquatic species\n• Faster feed loading with instant cache\n• Map improvements with your following's sightings\n• Dark mode polish and bug fixes",
+        "marketingUrl": "https://wilddex.net",
+        "supportUrl": "https://wilddex.net/support",
+        "privacyPolicyUrl": "https://wilddex.net/privacy"
+      }
+    },
+    "categories": ["REFERENCE", "EDUCATION"],
+    "review": {
+      "firstName": "Nihal",
+      "lastName": "Mandava",
+      "phone": "+1 (000) 000-0000",
+      "email": "nihalmandava@gmail.com",
+      "demoUsername": "testuser",
+      "demoPassword": "WildDex2025!",
+      "notes": "The app uses the camera to photograph and identify animals. To test: tap the camera tab (center), take or upload a photo of an animal, and the AI will identify it. You can also browse the Community feed without an account. A test account is provided above for full access."
+    }
+  }
+}
