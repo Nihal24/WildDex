@@ -20,6 +20,12 @@ const notifText = (n: AppNotification): string => {
     case 'like': return `${name} liked your sighting`;
     case 'comment': return `${name} commented on your sighting`;
     case 'follow': return `${name} started following you`;
+    case 'new_sighting': {
+      const animal = n.animalLabel
+        ? n.animalLabel.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+        : 'an animal';
+      return `${name} just spotted a ${animal}!`;
+    }
     default: return `${name} interacted with you`;
   }
 };

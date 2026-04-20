@@ -75,7 +75,7 @@ export async function saveSighting(sighting: Sighting): Promise<void> {
       await AsyncStorage.setItem(SIGHTINGS_KEY, JSON.stringify(updated));
     }
 
-    const { error } = await supabase.from('sightings').insert({
+    const { data: inserted, error } = await supabase.from('sightings').insert({
       user_id: userId,
       label: sighting.label.toLowerCase().trim(),
       confidence: sighting.confidence,
@@ -86,8 +86,29 @@ export async function saveSighting(sighting: Sighting): Promise<void> {
       longitude: sighting.longitude,
       caption: sighting.caption ?? null,
       visibility: sighting.visibility ?? 'public',
-    });
-    if (error) console.warn('Supabase sighting sync failed:', error.message);
+    }).select('id').single();
+    if (error) {
+      console.warn('Supabase sighting sync failed:', error.message);
+    } else if (inserted?.id && (sighting.visibility ?? 'public') === 'public') {
+      // Fire-and-forget: notify followers of this new sighting
+      notifyFollowersOfSighting(userId, inserted.id, sighting.label.toLowerCase().trim());
+    }
+  }
+}
+
+async function notifyFollowersOfSighting(actorId: string, sightingId: string, animalLabel: string): Promise<void> {
+  try {
+    const { default: Constants } = await import('expo-constants');
+    const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl;
+    const supabaseKey = Constants.expoConfig?.extra?.supabasePublishableKey;
+    if (!supabaseUrl || !supabaseKey) return;
+    fetch(`${supabaseUrl}/functions/v1/notify-sighting`, {
+      method: 'POST',
+      headers: { apikey: supabaseKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actor_id: actorId, sighting_id: sightingId, animal_label: animalLabel }),
+    }).catch(() => {});
+  } catch {
+    // non-critical
   }
 }
 
@@ -783,7 +804,8 @@ export interface AppNotification {
   actorId?: string;
   actorName: string;
   actorAvatarUrl?: string;
-  type: 'like' | 'comment' | 'follow';
+  type: 'like' | 'comment' | 'follow' | 'new_sighting';
+  animalLabel?: string;
   sightingId?: string;
   sightingPhotoUrl?: string;
   read: boolean;
