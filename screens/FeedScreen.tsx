@@ -246,14 +246,12 @@ const FeedCard = React.memo(({
   const [localLikeCount, setLocalLikeCount] = useState(item.likeCount);
   const [followLoading, setFollowLoading] = useState(false);
   const [likeLoading, setLikeLoading] = useState(false);
+  const heartScale = useRef(new Animated.Value(0)).current;
+  const heartOpacity = useRef(new Animated.Value(0)).current;
+  const lastTap = useRef(0);
 
-  useEffect(() => {
-    setLocalLiked(isLiked);
-  }, [isLiked]);
-
-  useEffect(() => {
-    setLocalLikeCount(item.likeCount);
-  }, [item.likeCount]);
+  useEffect(() => { setLocalLiked(isLiked); }, [isLiked]);
+  useEffect(() => { setLocalLikeCount(item.likeCount); }, [item.likeCount]);
 
   const toggleFollow = async () => {
     setFollowLoading(true);
@@ -274,37 +272,37 @@ const FeedCard = React.memo(({
     setLikeLoading(false);
   };
 
+  const handlePhotoPress = () => {
+    const now = Date.now();
+    if (now - lastTap.current < 350) {
+      // Double-tap: like + heart burst
+      if (!localLiked) toggleLike();
+      heartScale.setValue(0);
+      heartOpacity.setValue(1);
+      Animated.sequence([
+        Animated.spring(heartScale, { toValue: 1, friction: 4, tension: 80, useNativeDriver: true }),
+        Animated.delay(400),
+        Animated.timing(heartOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+      ]).start();
+    }
+    lastTap.current = now;
+  };
+
   return (
     <View style={styles.card}>
-      {/* Photo with header overlaid */}
-      <View style={styles.photoWrapper}>
+      {/* Photo */}
+      <TouchableOpacity activeOpacity={1} onPress={handlePhotoPress} style={styles.photoWrapper}>
         <Image source={{ uri: item.photoUrl }} style={styles.cardPhoto} contentFit="cover" recyclingKey={item.sightingId} />
-        {/* Top gradient scrim for avatar readability */}
-        <LinearGradient
-          colors={['rgba(0,0,0,0.6)', 'transparent']}
-          style={styles.photoTopScrim}
-          pointerEvents="none"
-        />
-        {/* Bottom gradient scrim for animal name */}
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.72)']}
-          style={styles.photoBottomScrim}
-          pointerEvents="none"
-        />
-        {/* Header overlaid on photo */}
+        <LinearGradient colors={['rgba(0,0,0,0.55)', 'transparent']} style={styles.photoTopScrim} pointerEvents="none" />
+        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.65)']} style={styles.photoBottomScrim} pointerEvents="none" />
+
+        {/* Header overlay */}
         <View style={styles.cardHeaderOverlay}>
           <TouchableOpacity onPress={() => onUserPress(item.userId)} style={styles.cardHeaderLeft}>
             <Avatar name={item.displayName} photoUri={item.avatarUrl} />
-            <View style={styles.cardHeaderInfo}>
+            <View>
               <Text style={styles.cardUser}>{item.displayName || 'unknown'}</Text>
-              <View style={styles.cardTimeRow}>
-                <Text style={styles.cardTime}>{timeAgo(item.timestamp)}</Text>
-                <Ionicons
-                  name={item.visibility === 'private' ? 'lock-closed-outline' : item.visibility === 'followers' ? 'people-outline' : 'earth-outline'}
-                  size={13}
-                  color="rgba(255,255,255,0.6)"
-                />
-              </View>
+              <Text style={styles.cardTime}>{timeAgo(item.timestamp)}</Text>
             </View>
           </TouchableOpacity>
           {!isOwn ? (
@@ -316,46 +314,64 @@ const FeedCard = React.memo(({
               {followLoading
                 ? <ActivityIndicator size="small" color="#fff" />
                 : <Text style={[styles.followBtnText, isFollowed && styles.followingBtnText]}>
-                    {isFollowed ? 'Following' : 'Follow'}
+                    {isFollowed ? 'Following' : '+ Follow'}
                   </Text>
               }
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.menuBtn} onPress={() => onMenuPress?.(item)}>
-              <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255,255,255,0.8)" />
+              <Ionicons name="ellipsis-horizontal" size={22} color="rgba(255,255,255,0.9)" />
             </TouchableOpacity>
           )}
         </View>
-        {/* Animal name at bottom of photo */}
+
+        {/* Animal name + location at bottom of photo */}
         <View style={styles.photoLabel}>
           <Text style={styles.cardAnimal}>{formatLabel(item.label)}</Text>
           {item.location ? (
             <View style={styles.photoLocationRow}>
-              <Ionicons name="location-outline" size={11} color="rgba(255,255,255,0.6)" />
+              <Ionicons name="location-outline" size={11} color="rgba(255,255,255,0.65)" />
               <Text style={styles.cardLocation} numberOfLines={1}>{item.location}</Text>
             </View>
           ) : null}
         </View>
-      </View>
 
-      {/* Footer: caption + actions */}
+        {/* Double-tap heart burst */}
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.heartBurst, { opacity: heartOpacity, transform: [{ scale: heartScale }] }]}
+        >
+          <Ionicons name="heart" size={80} color="rgba(255,255,255,0.95)" />
+        </Animated.View>
+      </TouchableOpacity>
+
+      {/* Footer */}
       <View style={styles.cardFooter}>
-        {item.caption ? <Text style={styles.cardCaption}>{item.caption}</Text> : null}
         <View style={styles.cardActions}>
           <TouchableOpacity style={styles.actionBtn} onPress={toggleLike} disabled={likeLoading}>
-            <Ionicons name={localLiked ? 'heart' : 'heart-outline'} size={20} color={localLiked ? '#E05C5C' : COLORS.grey} />
+            <Ionicons name={localLiked ? 'heart' : 'heart-outline'} size={22} color={localLiked ? '#E05C5C' : COLORS.white} />
             {localLikeCount > 0 && <Text style={[styles.actionCount, localLiked && { color: '#E05C5C' }]}>{localLikeCount}</Text>}
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={() => onCommentPress(item.sightingId)}>
-            <Ionicons name="chatbubble-outline" size={18} color={COLORS.grey} />
+            <Ionicons name="chatbubble-outline" size={20} color={COLORS.white} />
             {commentCount > 0 && <Text style={styles.actionCount}>{commentCount}</Text>}
           </TouchableOpacity>
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity style={styles.actionBtn} onPress={() => onSharePress?.(item)}>
+            <Ionicons name="arrow-redo-outline" size={20} color={COLORS.white} />
+          </TouchableOpacity>
           {isOwn && (
-            <TouchableOpacity style={styles.actionBtn} onPress={() => onSharePress?.(item)}>
-              <Ionicons name="share-outline" size={18} color={COLORS.grey} />
+            <TouchableOpacity style={styles.actionBtn} onPress={() => onMenuPress?.(item)}>
+              <Ionicons name="ellipsis-horizontal" size={20} color={COLORS.grey} />
             </TouchableOpacity>
           )}
         </View>
+        {item.caption ? (
+          <Text style={styles.cardCaption}>
+            <Text style={styles.captionUser}>{item.displayName} </Text>
+            {item.caption}
+          </Text>
+        ) : null}
       </View>
     </View>
   );
@@ -615,6 +631,7 @@ const FeedScreen: React.FC = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [feedOffset, setFeedOffset] = useState(0);
+  const feedOffsetRef = useRef(0);
   const [feedHasMore, setFeedHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
@@ -640,31 +657,38 @@ const FeedScreen: React.FC = () => {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
 
+    // On silent focus refresh, skip resetting the feed if user has paginated past page 1
+    // so scroll position is preserved
+    const hasPaginated = feedOffsetRef.current > FEED_PAGE_SIZE;
+
     const [feedData, followIds, userId, myData, unread] = await Promise.all([
-      getFeedSightings(0),
+      (!silent || !hasPaginated) ? getFeedSightings(0) : Promise.resolve(null),
       getFollowingIds(),
       getCurrentUserId_public(),
       getMyFeedSightings(),
       getUnreadNotificationCount(),
     ]);
 
-    const [likedIds, followingFeedData] = await Promise.all([
-      feedData.length > 0 ? getLikedSightingIds(feedData.map((s) => s.sightingId).filter(Boolean)) : Promise.resolve(new Set<string>()),
-      followIds.length > 0 ? getFollowingFeed() : Promise.resolve([]),
-    ]);
+    if (feedData !== null) {
+      const liked = feedData.length > 0
+        ? await getLikedSightingIds(feedData.map((s) => s.sightingId).filter(Boolean))
+        : new Set<string>();
+      setFeed(feedData);
+      feedOffsetRef.current = FEED_PAGE_SIZE;
+      setFeedOffset(FEED_PAGE_SIZE);
+      setFeedHasMore(feedData.length === FEED_PAGE_SIZE);
+      setLikedIds(liked);
+      setFeedCache(feedData);
+    }
 
-    setFeed(feedData);
-    setFeedOffset(FEED_PAGE_SIZE);
-    setFeedHasMore(feedData.length === FEED_PAGE_SIZE);
+    const followingFeedData = followIds.length > 0 ? await getFollowingFeed() : [];
     setFollowingIds(new Set(followIds));
     setMyId(userId);
     setMyFeed(myData);
     setUnreadCount(unread);
-    setLikedIds(likedIds);
     setFollowingFeed(followingFeedData);
     setLoading(false);
     setRefreshing(false);
-    setFeedCache(feedData);
   }, []);
 
   const loadMore = useCallback(async () => {
@@ -683,6 +707,7 @@ const FeedScreen: React.FC = () => {
         setLikedIds((prev) => new Set([...prev, ...moreLiked]));
       }
     }
+    feedOffsetRef.current = feedOffset + FEED_PAGE_SIZE;
     setFeedOffset((prev) => prev + FEED_PAGE_SIZE);
     setFeedHasMore(more.length === FEED_PAGE_SIZE);
     setLoadingMore(false);
@@ -914,12 +939,13 @@ const FeedScreen: React.FC = () => {
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.yellow} />}
                 showsVerticalScrollIndicator={false}
                 scrollEventThrottle={16}
-                windowSize={3}
+                windowSize={5}
                 maxToRenderPerBatch={3}
                 initialNumToRender={3}
                 removeClippedSubviews
+                maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
                 onEndReached={activeTab === 'global' ? loadMore : undefined}
-                onEndReachedThreshold={0.5}
+                onEndReachedThreshold={0.3}
                 ListFooterComponent={activeTab === 'global' && loadingMore
                   ? <ActivityIndicator color={COLORS.yellow} style={{ paddingVertical: 20 }} />
                   : null
@@ -1092,78 +1118,62 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
     borderRadius: 20,
   },
   emptyCtaText: { color: COLORS.white, fontWeight: '700', fontSize: 14 },
-  feedList: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 20, gap: 14 },
+  feedList: { paddingBottom: 20 },
   card: {
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    backgroundColor: COLORS.background,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.cardBorder,
   },
   photoWrapper: { position: 'relative' },
-  cardPhoto: { width: '100%', height: 260 },
+  cardPhoto: { width: '100%', height: 300 },
   photoTopScrim: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 100,
+    position: 'absolute', top: 0, left: 0, right: 0, height: 110,
   },
   photoBottomScrim: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 120,
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: 130,
   },
   cardHeaderOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
+    position: 'absolute', top: 0, left: 0, right: 0,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 14, paddingTop: 14,
   },
   cardHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   avatar: { backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
   avatarLetter: { color: COLORS.white, fontWeight: '700' },
   cardHeaderInfo: { flex: 1 },
-  cardUser: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  cardUser: { color: '#fff', fontWeight: '700', fontSize: 14, letterSpacing: 0.1 },
   cardTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 1 },
-  cardTime: { color: 'rgba(255,255,255,0.65)', fontSize: 11 },
+  cardTime: { color: 'rgba(255,255,255,0.55)', fontSize: 11, marginTop: 2 },
   followBtn: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 20,
+    paddingHorizontal: 14,
     paddingVertical: 6,
-    minWidth: 72,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
+    borderColor: 'rgba(255,255,255,0.3)',
   },
-  followingBtn: { backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.2)' },
+  followingBtn: { backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.25)' },
   followBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  followingBtnText: { color: 'rgba(255,255,255,0.7)' },
+  followingBtnText: { color: 'rgba(255,255,255,0.6)' },
   menuBtn: { padding: 4 },
   photoLabel: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 14,
-    paddingBottom: 14,
-    gap: 2,
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    paddingHorizontal: 14, paddingBottom: 14, gap: 3,
   },
-  cardAnimal: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 0.2 },
+  cardAnimal: { color: '#fff', fontSize: 20, fontWeight: '900', letterSpacing: 0.2 },
   photoLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  cardLocation: { color: 'rgba(255,255,255,0.6)', fontSize: 12, flexShrink: 1 },
-  cardFooter: { padding: 12, paddingTop: 10, gap: 4, backgroundColor: COLORS.card },
-  cardCaption: { color: COLORS.grey, fontSize: 13, lineHeight: 19, marginBottom: 4 },
-  cardActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  actionCount: { color: COLORS.grey, fontSize: 13 },
+  cardLocation: { color: 'rgba(255,255,255,0.65)', fontSize: 12, flexShrink: 1 },
+  heartBurst: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  cardFooter: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 14, gap: 8 },
+  cardActions: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  actionCount: { color: COLORS.white, fontSize: 13, fontWeight: '600' },
+  cardCaption: { color: COLORS.white, fontSize: 13, lineHeight: 19 },
+  captionUser: { fontWeight: '700', color: COLORS.white },
   // Comments modal
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalSheet: {
