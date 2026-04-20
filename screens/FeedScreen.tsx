@@ -6,8 +6,6 @@ import {
   Animated, PanResponder,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { captureRef } from 'react-native-view-shot';
-import * as Sharing from 'expo-sharing';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -227,6 +225,7 @@ const FeedCard = React.memo(({
   onUserPress,
   onCommentPress,
   onMenuPress,
+  onSharePress,
 }: {
   item: FeedSighting;
   myId: string | null;
@@ -365,21 +364,18 @@ const FeedCard = React.memo(({
 const ShareModal = React.memo(({ item, onClose }: { item: FeedSighting | null; onClose: () => void }) => {
   const { colors: COLORS } = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-  const shareCardRef = useRef<View>(null);
   const [sharing, setSharing] = useState(false);
 
   const doShare = async () => {
+    if (!item) return;
     setSharing(true);
     try {
-      const uri = await captureRef(shareCardRef, { format: 'jpg', quality: 0.95, result: 'tmpfile' });
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(uri, { mimeType: 'image/jpeg', dialogTitle: `${formatLabel(item!.label)} on WildDex` });
-      } else {
-        await Share.share({ url: item!.photoUrl, message: `Check out this ${formatLabel(item!.label)} I spotted on WildDex! 🦁` });
-      }
+      await Share.share({
+        message: `Check out this ${formatLabel(item.label)} spotted on WildDex!`,
+        url: item.photoUrl,
+      });
     } catch {
-      if (item) await Share.share({ url: item.photoUrl, message: `Check out this ${formatLabel(item.label)} I spotted on WildDex! 🦁` });
+      // user cancelled — no-op
     } finally {
       setSharing(false);
       onClose();
@@ -392,7 +388,7 @@ const ShareModal = React.memo(({ item, onClose }: { item: FeedSighting | null; o
     <Modal visible animationType="fade" transparent onRequestClose={onClose}>
       <TouchableOpacity style={styles.shareOverlay} activeOpacity={1} onPress={onClose}>
         <TouchableOpacity activeOpacity={1} style={styles.shareContainer} onPress={() => {}}>
-          <View ref={shareCardRef} style={styles.shareCard} collapsable={false}>
+          <View style={styles.shareCard}>
             <ImageBackground source={{ uri: item.photoUrl }} style={styles.shareCardPhoto} resizeMode="cover">
               <LinearGradient
                 colors={['rgba(0,0,0,0.18)', 'transparent', 'transparent', 'rgba(0,0,0,0.82)']}
@@ -919,8 +915,8 @@ const FeedScreen: React.FC = () => {
                 showsVerticalScrollIndicator={false}
                 scrollEventThrottle={16}
                 windowSize={3}
-                maxToRenderPerBatch={4}
-                initialNumToRender={4}
+                maxToRenderPerBatch={3}
+                initialNumToRender={3}
                 removeClippedSubviews
                 onEndReached={activeTab === 'global' ? loadMore : undefined}
                 onEndReachedThreshold={0.5}

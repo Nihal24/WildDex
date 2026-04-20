@@ -436,7 +436,7 @@ function mapSighting(row: any): FeedSighting {
 // Embed like/comment counts directly in the query — no separate enrichment needed
 const FEED_SELECT = 'id, label, confidence, photo_url, timestamp, location, user_id, caption, visibility, profiles(username, avatar_url), likes(count), comments(count)';
 
-export const FEED_PAGE_SIZE = 15;
+export const FEED_PAGE_SIZE = 8;
 
 export async function getFeedSightings(offset = 0): Promise<FeedSighting[]> {
   const { data, error } = await supabase
