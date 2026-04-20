@@ -72,48 +72,35 @@ const AnimalOfTheDayModal: React.FC<Props> = ({ visible, onDismiss, animalLabel 
             paddingBottom: 44,
             overflow: 'hidden',
           }}>
+            {/* Handle + AOTD label — always on card background */}
+            <View style={{ alignItems: 'center', paddingTop: 14, paddingBottom: 12 }}>
+              <View style={{
+                width: 40, height: 4, borderRadius: 2,
+                backgroundColor: C.cardBorder, marginBottom: 12,
+              }} />
+              <Text style={{
+                color: C.yellow, fontSize: 11, fontWeight: '700',
+                letterSpacing: 1.5, textTransform: 'uppercase',
+              }}>
+                🌿 Animal of the Day
+              </Text>
+            </View>
+
             {/* Hero photo */}
             {animal?.photo_url ? (
-              <View style={{ width: '100%', height: 240 }}>
-                <Image
-                  source={{ uri: animal.photo_url }}
-                  style={{ width: '100%', height: '100%' }}
-                  contentFit="cover"
-                />
-                {/* Gradient overlay for text legibility */}
-                <View style={{
-                  position: 'absolute', bottom: 0, left: 0, right: 0, height: 100,
-                  background: 'transparent',
-                }} pointerEvents="none" />
-                {/* AOTD label over photo */}
-                <View style={{ position: 'absolute', top: 16, left: 0, right: 0, alignItems: 'center' }}>
-                  <View style={{
-                    backgroundColor: 'rgba(0,0,0,0.45)',
-                    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5,
-                    borderWidth: 1, borderColor: C.yellow,
-                  }}>
-                    <Text style={{
-                      color: C.yellow, fontSize: 11, fontWeight: '700',
-                      letterSpacing: 1.5, textTransform: 'uppercase',
-                    }}>
-                      🌿 Animal of the Day
-                    </Text>
-                  </View>
-                </View>
-              </View>
+              <Image
+                source={{ uri: animal.photo_url }}
+                style={{ width: '100%', height: 220 }}
+                contentFit="cover"
+              />
             ) : (
-              <View style={{ height: 160, justifyContent: 'center', alignItems: 'center', backgroundColor: C.background }}>
+              <View style={{ height: 180, justifyContent: 'center', alignItems: 'center', backgroundColor: C.background }}>
                 <ActivityIndicator color={C.yellow} />
               </View>
             )}
 
             {/* Content */}
             <View style={{ padding: 24, paddingTop: 20 }}>
-              {/* Handle bar */}
-              <View style={{
-                width: 40, height: 4, borderRadius: 2,
-                backgroundColor: C.cardBorder, alignSelf: 'center', marginBottom: 16,
-              }} />
 
               {/* Animal name */}
               <View style={{ alignItems: 'center', marginBottom: 20 }}>
