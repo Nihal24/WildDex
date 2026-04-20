@@ -1,6 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getDailyAnimal, DAILY_ANIMALS } from './dailyAnimal';
+import { loadDailyAnimals, getDailyAnimalFromList } from './dailyAnimal';
 
 const NOTIF_ENABLED_KEY = 'wilddex_daily_notif_enabled';
 const NOTIF_HOUR_KEY = 'wilddex_daily_notif_hour';
@@ -104,8 +104,9 @@ export async function enableAotdNotifications(): Promise<void> {
   const today = new Date();
 
   // Schedule 14 days of AOTD morning notifications, each with the correct animal
+  const dailyAnimals = await loadDailyAnimals();
   for (let i = 0; i < 14; i++) {
-    const animal = getDailyAnimal(i);
+    const animal = getDailyAnimalFromList(dailyAnimals, i);
     const name = formatLabel(animal.label);
     const triggerDate = new Date(today);
     triggerDate.setDate(today.getDate() + i);
