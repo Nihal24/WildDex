@@ -195,14 +195,20 @@ const ProfileScreen: React.FC = () => {
           <View style={styles.statsDivider} />
 
           <View style={styles.statsRow}>
-            <View style={styles.statBox}>
-              <Text style={styles.statNum}>{sightingCount}</Text>
-              <Text style={styles.statLabel}>Sightings</Text>
+            <View style={[styles.statCard, { borderColor: COLORS.yellow + '40' }]}>
+              <Text style={styles.statCardIcon}>🐾</Text>
+              <Text style={[styles.statCardNum, { color: COLORS.yellow }]}>{discoveredCount}</Text>
+              <Text style={styles.statCardLabel}>Species</Text>
             </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statBox}>
-              <Text style={styles.statNum}>{streak > 0 ? `${streak}🔥` : '—'}</Text>
-              <Text style={styles.statLabel}>Day Streak</Text>
+            <View style={[styles.statCard, { borderColor: COLORS.primary + '60' }]}>
+              <Text style={styles.statCardIcon}>📍</Text>
+              <Text style={[styles.statCardNum, { color: COLORS.white }]}>{sightingCount}</Text>
+              <Text style={styles.statCardLabel}>Sightings</Text>
+            </View>
+            <View style={[styles.statCard, { borderColor: '#FF6B3520' }]}>
+              <Text style={styles.statCardIcon}>🔥</Text>
+              <Text style={[styles.statCardNum, { color: streak > 0 ? '#FF6B35' : COLORS.grey }]}>{streak > 0 ? streak : '—'}</Text>
+              <Text style={styles.statCardLabel}>Day Streak</Text>
             </View>
           </View>
         </View>
@@ -279,11 +285,16 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   followLabel: { fontSize: 11, color: COLORS.grey, marginTop: 1 },
   followDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: COLORS.cardBorder },
   statsDivider: { width: '100%', height: 1, backgroundColor: COLORS.cardBorder, marginTop: 8 },
-  statsRow: { flexDirection: 'row', width: '100%', paddingTop: 8 },
-  statBox: { flex: 1, alignItems: 'center' },
-  statNum: { fontSize: 28, fontWeight: '900', color: COLORS.yellow },
-  statLabel: { fontSize: 12, color: COLORS.grey, marginTop: 2 },
-  statDivider: { width: 1, backgroundColor: COLORS.cardBorder },
+  statsRow: { flexDirection: 'row', width: '100%', paddingTop: 12, paddingBottom: 4, gap: 8 },
+  statCard: {
+    flex: 1, alignItems: 'center', paddingVertical: 12,
+    backgroundColor: COLORS.background,
+    borderRadius: 14, borderWidth: 1,
+    gap: 2,
+  },
+  statCardIcon: { fontSize: 18, marginBottom: 2 },
+  statCardNum: { fontSize: 22, fontWeight: '900' },
+  statCardLabel: { fontSize: 11, color: COLORS.grey, marginTop: 1 },
 
   card: {
     backgroundColor: COLORS.card, borderRadius: 20, borderWidth: 1,

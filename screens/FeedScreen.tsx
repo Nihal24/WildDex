@@ -629,6 +629,98 @@ const LeaderboardRow = ({ entry, rank, myId, onPress }: { entry: LeaderboardEntr
   );
 };
 
+const PhotoViewer: React.FC<{
+  photoViewer: { url: string; label: string } | null;
+  onClose: () => void;
+}> = ({ photoViewer, onClose }) => {
+  const translateY = useRef(new Animated.Value(0)).current;
+  const bgOpacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (photoViewer) {
+      translateY.setValue(0);
+      bgOpacity.setValue(1);
+    }
+  }, [photoViewer]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 8 && Math.abs(gs.dy) > Math.abs(gs.dx),
+      onPanResponderMove: (_, gs) => {
+        if (gs.dy > 0) {
+          translateY.setValue(gs.dy);
+          bgOpacity.setValue(Math.max(0, 1 - gs.dy / 300));
+        }
+      },
+      onPanResponderRelease: (_, gs) => {
+        if (gs.dy > 100 || gs.vy > 0.8) {
+          Animated.parallel([
+            Animated.timing(translateY, { toValue: 700, duration: 250, useNativeDriver: true }),
+            Animated.timing(bgOpacity, { toValue: 0, duration: 250, useNativeDriver: true }),
+          ]).start(onClose);
+        } else {
+          Animated.parallel([
+            Animated.spring(translateY, { toValue: 0, useNativeDriver: true }),
+            Animated.timing(bgOpacity, { toValue: 1, duration: 150, useNativeDriver: true }),
+          ]).start();
+        }
+      },
+    })
+  ).current;
+
+  return (
+    <Modal
+      visible={!!photoViewer}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,1)', opacity: bgOpacity }}>
+        {/* Red close button */}
+        <TouchableOpacity
+          style={{ position: 'absolute', top: 52, right: 16, zIndex: 10, backgroundColor: '#C0392B', borderRadius: 20, padding: 6 }}
+          onPress={onClose}
+        >
+          <Ionicons name="close" size={22} color="#fff" />
+        </TouchableOpacity>
+
+        {/* Swipe hint */}
+        <View style={{ position: 'absolute', top: 58, left: 0, right: 0, alignItems: 'center' }} pointerEvents="none">
+          <Ionicons name="chevron-down" size={18} color="rgba(255,255,255,0.3)" />
+        </View>
+
+        {/* Draggable image */}
+        {photoViewer && (
+          <Animated.View
+            style={{ flex: 1, transform: [{ translateY }] }}
+            {...panResponder.panHandlers}
+          >
+            <Image
+              source={{ uri: photoViewer.url }}
+              style={{ flex: 1 }}
+              contentFit="contain"
+            />
+          </Animated.View>
+        )}
+
+        {/* Animal label */}
+        {photoViewer && (
+          <Animated.View
+            style={{ position: 'absolute', bottom: 48, left: 0, right: 0, alignItems: 'center', transform: [{ translateY }] }}
+            pointerEvents="none"
+          >
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }}>
+              {formatLabel(photoViewer.label)}
+            </Text>
+          </Animated.View>
+        )}
+      </Animated.View>
+    </Modal>
+  );
+};
+
 const FeedScreen: React.FC = () => {
   const { colors: COLORS } = useTheme();
   const styles = makeStyles(COLORS);
@@ -671,14 +763,15 @@ const FeedScreen: React.FC = () => {
     if (!silent) setLoading(true);
 
     // On silent focus refresh, skip resetting the feed if user has paginated past page 1
-    // so scroll position is preserved
     const hasPaginated = feedOffsetRef.current > FEED_PAGE_SIZE;
 
-    const [feedData, followIds, userId, myData, unread] = await Promise.all([
+    // Fetch all three feeds in parallel — no waterfall
+    const [feedData, followIds, userId, myData, followingFeedData, unread] = await Promise.all([
       (!silent || !hasPaginated) ? getFeedSightings(0) : Promise.resolve(null),
       getFollowingIds(),
       getCurrentUserId_public(),
       getMyFeedSightings(),
+      getFollowingFeed(),
       getUnreadNotificationCount(),
     ]);
 
@@ -694,12 +787,11 @@ const FeedScreen: React.FC = () => {
       setFeedCache(feedData);
     }
 
-    const followingFeedData = followIds.length > 0 ? await getFollowingFeed() : [];
     setFollowingIds(new Set(followIds));
     setMyId(userId);
     setMyFeed(myData);
-    setUnreadCount(unread);
     setFollowingFeed(followingFeedData);
+    setUnreadCount(unread);
     setLoading(false);
     setRefreshing(false);
   }, []);
@@ -1023,45 +1115,10 @@ const FeedScreen: React.FC = () => {
         )
       )}
       {/* Full-screen photo viewer */}
-      <Modal
-        visible={!!photoViewer}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setPhotoViewer(null)}
-        statusBarTranslucent
-      >
-        {/* Tap outside image to dismiss */}
-        <TouchableOpacity
-          style={{ flex: 1, backgroundColor: '#000' }}
-          activeOpacity={1}
-          onPress={() => setPhotoViewer(null)}
-        >
-          {/* Red close button */}
-          <View style={{ position: 'absolute', top: 52, right: 16, zIndex: 10, backgroundColor: '#C0392B', borderRadius: 20, padding: 6 }}>
-            <Ionicons name="close" size={22} color="#fff" />
-          </View>
-
-          {/* Image — stop propagation so tapping image itself doesn't close */}
-          {photoViewer && (
-            <TouchableOpacity activeOpacity={1} onPress={() => {}} style={{ flex: 1 }}>
-              <Image
-                source={{ uri: photoViewer.url }}
-                style={{ flex: 1 }}
-                contentFit="contain"
-              />
-            </TouchableOpacity>
-          )}
-
-          {/* Animal label */}
-          {photoViewer && (
-            <View style={{ position: 'absolute', bottom: 48, left: 0, right: 0, alignItems: 'center' }} pointerEvents="none">
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }}>
-                {formatLabel(photoViewer.label)}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </Modal>
+      <PhotoViewer
+        photoViewer={photoViewer}
+        onClose={() => setPhotoViewer(null)}
+      />
     </SafeAreaView>
   );
 };

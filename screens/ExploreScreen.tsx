@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, StatusBar, ActivityIndicator, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, StatusBar, ActivityIndicator, TouchableOpacity, Animated, TextInput } from 'react-native';
 import { Image } from 'expo-image';
 import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -83,6 +83,7 @@ const ExploreScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [mapMode, setMapMode] = useState<'mine' | 'following'>('mine');
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const mapRef = useRef<MapView>(null);
   const savedRegion = useRef<Region | null>(null);
   const prevLocatedCount = useRef(0);
@@ -152,8 +153,16 @@ const ExploreScreen: React.FC = () => {
     }));
   };
 
+  // Filter by search query
+  const filterBySearch = (items: DisplaySighting[]) => {
+    if (!searchQuery.trim()) return items;
+    const q = searchQuery.toLowerCase().replace(/\s+/g, '_');
+    return items.filter(s => s.label.toLowerCase().includes(q) ||
+      formatLabel(s.label).toLowerCase().includes(searchQuery.toLowerCase()));
+  };
+
   // Slightly offset markers sharing the same coordinate
-  const rawDisplaySightings = getDisplaySightings();
+  const rawDisplaySightings = filterBySearch(getDisplaySightings());
   const coordCount = new Map<string, number>();
   const displaySightings = rawDisplaySightings.map((s) => {
     const key = `${s.latitude.toFixed(5)},${s.longitude.toFixed(5)}`;
@@ -211,9 +220,36 @@ const ExploreScreen: React.FC = () => {
     toggleOptionActive: { backgroundColor: COLORS.primary },
     toggleText: { color: COLORS.grey, fontWeight: '600', fontSize: 13 },
     toggleTextActive: { color: '#fff', fontWeight: '700' },
+    searchBar: {
+      position: 'absolute',
+      top: 68,
+      left: 16,
+      right: 16,
+      zIndex: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.card,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: COLORS.cardBorder,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      gap: 8,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 6,
+      elevation: 5,
+    },
+    searchInput: {
+      flex: 1,
+      color: COLORS.white,
+      fontSize: 14,
+      padding: 0,
+    },
     countPill: {
       position: 'absolute',
-      top: 16,
+      top: 122,
       right: 16,
       backgroundColor: COLORS.card,
       borderRadius: 16,
@@ -325,6 +361,26 @@ const ExploreScreen: React.FC = () => {
                 <Text style={[styles.toggleText, mapMode === 'following' && styles.toggleTextActive]}>Following</Text>
               </TouchableOpacity>
             </View>
+          </View>
+
+          {/* Search bar */}
+          <View style={styles.searchBar}>
+            <Ionicons name="search-outline" size={16} color={COLORS.grey} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search species…"
+              placeholderTextColor={COLORS.grey}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCorrect={false}
+              autoCapitalize="none"
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={16} color={COLORS.grey} />
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Count badge */}
