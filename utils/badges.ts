@@ -15,16 +15,16 @@ export interface Badge {
 
 export const BADGES: Badge[] = [
   // ── Species count (total unique species discovered) ──
-  { id: 'sprout', type: 'species',  emoji: '🌿', label: 'Sprout',  description: '1 species discovered',   threshold: 1,   color: '#4CAF50' },
-  { id: 'spark',  type: 'species',  emoji: '⚡', label: 'Spark',   description: '10 species discovered',  threshold: 10,  color: '#FFC107' },
-  { id: 'blaze',  type: 'species',  emoji: '🔥', label: 'Blaze',   description: '50 species discovered',  threshold: 50,  color: '#FF5722' },
-  { id: 'summit', type: 'species',  emoji: '🏔️', label: 'Summit',  description: '100 species discovered', threshold: 100, color: '#FFD700' },
+  { id: 'sprout', type: 'species',  emoji: '🌿', label: 'Sprout',  description: '1 species',         threshold: 1,   color: '#4CAF50' },
+  { id: 'spark',  type: 'species',  emoji: '⚡', label: 'Spark',   description: '10 species',        threshold: 10,  color: '#FFC107' },
+  { id: 'blaze',  type: 'species',  emoji: '🔥', label: 'Blaze',   description: '50 species',        threshold: 50,  color: '#FF5722' },
+  { id: 'summit', type: 'species',  emoji: '🏔️', label: 'Summit',  description: '100 species',       threshold: 100, color: '#FFD700' },
 
   // ── Category (unique species per taxonomic class) ──
-  { id: 'wing',  type: 'category', emoji: '🦅', label: 'Wing',  description: '5 bird species discovered',    threshold: 5, color: '#29B6F6', category: 'bird' },
-  { id: 'roar',  type: 'category', emoji: '🦁', label: 'Roar',  description: '5 mammal species discovered',  threshold: 5, color: '#FF8F00', category: 'mammal' },
-  { id: 'scale', type: 'category', emoji: '🦎', label: 'Scale', description: '5 reptile species discovered', threshold: 5, color: '#66BB6A', category: 'reptile' },
-  { id: 'wave',  type: 'category', emoji: '🌊', label: 'Wave',  description: '5 aquatic species discovered', threshold: 5, color: '#0288D1', category: 'aquatic' },
+  { id: 'wing',  type: 'category', emoji: '🦅', label: 'Wing',  description: '5 bird species',    threshold: 5, color: '#29B6F6', category: 'bird' },
+  { id: 'roar',  type: 'category', emoji: '🦁', label: 'Roar',  description: '5 mammal species',  threshold: 5, color: '#FF8F00', category: 'mammal' },
+  { id: 'scale', type: 'category', emoji: '🦎', label: 'Scale', description: '5 reptile species', threshold: 5, color: '#66BB6A', category: 'reptile' },
+  { id: 'wave',  type: 'category', emoji: '🌊', label: 'Wave',  description: '5 aquatic species', threshold: 5, color: '#0288D1', category: 'aquatic' },
 ];
 
 export type BadgeCounts = {

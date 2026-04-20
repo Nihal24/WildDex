@@ -303,7 +303,7 @@ const makeStyles = (COLORS: ColorScheme) => StyleSheet.create({
   badgeEmojiLocked: { opacity: 0.3 },
   badgeLabel: { color: COLORS.white, fontSize: 10, fontWeight: '700', textAlign: 'center' },
   badgeLabelLocked: { color: COLORS.grey },
-  badgeDesc: { color: COLORS.darkGrey, fontSize: 9, textAlign: 'center' },
+  badgeDesc: { color: COLORS.grey, fontSize: 9, textAlign: 'center' },
   nextBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingBottom: 14 },
   nextBadgeText: { color: COLORS.grey, fontSize: 12, flex: 1 },
 

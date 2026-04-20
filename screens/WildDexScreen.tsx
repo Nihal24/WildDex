@@ -433,10 +433,6 @@ const WildDexScreen: React.FC<{ route?: any; navigation?: any }> = ({ route, nav
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>WildDex</Text>
-      </View>
-
       {/* Stats banner */}
       <View style={styles.statsBanner}>
         <View style={styles.statItem}>
